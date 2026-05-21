@@ -288,7 +288,7 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
   </div>
 </section>
 
-<section class="cta-section" id="cta">
+<section class="cta-section" id="cta" style="min-height:500px;">
   <div class="cta-inner">
     <div class="section-label">Early access</div>
     <div class="cta-title reveal">Know what your AI<br>was doing. Always.</div>
@@ -319,8 +319,12 @@ document.querySelectorAll('.reveal').forEach(el=>{
 function handleSubmit(){
     const email = document.getElementById('email-input').value.trim();
     if(!email||!email.includes('@')){alert('Please enter a valid email.');return;}
+    const form = document.getElementById('access-form');
+    const rect = form.getBoundingClientRect();
+    const scrollY = window.scrollY;
     setTimeout(function(){
-      document.getElementById('access-form').outerHTML = '<div style="font-family:var(--mono);font-size:15px;color:var(--ink);padding:16px 24px;text-align:center;background:var(--cream);border:0.5px solid var(--border);border-radius:6px;max-width:420px;margin:0 auto;">✓ You're on the list.<br><span style="font-size:13px;color:var(--mid);">We'll be in touch within 48 hours.</span></div>';
+      form.innerHTML = '<div style="font-family:var(--mono);font-size:15px;color:var(--ink);padding:16px 24px;text-align:center;">✓ You're on the list.<br><span style="font-size:13px;color:var(--mid);">We'll be in touch within 48 hours.</span></div>';
+      window.scrollTo({top: scrollY, behavior: 'instant'});
     }, 800);
   }
 
