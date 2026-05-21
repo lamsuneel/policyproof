@@ -236,7 +236,7 @@ function submitAccess(){
     headers:{'Content-Type':'application/json','Accept':'application/json'},
     body:JSON.stringify({email:email})
   });
-  document.getElementById('cta-box').innerHTML = '<div style="padding:18px 28px;background:#E1F5EE;border:0.5px solid #1D9E75;border-radius:6px;display:inline-block;font-family:\'DM Mono\',monospace;font-size:14px;color:#0F6E56;">✓ You\'re on the list. We\'ll be in touch within 48 hours.</div>';
+  document.getElementById('cta-box').innerHTML = '<div style="padding:18px 28px;background:#E1F5EE;border:0.5px solid #1D9E75;border-radius:6px;display:inline-block;font-family:\'DM Mono\',monospace;font-size:14px;color:#0F6E56;line-height:1.8;">✓ You\'re on the list. We\'ll be in touch within 48 hours.<br><a href="/app.html" style="color:#0F6E56;font-size:13px;margin-top:8px;display:inline-block;text-decoration:underline;">Meanwhile, explore the product demo →</a></div>';
 }
 </script>
 </body>
