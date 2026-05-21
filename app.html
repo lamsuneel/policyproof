@@ -554,17 +554,20 @@ function dlRep(){
 function fmt(iso){if(!iso)return'—';return new Date(iso).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-// Initialize on load
-window.addEventListener('DOMContentLoaded', function(){
-  // ensure home panel is active
-  document.getElementById('panel-home').classList.add('active');
-  document.querySelectorAll('.nav-btn')[0].classList.add('active');
+// Initialize on load - run immediately and also on DOMContentLoaded
+function initApp(){
   updateHome();
   renderHome();
   renderPolicies();
   renderDecisions();
   renderMutationLog();
-});
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 </script>
 </body>
 </html>
