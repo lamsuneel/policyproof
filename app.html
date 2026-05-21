@@ -3,572 +3,335 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>PolicyProof — App</title>
+<title>PolicyProof — AI Compliance You Can Prove</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
-:root{--ink:#0a0a0a;--paper:#f5f2ed;--cream:#ede9e2;--mid:#6b6560;--accent:#c8402a;--border:rgba(10,10,10,0.12);--mono:'DM Mono',monospace;--sans:'Instrument Sans',sans-serif;--ok:#0F6E56;--ok-bg:#E1F5EE;--ok-border:#1D9E75;--warn:#854F0B;--warn-bg:#FAEEDA;--warn-border:#EF9F27;--info:#185FA5;--info-bg:#E6F1FB;--info-border:#378ADD;}
+:root {
+  --ink: #0a0a0a;
+  --paper: #f5f2ed;
+  --cream: #ede9e2;
+  --mid: #6b6560;
+  --accent: #c8402a;
+  --accent-light: #f0e8e5;
+  --border: rgba(10,10,10,0.12);
+  --mono: 'DM Mono', monospace;
+  --serif: 'DM Serif Display', serif;
+  --sans: 'Instrument Sans', sans-serif;
+}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh;}
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:56px;background:rgba(245,242,237,0.95);backdrop-filter:blur(10px);border-bottom:0.5px solid var(--border);}
-.logo{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--ink);}
-.logo span{color:var(--accent);}
-.nav{display:flex;gap:2px;background:var(--cream);border:0.5px solid var(--border);border-radius:6px;padding:3px;}
-.nav-btn{padding:6px 14px;font-size:12px;border:none;border-radius:4px;background:transparent;color:var(--mid);cursor:pointer;transition:all 0.15s;font-family:var(--sans);}
-.nav-btn.active{background:var(--paper);color:var(--ink);font-weight:500;border:0.5px solid var(--border);}
-.main{max-width:960px;margin:0 auto;padding:2rem;}
-.panel{display:none;}
-.panel.active{display:block;}
-.card{background:var(--paper);border:0.5px solid var(--border);border-radius:8px;padding:1.5rem;margin-bottom:1rem;}
-.card-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:1rem;letter-spacing:0.01em;}
-.lbl{font-size:12px;color:var(--mid);margin-bottom:5px;display:block;}
-input[type=text],input[type=email],input[type=datetime-local],textarea,select{width:100%;font-size:13px;padding:9px 12px;border:0.5px solid var(--border);border-radius:5px;background:var(--cream);color:var(--ink);font-family:var(--sans);transition:border-color 0.15s;}
-input:focus,textarea:focus,select:focus{outline:none;border-color:var(--ink);}
-textarea{resize:vertical;line-height:1.6;}
-.btn{padding:8px 18px;font-size:13px;font-weight:500;border:0.5px solid var(--border);border-radius:5px;background:transparent;color:var(--ink);cursor:pointer;transition:all 0.15s;font-family:var(--sans);}
-.btn:hover{background:var(--cream);}
-.btn:active{transform:scale(0.98);}
-.btn-p{background:var(--ink);color:var(--paper);border-color:var(--ink);}
-.btn-p:hover{opacity:0.85;background:var(--ink);}
-.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;}
-.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
-.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
-.metric{background:var(--cream);border-radius:6px;padding:1rem;}
-.mval{font-size:22px;font-weight:600;color:var(--ink);font-family:var(--mono);}
-.mlbl{font-size:11px;color:var(--mid);margin-top:2px;}
-.badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:3px 9px;border-radius:99px;font-weight:500;font-family:var(--mono);}
-.b-ok{background:var(--ok-bg);color:var(--ok);}
-.b-stale{background:var(--warn-bg);color:var(--warn);}
-.b-none{background:var(--cream);color:var(--mid);}
-.b-active{background:var(--info-bg);color:var(--info);}
-.b-mut{background:var(--warn-bg);color:var(--warn);}
-.row{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:0.5px solid var(--border);}
-.row:last-child{border-bottom:none;}
-.dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
-.rbody{flex:1;min-width:0;}
-.rtitle{font-size:13px;font-weight:500;color:var(--ink);}
-.rmeta{font-size:12px;color:var(--mid);margin-top:2px;}
-.rout{font-size:12px;color:var(--mid);margin-top:4px;font-family:var(--mono);background:var(--cream);padding:4px 8px;border-radius:4px;}
-.fe{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
-.fb{display:flex;align-items:center;justify-content:space-between;}
-.empty{text-align:center;padding:2.5rem;color:var(--mid);font-size:13px;}
-.alert{padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start;border:0.5px solid;}
-.aw{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-border);}
-.as{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-border);}
-.ai{background:var(--info-bg);color:var(--info);border-color:var(--info-border);}
-.diff-block{font-family:var(--mono);font-size:12px;line-height:1.8;background:var(--cream);border-radius:6px;padding:1rem;white-space:pre-wrap;word-break:break-word;margin-top:10px;}
-.da{color:var(--ok);background:var(--ok-bg);display:block;padding:0 4px;border-radius:2px;}
-.dr{color:#993C1D;background:#FAECE7;display:block;padding:0 4px;border-radius:2px;text-decoration:line-through;}
-.ds{color:var(--mid);display:block;}
-.report-box{background:var(--cream);border:0.5px solid var(--border);border-radius:6px;padding:1.25rem;font-family:var(--mono);font-size:12px;line-height:1.9;color:var(--ink);white-space:pre-wrap;word-break:break-word;max-height:420px;overflow-y:auto;}
-.flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem;}
-.flow-step{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mid);padding:5px 12px;border:0.5px solid var(--border);border-radius:99px;}
-.flow-step.done{color:var(--ok);border-color:var(--ok-border);background:var(--ok-bg);}
-.flow-arrow{color:var(--mid);font-size:12px;}
-.mb10{margin-bottom:10px;}
-.qa-q{background:var(--cream);border-left:2px solid var(--border);padding:8px 12px;font-size:13px;color:var(--mid);font-style:italic;margin-bottom:6px;border-radius:0 4px 4px 0;}
-.qa-a{background:var(--ok-bg);border:0.5px solid var(--ok-border);border-radius:5px;padding:8px 12px;font-size:13px;color:var(--ok);}
+html{scroll-behavior:smooth;}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;overflow-x:hidden;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 2.5rem;height:60px;background:rgba(245,242,237,0.92);backdrop-filter:blur(12px);border-bottom:0.5px solid var(--border);}
+.nav-logo{font-family:var(--mono);font-size:14px;font-weight:500;letter-spacing:0.02em;color:var(--ink);}
+.nav-logo span{color:var(--accent);}
+.nav-links{display:flex;align-items:center;gap:2rem;}
+.nav-links a{font-size:13px;color:var(--mid);text-decoration:none;transition:color 0.2s;}
+.nav-links a:hover{color:var(--ink);}
+.nav-cta{font-size:13px;font-weight:500;padding:7px 18px;background:var(--ink);color:var(--paper);border-radius:4px;text-decoration:none;transition:opacity 0.2s;}
+.nav-cta:hover{opacity:0.85;}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:120px 2.5rem 80px;position:relative;overflow:hidden;}
+.hero-grid{position:absolute;inset:0;opacity:0.04;background-image:linear-gradient(var(--ink) 1px,transparent 1px),linear-gradient(90deg,var(--ink) 1px,transparent 1px);background-size:60px 60px;}
+.hero-tag{font-family:var(--mono);font-size:11px;letter-spacing:0.12em;color:var(--accent);text-transform:uppercase;margin-bottom:1.5rem;opacity:0;animation:fadeUp 0.6s 0.2s forwards;}
+.hero h1{font-family:var(--serif);font-size:clamp(3rem,6vw,5.5rem);line-height:1.08;letter-spacing:-0.02em;color:var(--ink);max-width:800px;opacity:0;animation:fadeUp 0.7s 0.35s forwards;}
+.hero h1 em{font-style:italic;color:var(--accent);}
+.hero-sub{font-size:1.1rem;color:var(--mid);max-width:520px;margin-top:1.5rem;line-height:1.7;opacity:0;animation:fadeUp 0.7s 0.5s forwards;}
+.hero-actions{display:flex;align-items:center;gap:1rem;margin-top:2.5rem;opacity:0;animation:fadeUp 0.7s 0.65s forwards;}
+.btn-primary{font-size:14px;font-weight:600;padding:13px 28px;background:var(--ink);color:var(--paper);border-radius:4px;text-decoration:none;letter-spacing:0.01em;transition:transform 0.15s,opacity 0.15s;}
+.btn-primary:hover{opacity:0.88;transform:translateY(-1px);}
+.btn-secondary{font-size:14px;color:var(--mid);text-decoration:none;display:flex;align-items:center;gap:6px;transition:color 0.2s;}
+.btn-secondary:hover{color:var(--ink);}
+.hero-stat-row{display:flex;gap:3rem;margin-top:4rem;padding-top:2rem;border-top:0.5px solid var(--border);opacity:0;animation:fadeUp 0.7s 0.8s forwards;}
+.hero-stat{display:flex;flex-direction:column;gap:4px;}
+.hero-stat-val{font-family:var(--mono);font-size:1.6rem;font-weight:500;color:var(--ink);}
+.hero-stat-lbl{font-size:12px;color:var(--mid);}
+
+/* THE QUESTION */
+.question-section{background:var(--ink);color:var(--paper);padding:6rem 2.5rem;}
+.question-inner{max-width:900px;margin:0 auto;text-align:center;}
+.q-label{font-family:var(--mono);font-size:11px;letter-spacing:0.12em;color:rgba(245,242,237,0.4);text-transform:uppercase;margin-bottom:1.5rem;}
+.q-text{font-family:var(--serif);font-size:clamp(1.8rem,3.5vw,3rem);line-height:1.25;color:var(--paper);margin-bottom:2rem;}
+.q-text em{font-style:italic;color:#e8a090;}
+.q-answer{font-size:1rem;color:rgba(245,242,237,0.55);max-width:520px;margin:0 auto;}
+
+/* HOW IT WORKS */
+.how{padding:6rem 2.5rem;background:var(--cream);}
+.how-inner{max-width:1000px;margin:0 auto;}
+.section-label{font-family:var(--mono);font-size:11px;letter-spacing:0.12em;color:var(--accent);text-transform:uppercase;margin-bottom:1rem;}
+.section-title{font-family:var(--serif);font-size:clamp(2rem,3vw,2.8rem);color:var(--ink);margin-bottom:3rem;line-height:1.2;}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);}
+.step{background:var(--cream);padding:2.5rem 2rem;}
+.step-num{font-family:var(--mono);font-size:11px;color:var(--mid);letter-spacing:0.08em;margin-bottom:1.5rem;}
+.step-title{font-family:var(--serif);font-size:1.4rem;color:var(--ink);margin-bottom:0.75rem;line-height:1.2;}
+.step-desc{font-size:14px;color:var(--mid);line-height:1.7;}
+.step-icon{width:36px;height:36px;border:0.5px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;font-family:var(--mono);font-size:16px;}
+
+/* PROBLEM */
+.problem{padding:6rem 2.5rem;background:var(--paper);}
+.problem-inner{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:start;}
+.problem-left{}
+.problem-right{padding-top:1rem;}
+.pain-list{margin-top:2rem;display:flex;flex-direction:column;gap:1px;border:0.5px solid var(--border);}
+.pain-item{padding:1.25rem 1.5rem;background:var(--paper);display:flex;gap:1rem;align-items:flex-start;}
+.pain-item:nth-child(even){background:var(--cream);}
+.pain-icon{font-family:var(--mono);font-size:12px;color:var(--accent);flex-shrink:0;padding-top:2px;}
+.pain-text{font-size:14px;color:var(--ink);line-height:1.6;}
+.proof-box{background:var(--ink);color:var(--paper);padding:2rem;border-radius:4px;}
+.proof-box-label{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;color:rgba(245,242,237,0.4);text-transform:uppercase;margin-bottom:1rem;}
+.proof-line{font-family:var(--mono);font-size:12px;color:rgba(245,242,237,0.7);padding:6px 0;border-bottom:0.5px solid rgba(245,242,237,0.08);display:flex;justify-content:space-between;gap:1rem;}
+.proof-line:last-child{border-bottom:none;}
+.proof-ok{color:#5DCAA5;}
+.proof-warn{color:#EF9F27;}
+
+/* BUYERS */
+.buyers{padding:6rem 2.5rem;background:var(--cream);}
+.buyers-inner{max-width:1000px;margin:0 auto;}
+.buyer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:2.5rem;}
+.buyer-card{background:var(--paper);border:0.5px solid var(--border);padding:2rem;border-radius:4px;}
+.buyer-role{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:0.08em;margin-bottom:0.75rem;}
+.buyer-title{font-size:1.1rem;font-weight:600;color:var(--ink);margin-bottom:0.75rem;}
+.buyer-quote{font-size:13px;color:var(--mid);line-height:1.7;font-style:italic;}
+
+/* REGULATORY */
+.regulatory{padding:5rem 2.5rem;background:var(--ink);color:var(--paper);}
+.reg-inner{max-width:1000px;margin:0 auto;}
+.reg-label{font-family:var(--mono);font-size:11px;letter-spacing:0.12em;color:rgba(245,242,237,0.4);text-transform:uppercase;margin-bottom:1rem;}
+.reg-title{font-family:var(--serif);font-size:clamp(1.8rem,2.5vw,2.4rem);color:var(--paper);margin-bottom:2.5rem;}
+.reg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(245,242,237,0.08);}
+.reg-item{background:var(--ink);padding:1.75rem 1.5rem;}
+.reg-name{font-family:var(--mono);font-size:13px;font-weight:500;color:#e8a090;margin-bottom:0.5rem;}
+.reg-desc{font-size:13px;color:rgba(245,242,237,0.5);line-height:1.6;}
+
+/* CTA */
+.cta-section{padding:7rem 2.5rem;text-align:center;background:var(--paper);}
+.cta-inner{max-width:600px;margin:0 auto;}
+.cta-title{font-family:var(--serif);font-size:clamp(2rem,3.5vw,3rem);color:var(--ink);margin-bottom:1rem;line-height:1.2;}
+.cta-sub{font-size:1rem;color:var(--mid);margin-bottom:2.5rem;line-height:1.7;}
+.cta-actions{display:flex;justify-content:center;align-items:center;gap:1.5rem;}
+.cta-form{display:flex;gap:0;margin-top:0;max-width:420px;margin:0 auto 1rem;}
+.cta-input{flex:1;font-size:14px;padding:12px 16px;border:0.5px solid var(--border);border-right:none;border-radius:4px 0 0 4px;background:var(--paper);color:var(--ink);font-family:var(--sans);}
+.cta-input:focus{outline:none;border-color:var(--ink);}
+.cta-submit{font-size:14px;font-weight:600;padding:12px 24px;background:var(--ink);color:var(--paper);border:none;border-radius:0 4px 4px 0;cursor:pointer;font-family:var(--sans);transition:opacity 0.2s;}
+.cta-submit:hover{opacity:0.85;}
+.cta-note{font-size:12px;color:var(--mid);margin-top:0.75rem;}
+
+/* FOOTER */
+footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.footer-logo{font-family:var(--mono);font-size:13px;color:var(--mid);}
+.footer-note{font-size:12px;color:var(--mid);}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity 0.6s,transform 0.6s;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+
+@media(max-width:768px){
+  .steps,.problem-inner,.buyer-grid,.reg-grid{grid-template-columns:1fr;}
+  .hero h1{font-size:2.6rem;}
+  .hero-stat-row{gap:2rem;flex-wrap:wrap;}
+  nav{padding:0 1.25rem;}
+  .hero,.how,.problem,.buyers,.regulatory,.cta-section{padding-left:1.25rem;padding-right:1.25rem;}
+}
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <a href="/" class="logo" style="text-decoration:none;">Policy<span>Proof</span></a>
-  <div class="nav">
-    <button class="nav-btn active" onclick="go('home')">Home</button>
-    <button class="nav-btn" onclick="go('policies')">Policies</button>
-    <button class="nav-btn" onclick="go('mutations')">Mutations</button>
-    <button class="nav-btn" onclick="go('decisions')">Decisions</button>
-    <button class="nav-btn" onclick="go('audit')">Audit</button>
+<nav>
+  <a href="#" class="nav-logo" style="text-decoration:none;">Policy<span>Proof</span></a>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#buyers">Who it's for</a>
+    <a href="#regulatory">Regulatory</a>
   </div>
-</div>
+  <a href="#cta" class="nav-cta">Request access</a>
+</nav>
 
-<div style="background:#FAEEDA;border-bottom:0.5px solid #EF9F27;padding:8px 2rem;display:flex;align-items:center;justify-content:space-between;">
-  <span style="font-size:12px;color:#854F0B;font-family:var(--mono);">⚡ Demo mode — pre-loaded with sample insurance data so you can explore immediately</span>
-  <div style="display:flex;gap:8px;">
-    <button onclick="clearAll()" style="font-size:11px;padding:4px 12px;border:0.5px solid #EF9F27;border-radius:4px;background:transparent;color:#854F0B;cursor:pointer;font-family:var(--sans);">Start fresh</button>
-    <button onclick="resetDemo()" style="font-size:11px;padding:4px 12px;border:0.5px solid #EF9F27;border-radius:4px;background:transparent;color:#854F0B;cursor:pointer;font-family:var(--sans);">Reset demo</button>
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-tag">Insurance AI Governance</div>
+  <h1>Your AI made a decision.<br>Can you prove <em>which rules</em><br>it was following?</h1>
+  <p class="hero-sub">PolicyProof detects when compliance constraints change, verifies every AI decision against the active policy at that moment, and generates regulator-ready audit proof in one click.</p>
+  <div class="hero-actions">
+    <a href="#cta" class="btn-primary">Request early access</a>
+    <a href="#how" class="btn-secondary">See how it works →</a>
   </div>
-</div>
-<div class="main">
-
-  <!-- HOME -->
-  <div class="panel active" id="panel-home">
-    <div class="g4 mb10">
-      <div class="metric"><div class="mval" id="h-policies">0</div><div class="mlbl">Policy versions</div></div>
-      <div class="metric"><div class="mval" id="h-mutations">0</div><div class="mlbl">Mutations detected</div></div>
-      <div class="metric"><div class="mval" id="h-decisions">0</div><div class="mlbl">Decisions logged</div></div>
-      <div class="metric"><div class="mval" id="h-compliance">—</div><div class="mlbl">Compliance rate</div></div>
+  <div class="hero-stat-row">
+    <div class="hero-stat">
+      <span class="hero-stat-val">39%</span>
+      <span class="hero-stat-lbl">of insurers cite AI governance as top deployment blocker</span>
     </div>
-    <div class="card">
-      <div class="card-title">Workflow progress</div>
-      <div class="flow">
-        <div class="flow-step" id="fs1">① Register policies</div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-step" id="fs2">② Detect mutations</div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-step" id="fs3">③ Log decisions</div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-step" id="fs4">④ Audit & export</div>
-      </div>
-      <div id="home-alerts"></div>
+    <div class="hero-stat">
+      <span class="hero-stat-val">6 wks</span>
+      <span class="hero-stat-lbl">average AI workflow duration — policy can change 3× in that window</span>
     </div>
-    <div class="card">
-      <div class="card-title">Recent activity</div>
-      <div id="home-activity"><div class="empty">No activity yet. Start by registering a policy version.</div></div>
+    <div class="hero-stat">
+      <span class="hero-stat-val">0</span>
+      <span class="hero-stat-lbl">tools today can answer "which policy version was active in March?"</span>
     </div>
   </div>
+</section>
 
-  <!-- POLICIES -->
-  <div class="panel" id="panel-policies">
-    <div class="card">
-      <div class="card-title">Register policy version</div>
-      <div class="mb10"><label class="lbl">Version label</label><input type="text" id="pol-label" placeholder="e.g. Q2 2026 Underwriting Guidelines"/></div>
-      <div class="g2 mb10">
-        <div><label class="lbl">Effective from</label><input type="datetime-local" id="pol-from"/></div>
-        <div><label class="lbl">Effective until (blank = current)</label><input type="datetime-local" id="pol-until"/></div>
+<section class="question-section">
+  <div class="question-inner">
+    <div class="q-label">The audit question nobody can answer</div>
+    <div class="q-text">"Which policy version was your AI enforcing on claims reviewed <em>in March</em>?"</div>
+    <div class="q-answer">Every insurer running AI-assisted workflows faces this question. Almost none can answer it. PolicyProof makes it answerable — in seconds, not days.</div>
+  </div>
+</section>
+
+<section class="how" id="how">
+  <div class="how-inner">
+    <div class="section-label reveal">How it works</div>
+    <div class="section-title reveal">Three engines.<br>One audit trail.</div>
+    <div class="steps reveal">
+      <div class="step">
+        <div class="step-num">01 / DETECT</div>
+        <div class="step-icon">⟆</div>
+        <div class="step-title">Mutation detector</div>
+        <div class="step-desc">Every time your compliance policy or underwriting guidelines change, PolicyProof detects it, versions it, timestamps it, and shows you exactly what constraint mutated — line by line.</div>
       </div>
-      <div class="mb10"><label class="lbl">Policy constraints (key rules)</label><textarea id="pol-text" rows="6" placeholder="e.g.&#10;Max coverage: $2M&#10;Flood exclusion applies in Zone A&#10;Auto-approval threshold: $50,000&#10;Risk score above 85 requires manual review"></textarea></div>
-      <div class="fe"><button class="btn btn-p" onclick="addPolicy()">+ Save version</button></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Policy vault</div>
-      <div id="policy-list"><div class="empty">No policies registered yet.</div></div>
+      <div class="step">
+        <div class="step-num">02 / VERIFY</div>
+        <div class="step-icon">✓</div>
+        <div class="step-title">Verification engine</div>
+        <div class="step-desc">Every AI decision is tagged with the policy version active at that exact moment. If the AI used a stale version, the system flags it instantly — before it reaches an auditor.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">03 / PROVE</div>
+        <div class="step-icon">⬡</div>
+        <div class="step-title">Audit report generator</div>
+        <div class="step-desc">One click produces a complete, regulator-ready document: which decisions were made, which policy governed each one, and what changed when. No manual reconstruction. No spreadsheets.</div>
+      </div>
     </div>
   </div>
+</section>
 
-  <!-- MUTATIONS -->
-  <div class="panel" id="panel-mutations">
-    <div class="card">
-      <div class="card-title">Detect constraint mutations</div>
-      <div class="g2 mb10">
-        <div><label class="lbl">Baseline version</label><select id="cmp-a"><option value="">Select</option></select></div>
-        <div><label class="lbl">Current version</label><select id="cmp-b"><option value="">Select</option></select></div>
+<section class="problem" id="problem">
+  <div class="problem-inner">
+    <div>
+      <div class="section-label reveal">The problem</div>
+      <div class="section-title reveal">AI workflows run for weeks.<br>Policies change.<br>Nobody knows.</div>
+      <div class="pain-list reveal">
+        <div class="pain-item"><span class="pain-icon">01</span><span class="pain-text">An underwriting AI runs a 6-week workflow. Policy updates in week 3. The AI keeps enforcing week-1 rules for the remaining 3 weeks.</span></div>
+        <div class="pain-item"><span class="pain-icon">02</span><span class="pain-text">Regulator asks: "which version was active for claims reviewed in March?" Your team spends 3 days reconstructing logs. Manually.</span></div>
+        <div class="pain-item"><span class="pain-icon">03</span><span class="pain-text">Nobody can prove the AI got the memo when a state regulation changed. The compliance team has no way to verify without reviewing every output.</span></div>
+        <div class="pain-item"><span class="pain-icon">04</span><span class="pain-text">Engineers get pulled off the roadmap every time there's an audit. Days of work to answer questions that should take seconds.</span></div>
       </div>
-      <div class="fe"><button class="btn btn-p" onclick="runDiff()">Detect mutations</button></div>
     </div>
-    <div id="diff-result"></div>
-    <div class="card">
-      <div class="card-title">Mutation log</div>
-      <div id="mutation-log"><div class="empty">No mutations detected yet.</div></div>
+    <div>
+      <div class="proof-box reveal">
+        <div class="proof-box-label">PolicyProof audit trail — example output</div>
+        <div class="proof-line"><span>UW-2026-0441 · Jan 15</span><span class="proof-ok">compliant</span></div>
+        <div class="proof-line"><span>UW-2026-0442 · Feb 03</span><span class="proof-ok">compliant</span></div>
+        <div class="proof-line"><span>UW-2026-0443 · Apr 10</span><span class="proof-warn">stale drift ⚠</span></div>
+        <div class="proof-line"><span>Policy used: Q1 2026 rules</span><span style="color:rgba(245,242,237,0.3)">active: Q2 2026</span></div>
+        <div class="proof-line"><span>CLM-2026-0101 · Mar 22</span><span class="proof-ok">compliant</span></div>
+        <div class="proof-line"><span>CLM-2026-0102 · Apr 18</span><span class="proof-warn">stale drift ⚠</span></div>
+        <br/>
+        <div style="font-family:var(--mono);font-size:11px;color:rgba(245,242,237,0.3);">Report generated: May 20, 2026 · PolicyProof v1</div>
+        <div style="font-family:var(--mono);font-size:11px;color:rgba(245,242,237,0.3);margin-top:4px;">Compliance rate: 67% · 2 decisions flagged for review</div>
+      </div>
+      <div style="margin-top:1.5rem;padding:1.5rem;border:0.5px solid var(--border);" class="reveal">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--mid);margin-bottom:0.75rem;letter-spacing:0.06em;">REGULATOR ANSWER — INSTANT</div>
+        <div style="font-size:14px;color:var(--ink);line-height:1.7;">"Q1 2026 Underwriting Rules were active from Jan 1 to Mar 31. Q2 2026 rules became effective Apr 1. 2 decisions made after Apr 1 used the prior version — both have been flagged and queued for review."</div>
+      </div>
     </div>
   </div>
+</section>
 
-  <!-- DECISIONS -->
-  <div class="panel" id="panel-decisions">
-    <div class="card">
-      <div class="card-title">Log AI decision</div>
-      <div class="g2 mb10">
-        <div><label class="lbl">Decision ID</label><input type="text" id="dec-id" placeholder="e.g. UW-2026-0441"/></div>
-        <div><label class="lbl">Decision type</label><select id="dec-type"><option>Underwriting approval</option><option>Claims routing</option><option>Coverage determination</option><option>Risk scoring</option><option>Exception review</option></select></div>
+<section class="buyers" id="buyers">
+  <div class="buyers-inner">
+    <div class="section-label reveal">Who it's for</div>
+    <div class="section-title reveal">Built for the people<br>who own the risk.</div>
+    <div class="buyer-grid reveal">
+      <div class="buyer-card">
+        <div class="buyer-role">Chief Compliance Officer</div>
+        <div class="buyer-title">Finally answerable in an exam</div>
+        <div class="buyer-quote">"We can't deploy AI in production without being able to prove, at any point in time, what rules it was following. That's not a technical problem — it's a governance problem."</div>
       </div>
-      <div class="g2 mb10">
-        <div><label class="lbl">Decision timestamp</label><input type="datetime-local" id="dec-time"/></div>
-        <div><label class="lbl">Policy version used by AI</label><select id="dec-pol"><option value="">Not declared</option></select></div>
+      <div class="buyer-card">
+        <div class="buyer-role">VP Underwriting / Claims Ops</div>
+        <div class="buyer-title">Stop pulling engineers for audits</div>
+        <div class="buyer-quote">"Every state examination costs us 3–5 engineering days just reconstructing what our AI did and when. PolicyProof turns that into a one-click report."</div>
       </div>
-      <div class="mb10"><label class="lbl">AI output summary</label><textarea id="dec-out" rows="3" placeholder="e.g. Approved. Coverage $1.8M. Flood rider excluded. Risk score: 72."></textarea></div>
-      <div class="fe"><button class="btn btn-p" onclick="logDecision()">Log & verify</button></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Decision log</div>
-      <div id="decision-log"><div class="empty">No decisions logged yet.</div></div>
+      <div class="buyer-card">
+        <div class="buyer-role">General Counsel / Legal</div>
+        <div class="buyer-title">Liability that's actually traceable</div>
+        <div class="buyer-quote">"If a decision goes wrong and we can't show what policy governed it, we have no defense. Audit lineage isn't a nice-to-have — it's the whole game in a dispute."</div>
+      </div>
     </div>
   </div>
+</section>
 
-  <!-- AUDIT -->
-  <div class="panel" id="panel-audit">
-    <div class="g4 mb10">
-      <div class="metric"><div class="mval" id="a-total">0</div><div class="mlbl">Total decisions</div></div>
-      <div class="metric"><div class="mval" id="a-ok">0</div><div class="mlbl">Compliant</div></div>
-      <div class="metric"><div class="mval" id="a-stale">0</div><div class="mlbl">Stale drift</div></div>
-      <div class="metric"><div class="mval" id="a-pct">—</div><div class="mlbl">Compliance rate</div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Generate audit report</div>
-      <div class="g2 mb10">
-        <div><label class="lbl">Report title</label><input type="text" id="rep-title" value="AI Workflow Compliance Audit"/></div>
-        <div><label class="lbl">Prepared for</label><input type="text" id="rep-org" placeholder="e.g. NAIC State Examination 2026"/></div>
+<section class="regulatory" id="regulatory">
+  <div class="reg-inner">
+    <div class="reg-label">Regulatory context</div>
+    <div class="reg-title reveal">Regulators are already asking.<br>Most insurers can't answer.</div>
+    <div class="reg-grid reveal">
+      <div class="reg-item">
+        <div class="reg-name">NAIC Model Bulletin</div>
+        <div class="reg-desc">US state regulators now require documentation of AI model governance, including how policy changes are reflected in deployed systems.</div>
       </div>
-      <div class="mb10"><label class="lbl">Preparer name / team</label><input type="text" id="rep-prep" placeholder="e.g. AI Governance Team, Acme Insurance"/></div>
-      <div class="fe">
-        <button class="btn" onclick="showQA()">Regulator Q&A</button>
-        <button class="btn btn-p" onclick="generateReport()">Generate report</button>
+      <div class="reg-item">
+        <div class="reg-name">DORA (EU)</div>
+        <div class="reg-desc">Digital Operational Resilience Act requires EU insurers to maintain full audit trails for automated decision systems — including version history.</div>
       </div>
-    </div>
-    <div id="qa-section" style="display:none;">
-      <div class="card"><div class="card-title">Regulator Q&A</div><div id="qa-body"></div></div>
-    </div>
-    <div id="report-section" style="display:none;">
-      <div class="card">
-        <div class="fb mb10">
-          <div class="card-title" style="margin:0;">Audit report</div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn" onclick="copyRep()">Copy</button>
-            <button class="btn btn-p" onclick="dlRep()">Download .txt</button>
-          </div>
-        </div>
-        <div class="report-box" id="rep-box"></div>
+      <div class="reg-item">
+        <div class="reg-name">Solvency II</div>
+        <div class="reg-desc">Risk management frameworks require demonstrable control over AI systems used in underwriting and claims — including constraint documentation.</div>
       </div>
-    </div>
-    <div class="card">
-      <div class="card-title">Full audit timeline</div>
-      <div id="audit-timeline"><div class="empty">No decisions logged yet.</div></div>
     </div>
   </div>
+</section>
 
-</div>
+<section class="cta-section" id="cta">
+  <div class="cta-inner">
+    <div class="section-label">Early access</div>
+    <div class="cta-title reveal">Know what your AI<br>was doing. Always.</div>
+    <p class="cta-sub reveal">We're working with a small group of insurance compliance and underwriting teams. If your AI workflows touch regulated decisions, we want to talk.</p>
+    <iframe name="hidden-iframe" style="display:none;"></iframe>
+    <form class="cta-form reveal" id="access-form" action="https://formspree.io/f/xpqnpevz" method="POST" target="hidden-iframe" onsubmit="handleSubmit()">
+      <input type="email" class="cta-input" name="email" placeholder="your@company.com" id="email-input" required/>
+      <button type="submit" class="cta-submit">Request access</button>
+    </form>
+    <div id="form-success" style="display:none;opacity:0;font-family:var(--mono);font-size:15px;color:var(--ink);padding:20px;text-align:center;background:var(--cream);border:0.5px solid var(--border);border-radius:6px;max-width:420px;margin:0 auto;line-height:1.7;">✓ You're on the list.<br><span style="font-size:13px;color:var(--mid);">We'll reach out within 48 hours for a 20-minute conversation.</span></div>
+    <div class="cta-note reveal">No pitch deck. 20-minute conversation. We'll show you the product.</div>
+  </div>
+</section>
 
-
-
+<footer>
+  <div class="footer-logo">PolicyProof — Constraint Mutation Detection & Verification</div>
+  <div class="footer-note">© 2026 · Built for insurance AI governance</div>
+</footer>
 
 <script>
-const DEMO_DATA = {
-  policies:[
-    {id:1001, label:'Q1 2026 Underwriting Guidelines', from:'2026-01-01T00:00', until:'2026-03-31T23:59', text:'Max coverage: $2,000,000\nFlood exclusion applies in Zone A and Zone B\nAuto-approval threshold: $50,000\nRisk score above 85 requires manual review\nReinsurance trigger: claims above $500,000\nPrior loss history: max 2 claims in 5 years'},
-    {id:1002, label:'Q2 2026 Underwriting Guidelines', from:'2026-04-01T00:00', until:'', text:'Max coverage: $2,500,000\nFlood exclusion applies in Zone A only\nAuto-approval threshold: $75,000\nRisk score above 80 requires manual review\nReinsurance trigger: claims above $500,000\nPrior loss history: max 3 claims in 5 years'}
-  ],
-  decisions:[
-    {id:2001, ref:'UW-2026-0441', type:'Underwriting approval', time:'2026-01-15T10:30', out:'Approved. Coverage $1.8M. Flood rider excluded Zone A. Risk score: 72.', usedPol:'Q1 2026 Underwriting Guidelines', activePol:'Q1 2026 Underwriting Guidelines', status:'compliant'},
-    {id:2002, ref:'UW-2026-0442', type:'Underwriting approval', time:'2026-02-03T14:15', out:'Approved. Coverage $950K. Standard terms. Risk score: 61.', usedPol:'Q1 2026 Underwriting Guidelines', activePol:'Q1 2026 Underwriting Guidelines', status:'compliant'},
-    {id:2003, ref:'CLM-2026-0101', type:'Claims routing', time:'2026-03-22T09:45', out:'Routed to manual review. Claim $620K exceeds reinsurance trigger.', usedPol:'Q1 2026 Underwriting Guidelines', activePol:'Q1 2026 Underwriting Guidelines', status:'compliant'},
-    {id:2004, ref:'UW-2026-0443', type:'Underwriting approval', time:'2026-04-10T11:00', out:'Approved. Coverage $2.1M. Flood exclusion Zone A and B applied.', usedPol:'Q1 2026 Underwriting Guidelines', activePol:'Q2 2026 Underwriting Guidelines', status:'stale'},
-    {id:2005, ref:'CLM-2026-0102', type:'Coverage determination', time:'2026-04-18T16:20', out:'Auto-approved $68K. Within threshold.', usedPol:'Q1 2026 Underwriting Guidelines', activePol:'Q2 2026 Underwriting Guidelines', status:'stale'},
-    {id:2006, ref:'UW-2026-0444', type:'Risk scoring', time:'2026-05-02T13:10', out:'Risk score 83. Flagged for manual review per Q2 threshold.', usedPol:'Q2 2026 Underwriting Guidelines', activePol:'Q2 2026 Underwriting Guidelines', status:'compliant'}
-  ],
-  mutations:[
-    {id:3001, from:'Q1 2026 Underwriting Guidelines', to:'Q2 2026 Underwriting Guidelines', changes:4, t:'2026-04-01T08:00'}
-  ],
-  activity:[
-    {type:'decision', msg:'Decision logged: UW-2026-0444', sub:'Status: compliant', t:'2026-05-02T13:10'},
-    {type:'decision', msg:'Decision logged: CLM-2026-0102', sub:'Status: stale', t:'2026-04-18T16:20'},
-    {type:'decision', msg:'Decision logged: UW-2026-0443', sub:'Status: stale', t:'2026-04-10T11:00'},
-    {type:'mutation', msg:'Mutation: Q1 2026 → Q2 2026 Underwriting Guidelines', sub:'4 constraint(s) changed', t:'2026-04-01T08:00'},
-    {type:'version', msg:'Policy version saved', sub:'Q2 2026 Underwriting Guidelines', t:'2026-04-01T07:55'},
-    {type:'decision', msg:'Decision logged: CLM-2026-0101', sub:'Status: compliant', t:'2026-03-22T09:45'},
-    {type:'version', msg:'Policy version saved', sub:'Q1 2026 Underwriting Guidelines', t:'2026-01-01T08:00'}
-  ]
-};
+document.querySelectorAll('.reveal').forEach(el=>{
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});
+  },{threshold:0.12});
+  obs.observe(el);
+});
 
-const DB = JSON.parse(JSON.stringify(DEMO_DATA));
-let reportText='';
+function handleSubmit(){
+    const email = document.getElementById('email-input').value.trim();
+    if(!email||!email.includes('@')){alert('Please enter a valid email.');return;}
+    setTimeout(function(){
+      document.getElementById('access-form').style.display='none';
+      const success = document.getElementById('form-success');
+      success.style.display='block';
+    }, 800);
+  }
 
-function resetDemo(){
-  if(!confirm('Reset to demo data? All your changes will be lost.')) return;
-  Object.assign(DB, JSON.parse(JSON.stringify(DEMO_DATA)));
-  go('home');
-}
-
-function clearAll(){
-  if(!confirm('Clear all data and start fresh?')) return;
-  DB.policies=[];DB.decisions=[];DB.mutations=[];DB.activity=[];
-  reportText='';
-  go('home');
-}
-
-function go(name){
-  ['home','policies','mutations','decisions','audit'].forEach((n,i)=>{
-    document.getElementById('panel-'+n).classList.toggle('active',n===name);
-    document.querySelectorAll('.nav-btn')[i].classList.toggle('active',n===name);
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    const t=document.querySelector(a.getAttribute('href'));
+    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'});}
   });
-  if(name==='mutations')fillMutSelects();
-  if(name==='decisions')fillDecSelects();
-  if(name==='home')renderHome();
-  if(name==='audit')renderAudit();
-}
-
-function log(type,msg,sub){DB.activity.unshift({type,msg,sub,t:new Date().toISOString()});}
-
-function addPolicy(){
-  const label=document.getElementById('pol-label').value.trim();
-  const from=document.getElementById('pol-from').value;
-  const until=document.getElementById('pol-until').value;
-  const text=document.getElementById('pol-text').value.trim();
-  if(!label||!from||!text){alert('Fill in label, effective from, and policy text.');return;}
-  DB.policies.push({id:Date.now(),label,from,until,text});
-  document.getElementById('pol-label').value='';
-  document.getElementById('pol-from').value='';
-  document.getElementById('pol-until').value='';
-  document.getElementById('pol-text').value='';
-  log('version','Policy version saved',label);
-  renderPolicies();updateHome();
-}
-
-function renderPolicies(){
-  const el=document.getElementById('policy-list');
-  if(!DB.policies.length){el.innerHTML='<div class="empty">No policies yet.</div>';return;}
-  el.innerHTML=DB.policies.slice().reverse().map(p=>{
-    const active=isActive(p,new Date().toISOString());
-    return `<div class="row">
-      <div class="dot" style="background:${active?'#1D9E75':'#888780'};"></div>
-      <div class="rbody">
-        <div class="rtitle">${p.label}</div>
-        <div class="rmeta">${fmt(p.from)} → ${p.until?fmt(p.until):'current'}</div>
-        <div class="rout">${p.text.substring(0,140)}${p.text.length>140?'...':''}</div>
-      </div>
-      <span class="badge ${active?'b-active':'b-none'}">${active?'Active':'Historical'}</span>
-    </div>`;
-  }).join('');
-}
-
-function isActive(p,ts){
-  const t=new Date(ts),f=new Date(p.from),u=p.until?new Date(p.until):null;
-  return t>=f&&(!u||t<=u);
-}
-function getActiveAt(ts){return DB.policies.find(p=>isActive(p,ts))||null;}
-
-function fillMutSelects(){
-  const opts=DB.policies.map(p=>`<option value="${p.id}">${p.label}</option>`).join('');
-  document.getElementById('cmp-a').innerHTML='<option value="">Select</option>'+opts;
-  document.getElementById('cmp-b').innerHTML='<option value="">Select</option>'+opts;
-  if(DB.policies.length>=2){
-    document.getElementById('cmp-a').value=DB.policies[DB.policies.length-2].id;
-    document.getElementById('cmp-b').value=DB.policies[DB.policies.length-1].id;
-  }
-}
-
-function runDiff(){
-  const aId=document.getElementById('cmp-a').value;
-  const bId=document.getElementById('cmp-b').value;
-  if(!aId||!bId||aId===bId){alert('Select two different versions.');return;}
-  const vA=DB.policies.find(p=>p.id==aId);
-  const vB=DB.policies.find(p=>p.id==bId);
-  const diff=computeDiff(vA.text,vB.text);
-  const hasMut=diff.some(d=>d.type!=='same');
-  if(hasMut){
-    DB.mutations.push({id:Date.now(),from:vA.label,to:vB.label,changes:diff.filter(d=>d.type!=='same').length,t:new Date().toISOString()});
-    log('mutation',`Mutation: ${vA.label} → ${vB.label}`,`${diff.filter(d=>d.type!=='same').length} change(s)`);
-  } else {
-    log('clean',`No mutation: ${vA.label} → ${vB.label}`,'Policies identical');
-  }
-  renderDiffResult(diff,vA,vB,hasMut);
-  renderMutationLog();
-  updateHome();
-}
-
-function computeDiff(a,b){
-  const la=a.split('\n'),lb=b.split('\n'),res=[];
-  const max=Math.max(la.length,lb.length);
-  for(let i=0;i<max;i++){
-    const x=la[i],y=lb[i];
-    if(x===y)res.push({type:'same',text:x||''});
-    else{if(x!==undefined)res.push({type:'removed',text:x});if(y!==undefined)res.push({type:'added',text:y});}
-  }
-  return res;
-}
-
-function renderDiffResult(diff,vA,vB,hasMut){
-  const el=document.getElementById('diff-result');
-  const dhtml=diff.map(d=>d.type==='added'?`<span class="da">+ ${esc(d.text)}</span>`:d.type==='removed'?`<span class="dr">- ${esc(d.text)}</span>`:`<span class="ds">  ${esc(d.text)}</span>`).join('');
-  el.innerHTML=`<div class="card">
-    <div class="alert ${hasMut?'aw':'as'}">
-      ${hasMut?`<strong>Mutation detected.</strong> ${diff.filter(d=>d.type!=='same').length} constraint(s) changed. AI workflows on the baseline version may be using outdated rules.`:`<strong>No mutation.</strong> Both versions are identical.`}
-    </div>
-    <div class="card-title">${vA.label} → ${vB.label}</div>
-    <div class="diff-block">${dhtml}</div>
-  </div>`;
-}
-
-function renderMutationLog(){
-  const el=document.getElementById('mutation-log');
-  if(!DB.mutations.length){el.innerHTML='<div class="empty">No mutations detected yet.</div>';return;}
-  el.innerHTML=DB.mutations.slice().reverse().map(m=>`
-    <div class="row">
-      <div class="dot" style="background:#EF9F27;"></div>
-      <div class="rbody"><div class="rtitle">${m.from} → ${m.to}</div><div class="rmeta">${m.changes} change(s) · ${fmt(m.t)}</div></div>
-      <span class="badge b-mut">mutation</span>
-    </div>`).join('');
-}
-
-function fillDecSelects(){
-  const opts=DB.policies.map(p=>`<option value="${p.id}">${p.label}</option>`).join('');
-  document.getElementById('dec-pol').innerHTML='<option value="">Not declared</option>'+opts;
-}
-
-function logDecision(){
-  const ref=document.getElementById('dec-id').value.trim();
-  const type=document.getElementById('dec-type').value;
-  const time=document.getElementById('dec-time').value;
-  const out=document.getElementById('dec-out').value.trim();
-  const pId=document.getElementById('dec-pol').value;
-  if(!ref||!time||!out){alert('Fill in decision ID, timestamp, and output.');return;}
-  const usedPol=pId?DB.policies.find(p=>p.id==pId):null;
-  const activePol=getActiveAt(time);
-  let status='unverified';
-  if(usedPol&&activePol)status=usedPol.id===activePol.id?'compliant':'stale';
-  DB.decisions.push({id:Date.now(),ref,type,time,out,usedPol:usedPol?.label||null,activePol:activePol?.label||null,status});
-  log('decision',`Decision logged: ${ref}`,`Status: ${status}`);
-  document.getElementById('dec-id').value='';
-  document.getElementById('dec-time').value='';
-  document.getElementById('dec-out').value='';
-  document.getElementById('dec-pol').value='';
-  renderDecisions();updateHome();
-}
-
-function renderDecisions(){
-  const el=document.getElementById('decision-log');
-  if(!DB.decisions.length){el.innerHTML='<div class="empty">No decisions logged yet.</div>';return;}
-  el.innerHTML=DB.decisions.slice().reverse().map(d=>`
-    <div class="row">
-      <div class="dot" style="background:${d.status==='compliant'?'#1D9E75':d.status==='stale'?'#EF9F27':'#888780'};"></div>
-      <div class="rbody">
-        <div class="rtitle">${d.ref} <span style="font-weight:400;color:var(--mid);">— ${d.type}</span></div>
-        <div class="rmeta">${fmt(d.time)} · Used: ${d.usedPol||'not declared'} · Active: ${d.activePol||'unknown'}</div>
-        <div class="rout">${d.out}</div>
-        ${d.status==='stale'?`<div style="font-size:12px;color:var(--warn);margin-top:4px;">⚠ Stale drift — AI used outdated policy. Flag for review.</div>`:''}
-      </div>
-      <span class="badge b-${d.status==='compliant'?'ok':d.status==='stale'?'stale':'none'}">${d.status}</span>
-    </div>`).join('');
-}
-
-function renderHome(){
-  updateHome();
-  const el=document.getElementById('home-activity');
-  if(!DB.activity.length){el.innerHTML='<div class="empty">No activity yet.</div>';return;}
-  el.innerHTML=DB.activity.slice(0,8).map(a=>{
-    const dot=a.type==='mutation'?'#EF9F27':a.type==='decision'?'#378ADD':a.type==='version'?'#1D9E75':'#888780';
-    return `<div class="row"><div class="dot" style="background:${dot};"></div><div class="rbody"><div class="rtitle">${a.msg}</div><div class="rmeta">${a.sub} · ${fmt(a.t)}</div></div></div>`;
-  }).join('');
-  const alerts=document.getElementById('home-alerts');
-  const stale=DB.decisions.filter(d=>d.status==='stale').length;
-  const unverified=DB.decisions.filter(d=>d.status==='unverified').length;
-  let html='';
-  if(stale>0)html+=`<div class="alert aw"><strong>${stale} stale decision(s) detected.</strong> AI used outdated policy. Review before audit.</div>`;
-  if(unverified>0)html+=`<div class="alert ai">${unverified} decision(s) have no declared policy version. Governance gap.</div>`;
-  if(!stale&&!unverified&&DB.decisions.length)html+=`<div class="alert as">All verified decisions are compliant. Audit-ready.</div>`;
-  alerts.innerHTML=html;
-  ['fs1','fs2','fs3','fs4'].forEach((id,i)=>{
-    const done=[DB.policies.length>0,DB.mutations.length>0,DB.decisions.length>0,DB.decisions.some(d=>d.status!=='unverified')][i];
-    document.getElementById(id).classList.toggle('done',done);
-  });
-}
-
-function updateHome(){
-  const total=DB.decisions.length;
-  const ok=DB.decisions.filter(d=>d.status==='compliant').length;
-  const hPol=document.getElementById('h-policies');
-  const hMut=document.getElementById('h-mutations');
-  const hDec=document.getElementById('h-decisions');
-  const hCom=document.getElementById('h-compliance');
-  if(hPol) hPol.textContent=DB.policies.length;
-  if(hMut) hMut.textContent=DB.mutations.length;
-  if(hDec) hDec.textContent=total;
-  if(hCom) hCom.textContent=total?Math.round((ok/total)*100)+'%':'—';
-}
-
-function renderAudit(){
-  const total=DB.decisions.length;
-  const ok=DB.decisions.filter(d=>d.status==='compliant').length;
-  const stale=DB.decisions.filter(d=>d.status==='stale').length;
-  const pct=total?Math.round((ok/total)*100):0;
-  document.getElementById('a-total').textContent=total;
-  document.getElementById('a-ok').textContent=ok;
-  document.getElementById('a-stale').textContent=stale;
-  document.getElementById('a-pct').textContent=total?pct+'%':'—';
-  const tl=document.getElementById('audit-timeline');
-  if(!DB.decisions.length){tl.innerHTML='<div class="empty">No decisions logged yet.</div>';return;}
-  tl.innerHTML=DB.decisions.slice().reverse().map(d=>`
-    <div class="row">
-      <div class="dot" style="background:${d.status==='compliant'?'#1D9E75':d.status==='stale'?'#EF9F27':'#888780'};"></div>
-      <div class="rbody">
-        <div class="rtitle">${d.ref} — ${d.type}</div>
-        <div class="rmeta">${fmt(d.time)} · Policy used: ${d.usedPol||'not declared'} · Active: ${d.activePol||'unknown'}</div>
-        <div class="rout">${d.out}</div>
-      </div>
-      <span class="badge b-${d.status==='compliant'?'ok':d.status==='stale'?'stale':'none'}">${d.status}</span>
-    </div>`).join('');
-}
-
-function showQA(){
-  const el=document.getElementById('qa-section');
-  const isHidden = el.style.display==='none' || el.style.display==='';
-  el.style.display=isHidden?'block':'none';
-  if(isHidden){renderQA(); el.scrollIntoView({behavior:'smooth',block:'start'});}
-}
-
-function renderQA(){
-  const total=DB.decisions.length;
-  const ok=DB.decisions.filter(d=>d.status==='compliant').length;
-  const stale=DB.decisions.filter(d=>d.status==='stale').length;
-  const pct=total?Math.round((ok/total)*100):0;
-  const pols=[...new Set(DB.decisions.map(d=>d.usedPol).filter(Boolean))];
-  const qas=[
-    {q:'Which policy version was your AI enforcing during the period under review?',a:pols.length?`Our system recorded these policy versions in use: ${pols.join('; ')}. Each decision is timestamped and tagged with the exact version active at execution time.`:'No decisions logged yet.'},
-    {q:'Can you prove policy changes were reflected before new decisions were made?',a:total?`Yes. ${ok} of ${total} decisions (${pct}%) verified compliant. ${stale>0?`${stale} stale drift instance(s) detected and flagged for review.`:'No stale drift detected.'}`:'No decisions logged yet.'},
-    {q:'What happens when stale policy drift is detected?',a:'The system flags it automatically, logs it in the audit trail with a remediation note, and surfaces it for manual review before any downstream action.'},
-    {q:'How quickly can you produce a full audit trail for any decision?',a:DB.decisions.length?`Immediately. Example: ${DB.decisions[0].ref} on ${fmt(DB.decisions[0].time)} — used "${DB.decisions[0].usedPol||'not declared'}", active was "${DB.decisions[0].activePol||'unknown'}", status: ${DB.decisions[0].status}.`:'No decisions logged yet.'}
-  ];
-  document.getElementById('qa-body').innerHTML=qas.map(qa=>`
-    <div style="margin-bottom:16px;">
-      <div class="qa-q">${qa.q}</div>
-      <div class="qa-a">${qa.a}</div>
-    </div>`).join('');
-}
-
-function generateReport(){
-  const title=document.getElementById('rep-title').value||'AI Workflow Compliance Audit';
-  const org=document.getElementById('rep-org').value||'Regulatory Examination';
-  const prep=document.getElementById('rep-prep').value||'AI Governance Team';
-  const total=DB.decisions.length;
-  const ok=DB.decisions.filter(d=>d.status==='compliant').length;
-  const stale=DB.decisions.filter(d=>d.status==='stale').length;
-  const pct=total?Math.round((ok/total)*100):0;
-  const lines=[
-    title.toUpperCase(),'='.repeat(title.length),'',
-    `Prepared for:  ${org}`,`Prepared by:   ${prep}`,`Generated:     ${new Date().toLocaleString()}`,'',
-    'EXECUTIVE SUMMARY','-'.repeat(17),'',
-    `Total decisions reviewed:  ${total}`,
-    `Compliant:                 ${ok} (${pct}%)`,
-    `Stale policy drift:        ${stale}`,
-    `Policy versions in vault:  ${DB.policies.length}`,
-    `Mutations detected:        ${DB.mutations.length}`,'',
-    stale>0?`WARNING: ${stale} decision(s) operated under outdated policy. See detail below.`:`All verified decisions used the correct active policy version.`,'',
-    'DECISION RECORD','-'.repeat(15),'',
-    ...DB.decisions.map((d,i)=>`[${i+1}] ${d.ref} - ${d.type}\n    Timestamp:     ${fmt(d.time)}\n    Policy used:   ${d.usedPol||'Not declared'}\n    Active policy: ${d.activePol||'Unknown'}\n    Status:        ${d.status.toUpperCase()}\n    Output:        ${d.out}${d.status==='stale'?'\n    ACTION:        Flag for manual review':''}\n`),'',
-    'POLICY VAULT','-'.repeat(12),'',
-    ...DB.policies.map(p=>`  ${p.label}\n    Effective: ${fmt(p.from)} → ${p.until?fmt(p.until):'current'}`),'',
-    'MUTATION LOG','-'.repeat(12),'',
-    DB.mutations.length?DB.mutations.map(m=>`  ${fmt(m.t)} — ${m.from} → ${m.to} (${m.changes} change(s))`).join('\n'):'  No mutations detected.','',
-    'CERTIFICATION','-'.repeat(13),'',
-    'This report was generated by PolicyProof — Constraint Mutation Detection & Verification.',
-    'All timestamps and policy version tags are system-generated and unaltered.','',
-    `Signed: ${prep}`,`Date:   ${new Date().toLocaleString()}`,'','— END OF REPORT —'
-  ];
-  reportText=lines.join('\n');
-  const repSection = document.getElementById('report-section');
-  const repBox = document.getElementById('rep-box');
-  repSection.style.display='block';
-  repSection.style.visibility='visible';
-  repSection.style.opacity='1';
-  repBox.textContent=reportText;
-  repSection.scrollIntoView({behavior:'smooth', block:'start'});
-}
-
-function copyRep(){if(reportText)navigator.clipboard.writeText(reportText).then(()=>alert('Copied to clipboard.'));}
-function dlRep(){
-  if(!reportText)return;
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([reportText],{type:'text/plain'}));
-  a.download='policyproof-audit.txt';a.click();
-}
-function fmt(iso){if(!iso)return'—';return new Date(iso).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});}
-function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-// Initialize on load - run immediately and also on DOMContentLoaded
-function initApp(){
-  console.log("initApp called, DB.policies:", DB.policies.length, "DB.decisions:", DB.decisions.length);
-  updateHome();
-  renderHome();
-  renderPolicies();
-  renderDecisions();
-  renderMutationLog();
-  console.log("initApp done, h-policies:", document.getElementById('h-policies').textContent);
-}
-
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', initApp);
-} else {
-  initApp();
-}
+});
 </script>
 </body>
 </html>
