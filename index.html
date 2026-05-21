@@ -315,11 +315,35 @@ document.querySelectorAll('.reveal').forEach(el=>{
   obs.observe(el);
 });
 
-function handleSubmit(){
-  const email=document.getElementById('email-input').value.trim();
-  if(!email||!email.includes('@')){alert('Please enter a valid email.');return;}
-  document.querySelector('.cta-form').innerHTML=`<div style="font-family:var(--mono);font-size:14px;color:var(--ink);padding:12px 0;">✓ Got it. We'll be in touch within 48 hours.</div>`;
-}
+function handleSubmit(e){
+    e.preventDefault();
+    const form = document.getElementById('access-form');
+    const btn = form.querySelector('button');
+    const email = document.getElementById('email-input').value.trim();
+    if(!email||!email.includes('@')){alert('Please enter a valid email.');return;}
+    btn.textContent = 'Sending...';
+    btn.disabled = true;
+    fetch('https://formspree.io/f/xpqnpevz', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({email: email})
+    }).then(r=>{
+      if(r.ok){
+        form.style.display='none';
+        const success = document.getElementById('form-success');
+        success.style.display='block';
+        success.style.opacity='1';
+      } else {
+        btn.textContent = 'Request access';
+        btn.disabled = false;
+        alert('Something went wrong. Please try again.');
+      }
+    }).catch(()=>{
+      btn.textContent = 'Request access';
+      btn.disabled = false;
+      alert('Something went wrong. Please try again.');
+    });
+  }
 
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
   a.addEventListener('click',e=>{
