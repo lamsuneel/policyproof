@@ -73,7 +73,7 @@ textarea{resize:vertical;line-height:1.6;}
 <body>
 
 <div class="topbar">
-  <div class="logo">Policy<span>Proof</span></div>
+  <a href="/" class="logo" style="text-decoration:none;">Policy<span>Proof</span></a>
   <div class="nav">
     <button class="nav-btn active" onclick="go('home')">Home</button>
     <button class="nav-btn" onclick="go('policies')">Policies</button>
@@ -480,8 +480,9 @@ function renderAudit(){
 
 function showQA(){
   const el=document.getElementById('qa-section');
-  el.style.display=el.style.display==='none'?'block':'none';
-  if(el.style.display==='block')renderQA();
+  const isHidden = el.style.display==='none' || el.style.display==='';
+  el.style.display=isHidden?'block':'none';
+  if(isHidden){renderQA(); el.scrollIntoView({behavior:'smooth',block:'start'});}
 }
 
 function renderQA(){
@@ -522,7 +523,7 @@ function generateReport(){
     `Mutations detected:        ${DB.mutations.length}`,'',
     stale>0?`WARNING: ${stale} decision(s) operated under outdated policy. See detail below.`:`All verified decisions used the correct active policy version.`,'',
     'DECISION RECORD','-'.repeat(15),'',
-    ...DB.decisions.map((d,i)=>`[${i+1}] ${d.ref} — ${d.type}\n    Timestamp:     ${fmt(d.time)}\n    Policy used:   ${d.usedPol||'Not declared'}\n    Active policy: ${d.activePol||'Unknown'}\n    Status:        ${d.status.toUpperCase()}\n    Output:        ${d.out}${d.status==='stale'?'\n    ACTION:        Flag for manual review':''}\n`),'',
+    ...DB.decisions.map((d,i)=>`[${i+1}] ${d.ref} - ${d.type}\n    Timestamp:     ${fmt(d.time)}\n    Policy used:   ${d.usedPol||'Not declared'}\n    Active policy: ${d.activePol||'Unknown'}\n    Status:        ${d.status.toUpperCase()}\n    Output:        ${d.out}${d.status==='stale'?'\n    ACTION:        Flag for manual review':''}\n`),'',
     'POLICY VAULT','-'.repeat(12),'',
     ...DB.policies.map(p=>`  ${p.label}\n    Effective: ${fmt(p.from)} → ${p.until?fmt(p.until):'current'}`),'',
     'MUTATION LOG','-'.repeat(12),'',
@@ -533,8 +534,13 @@ function generateReport(){
     `Signed: ${prep}`,`Date:   ${new Date().toLocaleString()}`,'','— END OF REPORT —'
   ];
   reportText=lines.join('\n');
-  document.getElementById('report-section').style.display='block';
-  document.getElementById('rep-box').textContent=reportText;
+  const repSection = document.getElementById('report-section');
+  const repBox = document.getElementById('rep-box');
+  repSection.style.display='block';
+  repSection.style.visibility='visible';
+  repSection.style.opacity='1';
+  repBox.textContent=reportText;
+  repSection.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function copyRep(){if(reportText)navigator.clipboard.writeText(reportText).then(()=>alert('Copied to clipboard.'));}
