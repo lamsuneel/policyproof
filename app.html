@@ -218,21 +218,14 @@ textarea{resize:vertical;line-height:1.6;}
 
 </div>
 
+
+
+
 <script>
 const DEMO_DATA = {
   policies:[
-    {id:1001, label:'Q1 2026 Underwriting Guidelines', from:'2026-01-01T00:00', until:'2026-03-31T23:59', text:'Max coverage: $2,000,000
-Flood exclusion applies in Zone A and Zone B
-Auto-approval threshold: $50,000
-Risk score above 85 requires manual review
-Reinsurance trigger: claims above $500,000
-Prior loss history: max 2 claims in 5 years'},
-    {id:1002, label:'Q2 2026 Underwriting Guidelines', from:'2026-04-01T00:00', until:'', text:'Max coverage: $2,500,000
-Flood exclusion applies in Zone A only
-Auto-approval threshold: $75,000
-Risk score above 80 requires manual review
-Reinsurance trigger: claims above $500,000
-Prior loss history: max 3 claims in 5 years'}
+    {id:1001, label:'Q1 2026 Underwriting Guidelines', from:'2026-01-01T00:00', until:'2026-03-31T23:59', text:'Max coverage: $2,000,000\nFlood exclusion applies in Zone A and Zone B\nAuto-approval threshold: $50,000\nRisk score above 85 requires manual review\nReinsurance trigger: claims above $500,000\nPrior loss history: max 2 claims in 5 years'},
+    {id:1002, label:'Q2 2026 Underwriting Guidelines', from:'2026-04-01T00:00', until:'', text:'Max coverage: $2,500,000\nFlood exclusion applies in Zone A only\nAuto-approval threshold: $75,000\nRisk score above 80 requires manual review\nReinsurance trigger: claims above $500,000\nPrior loss history: max 3 claims in 5 years'}
   ],
   decisions:[
     {id:2001, ref:'UW-2026-0441', type:'Underwriting approval', time:'2026-01-15T10:30', out:'Approved. Coverage $1.8M. Flood rider excluded Zone A. Risk score: 72.', usedPol:'Q1 2026 Underwriting Guidelines', activePol:'Q1 2026 Underwriting Guidelines', status:'compliant'},
@@ -556,11 +549,13 @@ function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace
 
 // Initialize on load - run immediately and also on DOMContentLoaded
 function initApp(){
+  console.log("initApp called, DB.policies:", DB.policies.length, "DB.decisions:", DB.decisions.length);
   updateHome();
   renderHome();
   renderPolicies();
   renderDecisions();
   renderMutationLog();
+  console.log("initApp done, h-policies:", document.getElementById('h-policies').textContent);
 }
 
 if(document.readyState === 'loading'){
