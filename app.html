@@ -293,8 +293,7 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
     <div class="section-label">Early access</div>
     <div class="cta-title reveal">Know what your AI<br>was doing. Always.</div>
     <p class="cta-sub reveal">We're working with a small group of insurance compliance and underwriting teams. If your AI workflows touch regulated decisions, we want to talk.</p>
-    <iframe name="hidden-iframe" style="display:none;"></iframe>
-    <form class="cta-form reveal" id="access-form" action="https://formspree.io/f/xpqnpevz" method="POST" target="hidden-iframe" onsubmit="handleSubmit()">
+    <form class="cta-form reveal" id="access-form" onsubmit="return handleSubmit();">
       <input type="email" class="cta-input" name="email" placeholder="your@company.com" id="email-input" required/>
       <button type="submit" class="cta-submit">Request access</button>
     </form>
@@ -318,16 +317,20 @@ document.querySelectorAll('.reveal').forEach(el=>{
 
 function handleSubmit(){
     const email = document.getElementById('email-input').value.trim();
-    if(!email||!email.includes('@')){alert('Please enter a valid email.');return;}
+    if(!email||!email.includes('@')){alert('Please enter a valid email.');return false;}
+    // Submit to Formspree silently
+    fetch('https://formspree.io/f/xpqnpevz',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({email:email})});
+    // Show confirmation immediately - no waiting
     const btn = document.querySelector('.cta-submit');
     const input = document.getElementById('email-input');
-    btn.textContent = '✓ You are on the list — we will be in touch within 48 hours';
-    btn.style.width = '100%';
-    btn.style.borderRadius = '4px';
-    btn.style.opacity = '0.7';
+    btn.textContent = '✓ On the list — we will be in touch within 48 hours';
+    btn.style.background = '#1D9E75';
+    btn.style.borderColor = '#1D9E75';
+    btn.style.flex = '1';
     btn.disabled = true;
     input.disabled = true;
-    input.style.opacity = '0.4';
+    input.style.opacity = '0.5';
+    return false;
   }
 
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
