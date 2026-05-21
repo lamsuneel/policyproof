@@ -319,9 +319,14 @@ document.querySelectorAll('.reveal').forEach(el=>{
 function handleSubmit(){
     const email = document.getElementById('email-input').value.trim();
     if(!email||!email.includes('@')){alert('Please enter a valid email.');return;}
+    const form = document.getElementById('access-form');
+    const success = document.getElementById('form-success');
+    // Keep height stable so page doesn't jump
+    const h = form.offsetHeight;
+    success.style.minHeight = h + 'px';
     setTimeout(function(){
-      document.getElementById('access-form').style.display='none';
-      const success = document.getElementById('form-success');
+      form.style.visibility='hidden';
+      form.style.position='absolute';
       success.style.display='block';
     }, 800);
   }
