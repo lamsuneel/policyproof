@@ -143,11 +143,11 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
 <nav>
   <div class="nav-logo">Policy<span>Proof</span></div>
   <div class="nav-links">
-    <a href="#how">How it works</a>
-    <a href="#buyers">Who it's for</a>
-    <a href="#regulatory">Regulatory</a>
+    <a href="javascript:void(0)" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">How it works</a>
+    <a href="javascript:void(0)" onclick="document.getElementById('buyers').scrollIntoView({behavior:'smooth'})">Who it's for</a>
+    <a href="javascript:void(0)" onclick="document.getElementById('regulatory').scrollIntoView({behavior:'smooth'})">Regulatory</a>
   </div>
-  <a href="#cta" class="nav-cta">Request access</a>
+  <a href="javascript:void(0)" onclick="document.getElementById('cta').scrollIntoView({behavior:'smooth'})" class="nav-cta">Request access</a>
 </nav>
 
 <section class="hero">
@@ -156,8 +156,8 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
   <h1>Your AI made a decision.<br>Can you prove <em>which rules</em><br>it was following?</h1>
   <p class="hero-sub">PolicyProof detects when compliance constraints change, verifies every AI decision against the active policy at that moment, and generates regulator-ready audit proof in one click.</p>
   <div class="hero-actions">
-    <a href="#cta" class="btn-primary">Request early access</a>
-    <a href="#how" class="btn-secondary">See how it works →</a>
+    <a href="javascript:void(0)" onclick="document.getElementById('cta').scrollIntoView({behavior:'smooth'})" class="btn-primary">Request early access</a>
+    <a href="javascript:void(0)" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})" class="btn-secondary">See how it works →</a>
   </div>
   <div class="hero-stat-row">
     <div class="hero-stat">
@@ -333,12 +333,7 @@ function handleSubmit(){
     return false;
   }
 
-document.querySelectorAll('a[href^="#"]').forEach(a=>{
-  a.addEventListener('click',e=>{
-    const t=document.querySelector(a.getAttribute('href'));
-    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'});}
-  });
-});
+// no global anchor scroll listener
 </script>
 </body>
 </html>
