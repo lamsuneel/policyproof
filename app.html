@@ -141,7 +141,7 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
 <body>
 
 <nav>
-  <a href="#" class="nav-logo" style="text-decoration:none;">Policy<span>Proof</span></a>
+  <div class="nav-logo">Policy<span>Proof</span></div>
   <div class="nav-links">
     <a href="#how">How it works</a>
     <a href="#buyers">Who it's for</a>
@@ -316,11 +316,11 @@ document.querySelectorAll('.reveal').forEach(el=>{
 });
 
 function handleSubmit(){
+    event.preventDefault();
+    event.stopPropagation();
     const email = document.getElementById('email-input').value.trim();
     if(!email||!email.includes('@')){alert('Please enter a valid email.');return false;}
-    // Submit to Formspree silently
     fetch('https://formspree.io/f/xpqnpevz',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({email:email})});
-    // Show confirmation immediately - no waiting
     const btn = document.querySelector('.cta-submit');
     const input = document.getElementById('email-input');
     btn.textContent = '✓ On the list — we will be in touch within 48 hours';
