@@ -290,14 +290,15 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
 
 <section class="cta-section" id="cta" style="min-height:500px;">
   <div class="cta-inner">
-    <div class="section-label">Early access</div>
+    <div class="section-label reveal">Early access</div>
     <div class="cta-title reveal">Know what your AI<br>was doing. Always.</div>
     <p class="cta-sub reveal">We're working with a small group of insurance compliance and underwriting teams. If your AI workflows touch regulated decisions, we want to talk.</p>
-    <form class="cta-form reveal" id="access-form" onsubmit="return handleSubmit();">
-      <input type="email" class="cta-input" name="email" placeholder="your@company.com" id="email-input" required/>
-      <button type="submit" class="cta-submit">Request access</button>
-    </form>
-    <div id="form-success" style="display:none;opacity:0;font-family:var(--mono);font-size:15px;color:var(--ink);padding:20px;text-align:center;background:var(--cream);border:0.5px solid var(--border);border-radius:6px;max-width:420px;margin:0 auto;line-height:1.7;">✓ You're on the list.<br><span style="font-size:13px;color:var(--mid);">We'll reach out within 48 hours for a 20-minute conversation.</span></div>
+    <div id="cta-form-wrap" style="max-width:420px;margin:0 auto 1rem;">
+      <div style="display:flex;gap:0;" id="cta-form-inner">
+        <input type="email" class="cta-input" placeholder="your@company.com" id="email-input" style="flex:1;border-right:none;border-radius:4px 0 0 4px;"/>
+        <button class="cta-submit" onclick="submitForm()">Request access</button>
+      </div>
+    </div>
     <div class="cta-note reveal">No pitch deck. 20-minute conversation. We'll show you the product.</div>
   </div>
 </section>
@@ -315,25 +316,20 @@ document.querySelectorAll('.reveal').forEach(el=>{
   obs.observe(el);
 });
 
-function handleSubmit(){
-    event.preventDefault();
-    event.stopPropagation();
-    const email = document.getElementById('email-input').value.trim();
-    if(!email||!email.includes('@')){alert('Please enter a valid email.');return false;}
-    fetch('https://formspree.io/f/xpqnpevz',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({email:email})});
-    const btn = document.querySelector('.cta-submit');
-    const input = document.getElementById('email-input');
-    btn.textContent = '✓ On the list — we will be in touch within 48 hours';
-    btn.style.background = '#1D9E75';
-    btn.style.borderColor = '#1D9E75';
-    btn.style.flex = '1';
-    btn.disabled = true;
-    input.disabled = true;
-    input.style.opacity = '0.5';
-    return false;
-  }
+function scrollTo(id){
+  document.getElementById(id).scrollIntoView({behavior:'smooth'});
+}
 
-// no global anchor scroll listener
+function submitForm(){
+  const email = document.getElementById('email-input').value.trim();
+  if(!email||!email.includes('@')){alert('Please enter a valid email address.');return;}
+  fetch('https://formspree.io/f/xpqnpevz',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Accept':'application/json'},
+    body:JSON.stringify({email:email})
+  });
+  document.getElementById('cta-form-wrap').innerHTML = '<div style="font-family:var(--mono);font-size:14px;color:#0F6E56;padding:14px 20px;background:#E1F5EE;border:0.5px solid #1D9E75;border-radius:6px;text-align:center;">✓ You're on the list. We'll be in touch within 48 hours.</div>';
+}
 </script>
 </body>
 </html>
