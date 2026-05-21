@@ -452,10 +452,14 @@ function renderHome(){
 function updateHome(){
   const total=DB.decisions.length;
   const ok=DB.decisions.filter(d=>d.status==='compliant').length;
-  document.getElementById('h-policies').textContent=DB.policies.length;
-  document.getElementById('h-mutations').textContent=DB.mutations.length;
-  document.getElementById('h-decisions').textContent=total;
-  document.getElementById('h-compliance').textContent=total?Math.round((ok/total)*100)+'%':'—';
+  const hPol=document.getElementById('h-policies');
+  const hMut=document.getElementById('h-mutations');
+  const hDec=document.getElementById('h-decisions');
+  const hCom=document.getElementById('h-compliance');
+  if(hPol) hPol.textContent=DB.policies.length;
+  if(hMut) hMut.textContent=DB.mutations.length;
+  if(hDec) hDec.textContent=total;
+  if(hCom) hCom.textContent=total?Math.round((ok/total)*100)+'%':'—';
 }
 
 function renderAudit(){
@@ -552,6 +556,10 @@ function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace
 
 // Initialize on load
 window.addEventListener('DOMContentLoaded', function(){
+  // ensure home panel is active
+  document.getElementById('panel-home').classList.add('active');
+  document.querySelectorAll('.nav-btn')[0].classList.add('active');
+  updateHome();
   renderHome();
   renderPolicies();
   renderDecisions();
