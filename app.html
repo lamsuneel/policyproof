@@ -549,6 +549,14 @@ function dlRep(){
 }
 function fmt(iso){if(!iso)return'—';return new Date(iso).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// Initialize on load
+window.addEventListener('DOMContentLoaded', function(){
+  renderHome();
+  renderPolicies();
+  renderDecisions();
+  renderMutationLog();
+});
 </script>
 </body>
 </html>
