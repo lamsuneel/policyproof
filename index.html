@@ -293,10 +293,11 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
     <div class="section-label">Early access</div>
     <div class="cta-title reveal">Know what your AI<br>was doing. Always.</div>
     <p class="cta-sub reveal">We're working with a small group of insurance compliance and underwriting teams. If your AI workflows touch regulated decisions, we want to talk.</p>
-    <div class="cta-form reveal">
-      <input type="email" class="cta-input" placeholder="your@company.com" id="email-input"/>
-      <button class="cta-submit" onclick="handleSubmit()">Request access</button>
-    </div>
+    <form class="cta-form reveal" id="access-form" action="https://formspree.io/f/xpqnpevz" method="POST" onsubmit="handleSubmit(event)">
+      <input type="email" class="cta-input" name="email" placeholder="your@company.com" id="email-input" required/>
+      <button type="submit" class="cta-submit">Request access</button>
+    </form>
+    <div id="form-success" style="display:none;font-family:var(--mono);font-size:14px;color:var(--ink);padding:12px 0;text-align:center;">✓ Got it. We'll be in touch within 48 hours.</div>
     <div class="cta-note reveal">No pitch deck. 20-minute conversation. We'll show you the product.</div>
   </div>
 </section>
