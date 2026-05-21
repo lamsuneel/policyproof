@@ -83,6 +83,13 @@ textarea{resize:vertical;line-height:1.6;}
   </div>
 </div>
 
+<div style="background:#FAEEDA;border-bottom:0.5px solid #EF9F27;padding:8px 2rem;display:flex;align-items:center;justify-content:space-between;">
+  <span style="font-size:12px;color:#854F0B;font-family:var(--mono);">⚡ Demo mode — pre-loaded with sample insurance data so you can explore immediately</span>
+  <div style="display:flex;gap:8px;">
+    <button onclick="clearAll()" style="font-size:11px;padding:4px 12px;border:0.5px solid #EF9F27;border-radius:4px;background:transparent;color:#854F0B;cursor:pointer;font-family:var(--sans);">Start fresh</button>
+    <button onclick="resetDemo()" style="font-size:11px;padding:4px 12px;border:0.5px solid #EF9F27;border-radius:4px;background:transparent;color:#854F0B;cursor:pointer;font-family:var(--sans);">Reset demo</button>
+  </div>
+</div>
 <div class="main">
 
   <!-- HOME -->
@@ -212,8 +219,58 @@ textarea{resize:vertical;line-height:1.6;}
 </div>
 
 <script>
-const DB={policies:[],decisions:[],mutations:[],activity:[]};
+const DEMO_DATA = {
+  policies:[
+    {id:1001, label:'Q1 2026 Underwriting Guidelines', from:'2026-01-01T00:00', until:'2026-03-31T23:59', text:'Max coverage: $2,000,000
+Flood exclusion applies in Zone A and Zone B
+Auto-approval threshold: $50,000
+Risk score above 85 requires manual review
+Reinsurance trigger: claims above $500,000
+Prior loss history: max 2 claims in 5 years'},
+    {id:1002, label:'Q2 2026 Underwriting Guidelines', from:'2026-04-01T00:00', until:'', text:'Max coverage: $2,500,000
+Flood exclusion applies in Zone A only
+Auto-approval threshold: $75,000
+Risk score above 80 requires manual review
+Reinsurance trigger: claims above $500,000
+Prior loss history: max 3 claims in 5 years'}
+  ],
+  decisions:[
+    {id:2001, ref:'UW-2026-0441', type:'Underwriting approval', time:'2026-01-15T10:30', out:'Approved. Coverage $1.8M. Flood rider excluded Zone A. Risk score: 72.', usedPol:'Q1 2026 Underwriting Guidelines', activePol:'Q1 2026 Underwriting Guidelines', status:'compliant'},
+    {id:2002, ref:'UW-2026-0442', type:'Underwriting approval', time:'2026-02-03T14:15', out:'Approved. Coverage $950K. Standard terms. Risk score: 61.', usedPol:'Q1 2026 Underwriting Guidelines', activePol:'Q1 2026 Underwriting Guidelines', status:'compliant'},
+    {id:2003, ref:'CLM-2026-0101', type:'Claims routing', time:'2026-03-22T09:45', out:'Routed to manual review. Claim $620K exceeds reinsurance trigger.', usedPol:'Q1 2026 Underwriting Guidelines', activePol:'Q1 2026 Underwriting Guidelines', status:'compliant'},
+    {id:2004, ref:'UW-2026-0443', type:'Underwriting approval', time:'2026-04-10T11:00', out:'Approved. Coverage $2.1M. Flood exclusion Zone A and B applied.', usedPol:'Q1 2026 Underwriting Guidelines', activePol:'Q2 2026 Underwriting Guidelines', status:'stale'},
+    {id:2005, ref:'CLM-2026-0102', type:'Coverage determination', time:'2026-04-18T16:20', out:'Auto-approved $68K. Within threshold.', usedPol:'Q1 2026 Underwriting Guidelines', activePol:'Q2 2026 Underwriting Guidelines', status:'stale'},
+    {id:2006, ref:'UW-2026-0444', type:'Risk scoring', time:'2026-05-02T13:10', out:'Risk score 83. Flagged for manual review per Q2 threshold.', usedPol:'Q2 2026 Underwriting Guidelines', activePol:'Q2 2026 Underwriting Guidelines', status:'compliant'}
+  ],
+  mutations:[
+    {id:3001, from:'Q1 2026 Underwriting Guidelines', to:'Q2 2026 Underwriting Guidelines', changes:4, t:'2026-04-01T08:00'}
+  ],
+  activity:[
+    {type:'decision', msg:'Decision logged: UW-2026-0444', sub:'Status: compliant', t:'2026-05-02T13:10'},
+    {type:'decision', msg:'Decision logged: CLM-2026-0102', sub:'Status: stale', t:'2026-04-18T16:20'},
+    {type:'decision', msg:'Decision logged: UW-2026-0443', sub:'Status: stale', t:'2026-04-10T11:00'},
+    {type:'mutation', msg:'Mutation: Q1 2026 → Q2 2026 Underwriting Guidelines', sub:'4 constraint(s) changed', t:'2026-04-01T08:00'},
+    {type:'version', msg:'Policy version saved', sub:'Q2 2026 Underwriting Guidelines', t:'2026-04-01T07:55'},
+    {type:'decision', msg:'Decision logged: CLM-2026-0101', sub:'Status: compliant', t:'2026-03-22T09:45'},
+    {type:'version', msg:'Policy version saved', sub:'Q1 2026 Underwriting Guidelines', t:'2026-01-01T08:00'}
+  ]
+};
+
+const DB = JSON.parse(JSON.stringify(DEMO_DATA));
 let reportText='';
+
+function resetDemo(){
+  if(!confirm('Reset to demo data? All your changes will be lost.')) return;
+  Object.assign(DB, JSON.parse(JSON.stringify(DEMO_DATA)));
+  go('home');
+}
+
+function clearAll(){
+  if(!confirm('Clear all data and start fresh?')) return;
+  DB.policies=[];DB.decisions=[];DB.mutations=[];DB.activity=[];
+  reportText='';
+  go('home');
+}
 
 function go(name){
   ['home','policies','mutations','decisions','audit'].forEach((n,i)=>{
