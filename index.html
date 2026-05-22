@@ -105,8 +105,8 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
 <section class="hero">
   <div class="hero-grid"></div>
   <div class="hero-tag">Insurance AI Governance</div>
-  <h1>Your AI made a decision.<br>Can you prove <em>which rules</em><br>it was following?</h1>
-  <p class="hero-sub">PolicyProof detects when compliance constraints change, verifies every AI decision against the active policy at that moment, and generates regulator-ready audit proof in one click.</p>
+  <h1>Your AI made a decision.<br>But it never recorded<br><em>which rules</em> it followed.</h1>
+  <p class="hero-sub">AI systems make decisions but never tag which policy version governed them. PolicyProof adds that governance layer externally — timestamping every decision against the active policy at that exact moment, without touching your AI system.</p>
   <div class="hero-actions">
     <span class="btn-primary" onclick="document.getElementById('cta').scrollIntoView({behavior:'smooth'})">Request early access</span>
     <span class="btn-secondary" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">See how it works →</span>
@@ -122,7 +122,7 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
   <div class="question-inner">
     <div class="q-label">The audit question nobody can answer</div>
     <div class="q-text">"Which policy version was your AI enforcing on claims reviewed <em>in March</em>?"</div>
-    <div class="q-answer">Every insurer running AI-assisted workflows faces this question. Almost none can answer it. PolicyProof makes it answerable — in seconds, not days.</div>
+    <div class="q-answer">AI systems were never designed to record which policy version they used. That's not a flaw — it just wasn't built in. PolicyProof adds that missing layer externally. The answer goes from days of manual reconstruction to seconds.</div>
   </div>
 </section>
 
@@ -131,8 +131,8 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
     <div class="section-label reveal">How it works</div>
     <div class="section-title reveal">Three engines.<br>One audit trail.</div>
     <div class="steps reveal">
-      <div class="step"><div class="step-num">01 / DETECT</div><div class="step-icon">⟆</div><div class="step-title">Mutation detector</div><div class="step-desc">Every time your compliance policy or underwriting guidelines change, PolicyProof detects it, versions it, timestamps it, and shows you exactly what constraint mutated — line by line.</div></div>
-      <div class="step"><div class="step-num">02 / VERIFY</div><div class="step-icon">✓</div><div class="step-title">Verification engine</div><div class="step-desc">Every AI decision is tagged with the policy version active at that exact moment. If the AI used a stale version, the system flags it instantly — before it reaches an auditor.</div></div>
+      <div class="step"><div class="step-num">01 / DETECT</div><div class="step-icon">⟆</div><div class="step-title">Mutation detector</div><div class="step-desc">Every time your compliance policy changes, PolicyProof detects it, versions it, timestamps it, and shows you exactly what constraint mutated — line by line. Like Git version control for your compliance rules.</div></div>
+      <div class="step"><div class="step-num">02 / VERIFY</div><div class="step-icon">✓</div><div class="step-title">Verification engine</div><div class="step-desc">AI systems don't tag policy versions — PolicyProof does it externally. Every decision is timestamped against the active policy at that exact moment. No changes to your AI required. Stale drift flagged instantly.</div></div>
       <div class="step"><div class="step-num">03 / PROVE</div><div class="step-icon">⬡</div><div class="step-title">Audit report generator</div><div class="step-desc">One click produces a complete, regulator-ready document: which decisions were made, which policy governed each one, and what changed when. No manual reconstruction. No spreadsheets.</div></div>
     </div>
   </div>
@@ -198,8 +198,8 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
 <section class="cta-section" id="cta">
   <div class="cta-inner">
     <div class="section-label reveal">Early access</div>
-    <div class="cta-title reveal">Know what your AI<br>was doing. Always.</div>
-    <p class="cta-sub reveal">We're working with a small group of insurance compliance and underwriting teams. If your AI workflows touch regulated decisions, we want to talk.</p>
+    <div class="cta-title reveal">Add the governance layer<br>your AI never had.</div>
+    <p class="cta-sub reveal">AI systems weren't designed to tag policy versions. We add that layer externally — no changes to your AI, no rebuilding workflows. Working with a small group of insurance compliance teams. If your AI touches regulated decisions, we want to talk.</p>
     <div id="cta-box" style="min-height:60px;">
       <div style="display:flex;justify-content:center;">
         <input type="email" class="cta-input" placeholder="your@company.com" id="email-input"/>
