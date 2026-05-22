@@ -147,6 +147,7 @@ textarea{resize:vertical;line-height:1.6;}
       <div class="mb10"><label class="lbl">Policy constraints (key rules)</label><textarea id="pol-text" rows="6" placeholder="e.g.&#10;Max coverage: $2M&#10;Flood exclusion applies in Zone A&#10;Auto-approval threshold: $50,000&#10;Risk score above 85 requires manual review"></textarea></div>
       <div class="fe"><button class="btn btn-p" onclick="addPolicy()">+ Save version</button></div>
     </div>
+    <div id="overlap-alerts"></div>
     <div class="card">
       <div class="card-title">Policy vault</div>
       <div id="policy-list"><div class="empty">No policies registered yet.</div></div>
@@ -292,9 +293,26 @@ function go(name){
   if(name==='decisions')fillDecSelects();
   if(name==='home')renderHome();
   if(name==='audit')renderAudit();
+  if(name==='policies')renderOverlapAlerts();
 }
 
 function log(type,msg,sub){DB.activity.unshift({type,msg,sub,t:new Date().toISOString()});}
+
+function checkOverlap(category, from, until, excludeId){
+  const newFrom = new Date(from);
+  const newUntil = until ? new Date(until) : null;
+  const conflicts = DB.policies.filter(p => {
+    if(p.id === excludeId) return false;
+    if((p.category||'Uncategorized') !== category) return false;
+    const pFrom = new Date(p.from);
+    const pUntil = p.until ? new Date(p.until) : null;
+    // Check if date ranges overlap
+    const newEnd = newUntil || new Date('2099-12-31');
+    const pEnd = pUntil || new Date('2099-12-31');
+    return newFrom <= pEnd && newEnd >= pFrom;
+  });
+  return conflicts;
+}
 
 function addPolicy(){
   const category=document.getElementById('pol-category').value;
@@ -303,6 +321,22 @@ function addPolicy(){
   const until=document.getElementById('pol-until').value;
   const text=document.getElementById('pol-text').value.trim();
   if(!category||!label||!from||!text){alert('Fill in category, version label, effective from, and policy text.');return;}
+
+  // Check for overlapping date ranges in same category
+  const conflicts = checkOverlap(category, from, until, null);
+  if(conflicts.length > 0){
+    const conflictNames = conflicts.map(p=>p.label).join(', ');
+    const proceed = confirm(
+      'WARNING: Date range conflict detected.\n\n' +
+      'This policy overlaps with: ' + conflictNames + '\n\n' +
+      'Overlapping effective dates create ambiguity in the audit trail.\n\n' +
+      'Recommended: Set an "effective until" date on the existing version first.\n\n' +
+      'Proceed anyway?'
+    );
+    if(!proceed) return;
+    log('conflict', 'Date range conflict detected', category+' — '+label+' overlaps with '+conflictNames);
+  }
+
   DB.policies.push({id:Date.now(),category,label,from,until,text});
   document.getElementById('pol-category').value='';
   document.getElementById('pol-label').value='';
@@ -311,6 +345,36 @@ function addPolicy(){
   document.getElementById('pol-text').value='';
   log('version','Policy version saved',category+' — '+label);
   renderPolicies();updateHome();
+  renderOverlapAlerts();
+}
+
+function renderOverlapAlerts(){
+  // Check all existing policies for overlaps
+  const alerts = [];
+  const categories = [...new Set(DB.policies.map(p=>p.category||'Uncategorized'))];
+  categories.forEach(cat => {
+    const catPolicies = DB.policies.filter(p=>(p.category||'Uncategorized')===cat);
+    catPolicies.forEach((p, i) => {
+      const conflicts = checkOverlap(cat, p.from, p.until, p.id);
+      if(conflicts.length > 0){
+        conflicts.forEach(c => {
+          const key = [p.id, c.id].sort().join('-');
+          if(!alerts.find(a=>a.key===key)){
+            alerts.push({key, cat, a:p.label, b:c.label});
+          }
+        });
+      }
+    });
+  });
+
+  const el = document.getElementById('overlap-alerts');
+  if(!el) return;
+  if(!alerts.length){el.innerHTML='';return;}
+  el.innerHTML = alerts.map(a=>`
+    <div class="alert aw" style="margin-bottom:8px;">
+      <i class="ti ti-alert-triangle" aria-hidden="true" style="font-size:16px;flex-shrink:0;margin-top:1px;"></i>
+      <div><strong>Date range conflict:</strong> ${a.cat} — "${a.a}" and "${a.b}" have overlapping effective dates. This creates ambiguity in the audit trail. Set an "effective until" date on the older version.</div>
+    </div>`).join('');
 }
 
 function renderPolicies(){
