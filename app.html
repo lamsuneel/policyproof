@@ -123,7 +123,23 @@ textarea{resize:vertical;line-height:1.6;}
   <div class="panel" id="panel-policies">
     <div class="card">
       <div class="card-title">Register policy version</div>
-      <div class="mb10"><label class="lbl">Version label</label><input type="text" id="pol-label" placeholder="e.g. Q2 2026 Underwriting Guidelines"/></div>
+      <div class="g2 mb10">
+        <div>
+          <label class="lbl">Policy category</label>
+          <select id="pol-category">
+            <option value="">Select category</option>
+            <option>Underwriting Guidelines</option>
+            <option>Claims Handling Manual</option>
+            <option>Flood & Exclusion Policy</option>
+            <option>Fraud Detection Rules</option>
+            <option>Reinsurance Attachment Rules</option>
+            <option>Compliance & Regulatory Policy</option>
+            <option>Risk Scoring Rules</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div><label class="lbl">Version label</label><input type="text" id="pol-label" placeholder="e.g. Q2 2026"/></div>
+      </div>
       <div class="g2 mb10">
         <div><label class="lbl">Effective from</label><input type="datetime-local" id="pol-from"/></div>
         <div><label class="lbl">Effective until (blank = current)</label><input type="datetime-local" id="pol-until"/></div>
@@ -164,6 +180,7 @@ textarea{resize:vertical;line-height:1.6;}
       </div>
       <div class="g2 mb10">
         <div><label class="lbl">Decision timestamp</label><input type="datetime-local" id="dec-time"/></div>
+        <div><label class="lbl">Policy category</label><select id="dec-pol-cat" onchange="filterDecPolicies()"><option value="">All categories</option></select></div>
         <div><label class="lbl">Policy version used by AI</label><select id="dec-pol"><option value="">Not declared</option></select></div>
       </div>
       <div class="mb10"><label class="lbl">AI output summary</label><textarea id="dec-out" rows="3" placeholder="e.g. Approved. Coverage $1.8M. Flood rider excluded. Risk score: 72."></textarea></div>
@@ -224,8 +241,9 @@ textarea{resize:vertical;line-height:1.6;}
 <script>
 const DEMO_DATA = {
   policies:[
-    {id:1001, label:'Q1 2026 Underwriting Guidelines', from:'2026-01-01T00:00', until:'2026-03-31T23:59', text:'Max coverage: $2,000,000\nFlood exclusion applies in Zone A and Zone B\nAuto-approval threshold: $50,000\nRisk score above 85 requires manual review\nReinsurance trigger: claims above $500,000\nPrior loss history: max 2 claims in 5 years'},
-    {id:1002, label:'Q2 2026 Underwriting Guidelines', from:'2026-04-01T00:00', until:'', text:'Max coverage: $2,500,000\nFlood exclusion applies in Zone A only\nAuto-approval threshold: $75,000\nRisk score above 80 requires manual review\nReinsurance trigger: claims above $500,000\nPrior loss history: max 3 claims in 5 years'}
+    {id:1001, category:'Underwriting Guidelines', label:'Q1 2026', from:'2026-01-01T00:00', until:'2026-03-31T23:59', text:'Max coverage: $2,000,000\nFlood exclusion applies in Zone A and Zone B\nAuto-approval threshold: $50,000\nRisk score above 85 requires manual review\nReinsurance trigger: claims above $500,000\nPrior loss history: max 2 claims in 5 years'},
+    {id:1002, category:'Underwriting Guidelines', label:'Q2 2026', from:'2026-04-01T00:00', until:'', text:'Max coverage: $2,500,000\nFlood exclusion applies in Zone A only\nAuto-approval threshold: $75,000\nRisk score above 80 requires manual review\nReinsurance trigger: claims above $500,000\nPrior loss history: max 3 claims in 5 years'},
+    {id:1003, category:'Claims Handling Manual', label:'2026 Edition', from:'2026-01-01T00:00', until:'', text:'Auto-approve claims under $50,000\nRoute claims above $500,000 to senior adjuster\nFlag claims with prior fraud history\nRequire photo evidence for property claims above $10,000'}
   ],
   decisions:[
     {id:2001, ref:'UW-2026-0441', type:'Underwriting approval', time:'2026-01-15T10:30', out:'Approved. Coverage $1.8M. Flood rider excluded Zone A. Risk score: 72.', usedPol:'Q1 2026 Underwriting Guidelines', activePol:'Q1 2026 Underwriting Guidelines', status:'compliant'},
@@ -279,35 +297,47 @@ function go(name){
 function log(type,msg,sub){DB.activity.unshift({type,msg,sub,t:new Date().toISOString()});}
 
 function addPolicy(){
+  const category=document.getElementById('pol-category').value;
   const label=document.getElementById('pol-label').value.trim();
   const from=document.getElementById('pol-from').value;
   const until=document.getElementById('pol-until').value;
   const text=document.getElementById('pol-text').value.trim();
-  if(!label||!from||!text){alert('Fill in label, effective from, and policy text.');return;}
-  DB.policies.push({id:Date.now(),label,from,until,text});
+  if(!category||!label||!from||!text){alert('Fill in category, version label, effective from, and policy text.');return;}
+  DB.policies.push({id:Date.now(),category,label,from,until,text});
+  document.getElementById('pol-category').value='';
   document.getElementById('pol-label').value='';
   document.getElementById('pol-from').value='';
   document.getElementById('pol-until').value='';
   document.getElementById('pol-text').value='';
-  log('version','Policy version saved',label);
+  log('version','Policy version saved',category+' — '+label);
   renderPolicies();updateHome();
 }
 
 function renderPolicies(){
   const el=document.getElementById('policy-list');
   if(!DB.policies.length){el.innerHTML='<div class="empty">No policies yet.</div>';return;}
-  el.innerHTML=DB.policies.slice().reverse().map(p=>{
-    const active=isActive(p,new Date().toISOString());
-    return `<div class="row">
-      <div class="dot" style="background:${active?'#1D9E75':'#888780'};"></div>
-      <div class="rbody">
-        <div class="rtitle">${p.label}</div>
-        <div class="rmeta">${fmt(p.from)} → ${p.until?fmt(p.until):'current'}</div>
-        <div class="rout">${p.text.substring(0,140)}${p.text.length>140?'...':''}</div>
-      </div>
-      <span class="badge ${active?'b-active':'b-none'}">${active?'Active':'Historical'}</span>
-    </div>`;
-  }).join('');
+  // Group by category
+  const categories = [...new Set(DB.policies.map(p=>p.category||'Uncategorized'))];
+  let html = '';
+  categories.forEach(cat => {
+    const catPolicies = DB.policies.filter(p=>(p.category||'Uncategorized')===cat).reverse();
+    html += `<div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:6px;">${cat}</div>`;
+    catPolicies.forEach(p => {
+      const active=isActive(p,new Date().toISOString());
+      html += `<div class="row">
+        <div class="dot" style="background:${active?'#1D9E75':'#888780'};"></div>
+        <div class="rbody">
+          <div class="rtitle">${p.label}</div>
+          <div class="rmeta">${fmt(p.from)} → ${p.until?fmt(p.until):'current'}</div>
+          <div class="rout">${p.text.substring(0,140)}${p.text.length>140?'...':''}</div>
+        </div>
+        <span class="badge ${active?'b-active':'b-none'}">${active?'Active':'Historical'}</span>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  el.innerHTML = html;
 }
 
 function isActive(p,ts){
@@ -317,7 +347,7 @@ function isActive(p,ts){
 function getActiveAt(ts){return DB.policies.find(p=>isActive(p,ts))||null;}
 
 function fillMutSelects(){
-  const opts=DB.policies.map(p=>`<option value="${p.id}">${p.label}</option>`).join('');
+  const opts=DB.policies.map(p=>`<option value="${p.id}">[${p.category||'Uncategorized'}] ${p.label}</option>`).join('');
   document.getElementById('cmp-a').innerHTML='<option value="">Select</option>'+opts;
   document.getElementById('cmp-b').innerHTML='<option value="">Select</option>'+opts;
   if(DB.policies.length>=2){
@@ -380,7 +410,17 @@ function renderMutationLog(){
 }
 
 function fillDecSelects(){
-  const opts=DB.policies.map(p=>`<option value="${p.id}">${p.label}</option>`).join('');
+  const cats=[...new Set(DB.policies.map(p=>p.category||'Uncategorized'))];
+  const catOpts=cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  document.getElementById('dec-pol-cat').innerHTML='<option value="">All categories</option>'+catOpts;
+  const opts=DB.policies.map(p=>`<option value="${p.id}">[${p.category||'Uncategorized'}] ${p.label}</option>`).join('');
+  document.getElementById('dec-pol').innerHTML='<option value="">Not declared</option>'+opts;
+}
+
+function filterDecPolicies(){
+  const cat=document.getElementById('dec-pol-cat').value;
+  const filtered=cat?DB.policies.filter(p=>(p.category||'Uncategorized')===cat):DB.policies;
+  const opts=filtered.map(p=>`<option value="${p.id}">${p.label}</option>`).join('');
   document.getElementById('dec-pol').innerHTML='<option value="">Not declared</option>'+opts;
 }
 
