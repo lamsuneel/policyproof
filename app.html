@@ -99,6 +99,8 @@ textarea{resize:vertical;line-height:1.6;}
       <div class="metric"><div class="mval" id="h-mutations">0</div><div class="mlbl">Mutations detected</div></div>
       <div class="metric"><div class="mval" id="h-decisions">0</div><div class="mlbl">Decisions logged</div></div>
       <div class="metric"><div class="mval" id="h-compliance">—</div><div class="mlbl">Compliance rate</div></div>
+      <div class="metric"><div class="mval" id="h-decay" style="font-size:1.1rem;">—</div><div class="mlbl">Governance health</div></div>
+      <div class="metric"><div class="mval" id="h-trend" style="font-size:1.1rem;">—</div><div class="mlbl">Drift trend</div></div>
     </div>
     <div class="card">
       <div class="card-title">Workflow progress</div>
@@ -291,7 +293,7 @@ function go(name){
   });
   if(name==='mutations')fillMutSelects();
   if(name==='decisions')fillDecSelects();
-  if(name==='home')renderHome();
+  if(name==='home'){renderHome();renderGovernanceTimeline();}
   if(name==='audit')renderAudit();
   if(name==='policies')renderOverlapAlerts();
 }
@@ -505,7 +507,7 @@ function logDecision(){
   document.getElementById('dec-time').value='';
   document.getElementById('dec-out').value='';
   document.getElementById('dec-pol').value='';
-  renderDecisions();updateHome();
+  renderDecisions();updateHome();renderGovernanceTimeline();
 }
 
 function renderDecisions(){
@@ -658,6 +660,161 @@ function fmt(iso){if(!iso)return'—';return new Date(iso).toLocaleString('en-US
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // Initialize on load - run immediately and also on DOMContentLoaded
+function calcGovernanceHealth(){
+  // Calculate weekly drift rates from decision history
+  if(!DB.decisions.length) return {score:'—', trend:'—', weeks:[]};
+  
+  // Group decisions by week
+  const weeks = {};
+  DB.decisions.forEach(d => {
+    const date = new Date(d.time);
+    // Get week start (Monday)
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    const weekStart = new Date(date.setDate(diff));
+    weekStart.setHours(0,0,0,0);
+    const key = weekStart.toISOString().split('T')[0];
+    if(!weeks[key]) weeks[key] = {compliant:0, stale:0, total:0, date:key};
+    weeks[key].total++;
+    if(d.status === 'compliant') weeks[key].compliant++;
+    if(d.status === 'stale') weeks[key].stale++;
+  });
+  
+  const weekList = Object.values(weeks).sort((a,b) => a.date.localeCompare(b.date));
+  weekList.forEach(w => {
+    w.rate = w.total > 0 ? Math.round((w.compliant/w.total)*100) : 0;
+    w.driftRate = w.total > 0 ? Math.round((w.stale/w.total)*100) : 0;
+  });
+  
+  // Calculate overall governance health score
+  const totalDecisions = DB.decisions.length;
+  const totalCompliant = DB.decisions.filter(d=>d.status==='compliant').length;
+  const totalStale = DB.decisions.filter(d=>d.status==='stale').length;
+  const overallRate = totalDecisions > 0 ? Math.round((totalCompliant/totalDecisions)*100) : 0;
+  
+  // Calculate governance decay rate
+  let decayRate = 0;
+  if(weekList.length >= 2) {
+    const firstWeek = weekList[0].rate;
+    const lastWeek = weekList[weekList.length-1].rate;
+    decayRate = lastWeek - firstWeek; // positive = improving, negative = decaying
+  }
+  
+  // Determine health label
+  let healthLabel, healthColor;
+  if(overallRate >= 90) { healthLabel = 'Strong'; healthColor = '#1D9E75'; }
+  else if(overallRate >= 70) { healthLabel = 'Moderate'; healthColor = '#EF9F27'; }
+  else if(overallRate >= 50) { healthLabel = 'Weak'; healthColor = '#c8402a'; }
+  else { healthLabel = 'Critical'; healthColor = '#c8402a'; }
+  
+  // Determine trend
+  let trendLabel, trendColor;
+  if(weekList.length < 2) { trendLabel = 'Insufficient data'; trendColor = '#888780'; }
+  else if(decayRate > 10) { trendLabel = '↑ Improving'; trendColor = '#1D9E75'; }
+  else if(decayRate > 0) { trendLabel = '↑ Stable'; trendColor = '#1D9E75'; }
+  else if(decayRate === 0) { trendLabel = '→ Flat'; trendColor = '#EF9F27'; }
+  else if(decayRate > -10) { trendLabel = '↓ Declining'; trendColor = '#c8402a'; }
+  else { trendLabel = '↓ Decaying'; trendColor = '#c8402a'; }
+  
+  return {
+    score: healthLabel,
+    scoreColor: healthColor,
+    trend: trendLabel,
+    trendColor,
+    weeks: weekList,
+    overallRate,
+    decayRate,
+    totalStale,
+    totalCompliant,
+    totalDecisions
+  };
+}
+
+function renderGovernanceTimeline(){
+  const health = calcGovernanceHealth();
+  
+  // Update metrics
+  const scoreEl = document.getElementById('h-decay');
+  const trendEl = document.getElementById('h-trend');
+  if(scoreEl && health.score !== '—') {
+    scoreEl.textContent = health.score;
+    scoreEl.style.color = health.scoreColor;
+  }
+  if(trendEl && health.trend !== '—') {
+    trendEl.textContent = health.trend;
+    trendEl.style.color = health.trendColor;
+  }
+  
+  const el = document.getElementById('gov-timeline');
+  if(!el) return;
+  
+  if(!DB.decisions.length) {
+    el.innerHTML = '<div class="empty">No decisions logged yet.</div>';
+    return;
+  }
+  
+  // Build timeline HTML
+  let html = '';
+  
+  // Summary bar
+  html += `<div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+    <div style="background:var(--cream);border-radius:6px;padding:8px 14px;flex:1;min-width:120px;">
+      <div style="font-size:11px;color:var(--mid);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">Overall rate</div>
+      <div style="font-size:1.4rem;font-weight:700;color:${health.scoreColor};">${health.overallRate}%</div>
+    </div>
+    <div style="background:var(--cream);border-radius:6px;padding:8px 14px;flex:1;min-width:120px;">
+      <div style="font-size:11px;color:var(--mid);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">Stale drift events</div>
+      <div style="font-size:1.4rem;font-weight:700;color:${health.totalStale > 0 ? '#c8402a' : '#1D9E75'};">${health.totalStale}</div>
+    </div>
+    <div style="background:var(--cream);border-radius:6px;padding:8px 14px;flex:1;min-width:120px;">
+      <div style="font-size:11px;color:var(--mid);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">Governance trend</div>
+      <div style="font-size:1rem;font-weight:700;color:${health.trendColor};">${health.trend}</div>
+    </div>
+  </div>`;
+  
+  // Weekly breakdown
+  if(health.weeks.length > 0) {
+    html += `<div style="font-size:11px;color:var(--mid);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Week-by-week compliance rate</div>`;
+    
+    health.weeks.forEach((w, i) => {
+      const barColor = w.rate >= 90 ? '#1D9E75' : w.rate >= 70 ? '#EF9F27' : '#c8402a';
+      const weekLabel = new Date(w.date).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+      const prevRate = i > 0 ? health.weeks[i-1].rate : null;
+      const change = prevRate !== null ? w.rate - prevRate : null;
+      const changeLabel = change !== null ? (change > 0 ? `+${change}%` : change < 0 ? `${change}%` : '→') : '';
+      const changeColor = change > 0 ? '#1D9E75' : change < 0 ? '#c8402a' : '#888780';
+      
+      html += `<div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:11px;color:var(--mid);">Week of ${weekLabel}</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${change !== null ? `<span style="font-size:11px;color:${changeColor};font-weight:600;">${changeLabel}</span>` : ''}
+            <span style="font-size:12px;font-weight:700;color:${barColor};">${w.rate}%</span>
+            <span style="font-size:11px;color:var(--mid);">${w.compliant}/${w.total} decisions</span>
+          </div>
+        </div>
+        <div style="background:var(--cream);border-radius:4px;height:8px;overflow:hidden;">
+          <div style="background:${barColor};height:100%;width:${w.rate}%;border-radius:4px;transition:width .4s;"></div>
+        </div>
+        ${w.stale > 0 ? `<div style="font-size:11px;color:#c8402a;margin-top:3px;">⚠ ${w.stale} stale drift event${w.stale>1?'s':''} this week</div>` : ''}
+      </div>`;
+    });
+  }
+  
+  // Governance decay rate note
+  if(health.weeks.length >= 2) {
+    const decayMsg = health.decayRate > 0 
+      ? `Governance improving: compliance rate increased ${health.decayRate}% since first recorded week.`
+      : health.decayRate < 0 
+      ? `Governance decay detected: compliance rate declined ${Math.abs(health.decayRate)}% since first recorded week. Review policy update process.`
+      : 'Governance stable: compliance rate unchanged across recorded weeks.';
+    const decayColor = health.decayRate >= 0 ? '#1D9E75' : '#c8402a';
+    html += `<div style="margin-top:10px;padding:10px 12px;background:${health.decayRate >= 0 ? '#E1F5EE' : '#FAEEDA'};border-radius:6px;font-size:12px;color:${decayColor};font-weight:500;">${decayMsg}</div>`;
+  }
+  
+  el.innerHTML = html;
+}
+
 function initApp(){
   console.log("initApp called, DB.policies:", DB.policies.length, "DB.decisions:", DB.decisions.length);
   updateHome();
