@@ -88,6 +88,85 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
 .reveal{opacity:0;transform:translateY(24px);transition:opacity 0.6s,transform 0.6s;}
 .reveal.visible{opacity:1;transform:translateY(0);}
 @media(max-width:768px){.steps,.problem-inner,.buyer-grid,.reg-grid{grid-template-columns:1fr;}.hero h1{font-size:2.6rem;}.hero-stat-row{gap:2rem;flex-wrap:wrap;}nav,.hero,.how,.problem,.buyers,.regulatory,.cta-section{padding-left:1.25rem;padding-right:1.25rem;}}
+
+.checklist-section {
+  padding: 60px 0;
+  background: #f5f2ed;
+  border-top: 1px solid #d0ccc6;
+  border-bottom: 1px solid #d0ccc6;
+}
+.checklist-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+.checklist-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.checklist-title {
+  font-family: var(--serif);
+  font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 12px;
+  line-height: 1.2;
+}
+.checklist-desc {
+  font-size: 1rem;
+  color: #5a5550;
+  line-height: 1.6;
+  max-width: 520px;
+  margin-bottom: 16px;
+}
+.checklist-stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.stat-pill {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--ink);
+  background: #e8e4de;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid #d0ccc6;
+}
+.checklist-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.btn-checklist {
+  display: flex;
+  align-items: center;
+  background: var(--accent);
+  color: white;
+  padding: 16px 28px;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+.btn-checklist:hover { opacity: 0.85; }
+.checklist-note {
+  font-size: 11px;
+  color: #888780;
+  text-align: center;
+  font-family: var(--mono);
+}
+
 </style>
 </head>
 <body>
@@ -191,6 +270,33 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
       <div class="reg-item"><div class="reg-name">NAIC Model Bulletin</div><div class="reg-desc">US state regulators now require documentation of AI model governance, including how policy changes are reflected in deployed systems.</div></div>
       <div class="reg-item"><div class="reg-name">DORA (EU)</div><div class="reg-desc">Digital Operational Resilience Act requires EU insurers to maintain full audit trails for automated decision systems — including version history.</div></div>
       <div class="reg-item"><div class="reg-name">Solvency II</div><div class="reg-desc">Risk management frameworks require demonstrable control over AI systems used in underwriting and claims — including constraint documentation.</div></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="checklist-section" id="checklist">
+  <div class="container">
+    <div class="checklist-banner">
+      <div class="checklist-text">
+        <div class="checklist-tag">FREE RESOURCE — NO EMAIL REQUIRED</div>
+        <h2 class="checklist-title">NAIC AI Governance Readiness Checklist</h2>
+        <p class="checklist-desc">10 questions every insurance compliance team should be able to answer for the NAIC AI Systems Evaluation Tool — now live in 12 states. How many can you answer today?</p>
+        <div class="checklist-stats">
+          <span class="stat-pill">Maps to all 4 NAIC Exhibits</span>
+          <span class="stat-pill">12 pilot states active now</span>
+          <span class="stat-pill">Nationwide Nov 2026</span>
+        </div>
+      </div>
+      <div class="checklist-cta">
+        <a href="policyproof-naic-checklist.pdf" target="_blank" class="btn-checklist">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;flex-shrink:0;">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+          </svg>
+          Download Free Checklist
+        </a>
+        <p class="checklist-note">PDF — No signup. No email. Just download.</p>
+      </div>
     </div>
   </div>
 </section>
