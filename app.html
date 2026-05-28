@@ -76,6 +76,7 @@ textarea{resize:vertical;line-height:1.6;}
   <a href="/" target="_blank" class="logo" style="text-decoration:none;">Policy<span>Proof</span></a>
   <div class="nav">
     <button class="nav-btn active" onclick="go('home')">Home</button>
+    <button class="nav-btn" onclick="go('registry')">AI Registry</button>
     <button class="nav-btn" onclick="go('policies')">Policies</button>
     <button class="nav-btn" onclick="go('mutations')">Mutations</button>
     <button class="nav-btn" onclick="go('decisions')">Decisions</button>
@@ -95,6 +96,7 @@ textarea{resize:vertical;line-height:1.6;}
   <!-- HOME -->
   <div class="panel active" id="panel-home">
     <div class="g4 mb10">
+      <div class="metric"><div class="mval" id="h-aisystems">0</div><div class="mlbl">AI systems registered</div></div>
       <div class="metric"><div class="mval" id="h-policies">0</div><div class="mlbl">Policy versions</div></div>
       <div class="metric"><div class="mval" id="h-mutations">0</div><div class="mlbl">Mutations detected</div></div>
       <div class="metric"><div class="mval" id="h-decisions">0</div><div class="mlbl">Decisions logged</div></div>
@@ -122,7 +124,100 @@ textarea{resize:vertical;line-height:1.6;}
   </div>
 
   <!-- POLICIES -->
-  <div class="panel" id="panel-policies">
+  <div class="panel" id="panel-registry">
+    <div class="card">
+      <div class="card-title">Register AI System</div>
+      <div class="g2 mb10">
+        <div>
+          <label class="lbl">System name</label>
+          <input type="text" id="reg-name" placeholder="e.g. Underwriting Decision Engine"/>
+        </div>
+        <div>
+          <label class="lbl">System ID / Reference</label>
+          <input type="text" id="reg-id" placeholder="e.g. AI-UW-001"/>
+        </div>
+      </div>
+      <div class="g2 mb10">
+        <div>
+          <label class="lbl">Function / Use case</label>
+          <select id="reg-function">
+            <option value="">Select function</option>
+            <option>Underwriting — Risk scoring</option>
+            <option>Underwriting — Coverage determination</option>
+            <option>Underwriting — Rate setting</option>
+            <option>Claims — Routing and triage</option>
+            <option>Claims — Auto-approval</option>
+            <option>Claims — Fraud detection</option>
+            <option>Compliance — Policy monitoring</option>
+            <option>Customer — Servicing and support</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Risk tier</label>
+          <select id="reg-risk">
+            <option value="">Select risk tier</option>
+            <option value="high">High — Directly affects policyholders</option>
+            <option value="medium">Medium — Supports human decisions</option>
+            <option value="low">Low — Internal workflow only</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2 mb10">
+        <div>
+          <label class="lbl">Vendor or in-house</label>
+          <select id="reg-source">
+            <option value="">Select</option>
+            <option value="inhouse">In-house built</option>
+            <option value="vendor">Third-party vendor</option>
+            <option value="hybrid">Hybrid</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Vendor name (if applicable)</label>
+          <input type="text" id="reg-vendor" placeholder="e.g. Guidewire, Duck Creek"/>
+        </div>
+      </div>
+      <div class="g2 mb10">
+        <div>
+          <label class="lbl">Date deployed</label>
+          <input type="date" id="reg-deployed"/>
+        </div>
+        <div>
+          <label class="lbl">Last reviewed</label>
+          <input type="date" id="reg-reviewed"/>
+        </div>
+      </div>
+      <div class="mb10">
+        <label class="lbl">Description / Purpose</label>
+        <textarea id="reg-desc" placeholder="Brief description of what this AI system does and what decisions it influences..." style="height:70px;"></textarea>
+      </div>
+      <div class="mb10">
+        <label class="lbl">Linked policy category</label>
+        <select id="reg-policy-cat">
+          <option value="">Select linked policy category</option>
+          <option>Underwriting Guidelines</option>
+          <option>Claims Handling Manual</option>
+          <option>Flood &amp; Exclusion Policy</option>
+          <option>Fraud Detection Rules</option>
+          <option>Reinsurance Attachment Rules</option>
+          <option>Compliance &amp; Regulatory Policy</option>
+          <option>Risk Scoring Rules</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="fe"><button class="btn btn-p" onclick="addAISystem()">Register AI system</button></div>
+    </div>
+    <div id="registry-alerts"></div>
+    <div class="card">
+      <div class="card-title">AI System Registry
+        <span style="font-size:11px;color:var(--mid);font-weight:400;margin-left:8px;">NAIC Evaluation Tool — Exhibit A</span>
+      </div>
+      <div id="registry-list"><div class="empty">No AI systems registered yet. Register your first AI system above.</div></div>
+    </div>
+  </div>
+
+    <div class="panel" id="panel-policies">
     <div class="card">
       <div class="card-title">Register policy version</div>
       <div class="g2 mb10">
@@ -267,6 +362,23 @@ const DEMO_DATA = {
     {type:'version', msg:'Policy version saved', sub:'Q2 2026 Underwriting Guidelines', t:'2026-04-01T07:55'},
     {type:'decision', msg:'Decision logged: CLM-2026-0101', sub:'Status: compliant', t:'2026-03-22T09:45'},
     {type:'version', msg:'Policy version saved', sub:'Q1 2026 Underwriting Guidelines', t:'2026-01-01T08:00'}
+  ],
+  registry:[
+    {id:3001, name:'Underwriting Decision Engine', sysId:'AI-UW-001',
+     function:'Underwriting — Risk scoring', risk:'high', source:'vendor',
+     vendor:'Guidewire', deployed:'2024-03-01', reviewed:'2026-01-15',
+     desc:'Automated risk scoring for commercial property underwriting. Produces risk scores and coverage recommendations for underwriter review.',
+     policyCat:'Underwriting Guidelines'},
+    {id:3002, name:'Claims Auto-Approval System', sysId:'AI-CLM-001',
+     function:'Claims — Auto-approval', risk:'high', source:'inhouse',
+     vendor:'', deployed:'2024-09-15', reviewed:'2025-12-01',
+     desc:'Automatically approves claims below defined thresholds. Routes higher-value claims to adjusters.',
+     policyCat:'Claims Handling Manual'},
+    {id:3003, name:'Fraud Detection Classifier', sysId:'AI-FRD-001',
+     function:'Claims — Fraud detection', risk:'high', source:'vendor',
+     vendor:'FRISS', deployed:'2023-06-01', reviewed:'2026-02-28',
+     desc:'ML-based fraud detection flagging suspicious claims patterns for investigation.',
+     policyCat:'Fraud Detection Rules'}
   ]
 };
 
@@ -281,13 +393,13 @@ function resetDemo(){
 
 function clearAll(){
   if(!confirm('Clear all data and start fresh?')) return;
-  DB.policies=[];DB.decisions=[];DB.mutations=[];DB.activity=[];
+  DB.policies=[];DB.decisions=[];DB.mutations=[];DB.activity=[];DB.registry=[];
   reportText='';
   go('home');
 }
 
 function go(name){
-  ['home','policies','mutations','decisions','audit'].forEach((n,i)=>{
+  ['home','registry','policies','mutations','decisions','audit'].forEach((n,i)=>{
     document.getElementById('panel-'+n).classList.toggle('active',n===name);
     document.querySelectorAll('.nav-btn')[i].classList.toggle('active',n===name);
   });
@@ -549,6 +661,8 @@ function renderHome(){
 }
 
 function updateHome(){
+  const regEl = document.getElementById('h-aisystems');
+  if(regEl) regEl.textContent = DB.registry ? DB.registry.length : 0;
   const total=DB.decisions.length;
   const ok=DB.decisions.filter(d=>d.status==='compliant').length;
   const hPol=document.getElementById('h-policies');
@@ -660,6 +774,123 @@ function fmt(iso){if(!iso)return'—';return new Date(iso).toLocaleString('en-US
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // Initialize on load - run immediately and also on DOMContentLoaded
+function addAISystem(){
+  const name = document.getElementById('reg-name').value.trim();
+  const sysId = document.getElementById('reg-id').value.trim();
+  const func = document.getElementById('reg-function').value;
+  const risk = document.getElementById('reg-risk').value;
+  const source = document.getElementById('reg-source').value;
+  const vendor = document.getElementById('reg-vendor').value.trim();
+  const deployed = document.getElementById('reg-deployed').value;
+  const reviewed = document.getElementById('reg-reviewed').value;
+  const desc = document.getElementById('reg-desc').value.trim();
+  const policyCat = document.getElementById('reg-policy-cat').value;
+
+  if(!name || !func || !risk || !source || !deployed){
+    alert('Please fill in system name, function, risk tier, source, and date deployed.');
+    return;
+  }
+
+  DB.registry.push({
+    id: Date.now(), name, sysId, function: func, risk, source,
+    vendor, deployed, reviewed, desc, policyCat
+  });
+
+  // Clear form
+  ['reg-name','reg-id','reg-vendor','reg-desc'].forEach(id => document.getElementById(id).value='');
+  ['reg-function','reg-risk','reg-source','reg-policy-cat'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('reg-deployed').value='';
+  document.getElementById('reg-reviewed').value='';
+
+  log('registry', 'AI System registered', name + ' — ' + func);
+  renderRegistry();
+  updateHome();
+}
+
+function renderRegistry(){
+  const el = document.getElementById('registry-list');
+  if(!el) return;
+  if(!DB.registry.length){
+    el.innerHTML='<div class="empty">No AI systems registered yet.</div>';
+    return;
+  }
+
+  // Group by risk tier
+  const tiers = ['high','medium','low'];
+  const tierLabels = {high:'High Risk — Directly affects policyholders', medium:'Medium Risk — Supports human decisions', low:'Low Risk — Internal workflow only'};
+  const tierColors = {high:'#c8402a', medium:'#EF9F27', low:'#1D9E75'};
+
+  let html = '';
+  tiers.forEach(tier => {
+    const systems = DB.registry.filter(s => s.risk === tier);
+    if(!systems.length) return;
+
+    html += `<div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:600;color:${tierColors[tier]};letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:6px;">${tierLabels[tier]}</div>`;
+
+    systems.forEach(s => {
+      const sourceLabel = s.source === 'inhouse' ? 'In-house' : s.source === 'vendor' ? `Vendor: ${s.vendor || 'Unknown'}` : 'Hybrid';
+      const deployedDate = s.deployed ? new Date(s.deployed).toLocaleDateString('en-US',{month:'short',year:'numeric'}) : '—';
+      const reviewedDate = s.reviewed ? new Date(s.reviewed).toLocaleDateString('en-US',{month:'short',year:'numeric'}) : 'Not reviewed';
+      const daysSinceReview = s.reviewed ? Math.floor((new Date() - new Date(s.reviewed)) / (1000*60*60*24)) : null;
+      const reviewAlert = daysSinceReview && daysSinceReview > 365;
+
+      html += `<div class="row" style="align-items:flex-start;">
+        <div class="dot" style="background:${tierColors[tier]};margin-top:4px;"></div>
+        <div class="rbody" style="flex:1;">
+          <div class="rtitle">${s.name} <span style="font-size:11px;color:var(--mid);font-weight:400;">${s.sysId ? '(' + s.sysId + ')' : ''}</span></div>
+          <div class="rmeta">${s.function}</div>
+          <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap;">
+            <span style="font-size:11px;color:var(--mid);">Source: ${sourceLabel}</span>
+            <span style="font-size:11px;color:var(--mid);">Deployed: ${deployedDate}</span>
+            <span style="font-size:11px;color:${reviewAlert ? '#c8402a' : 'var(--mid)'};">Last reviewed: ${reviewedDate}${reviewAlert ? ' ⚠' : ''}</span>
+            ${s.policyCat ? `<span style="font-size:11px;color:var(--mid);">Policy: ${s.policyCat}</span>` : ''}
+          </div>
+          ${s.desc ? `<div class="rout" style="margin-top:4px;">${s.desc}</div>` : ''}
+          ${reviewAlert ? `<div style="font-size:11px;color:#c8402a;margin-top:3px;">⚠ Review overdue — last reviewed over 12 months ago</div>` : ''}
+        </div>
+        <span class="badge b-${tier === 'high' ? 'stale' : tier === 'medium' ? 'none' : 'ok'}">${tier} risk</span>
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  // Summary counts
+  const high = DB.registry.filter(s=>s.risk==='high').length;
+  const medium = DB.registry.filter(s=>s.risk==='medium').length;
+  const low = DB.registry.filter(s=>s.risk==='low').length;
+  const vendors = DB.registry.filter(s=>s.source==='vendor').length;
+  const overdue = DB.registry.filter(s => {
+    if(!s.reviewed) return true;
+    return Math.floor((new Date() - new Date(s.reviewed)) / (1000*60*60*24)) > 365;
+  }).length;
+
+  const summary = `<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+    <div style="background:var(--cream);border-radius:6px;padding:8px 12px;flex:1;min-width:80px;text-align:center;">
+      <div style="font-size:1.3rem;font-weight:700;color:#c8402a;">${high}</div>
+      <div style="font-size:10px;color:var(--mid);">High risk</div>
+    </div>
+    <div style="background:var(--cream);border-radius:6px;padding:8px 12px;flex:1;min-width:80px;text-align:center;">
+      <div style="font-size:1.3rem;font-weight:700;color:#EF9F27;">${medium}</div>
+      <div style="font-size:10px;color:var(--mid);">Medium risk</div>
+    </div>
+    <div style="background:var(--cream);border-radius:6px;padding:8px 12px;flex:1;min-width:80px;text-align:center;">
+      <div style="font-size:1.3rem;font-weight:700;color:#1D9E75;">${low}</div>
+      <div style="font-size:10px;color:var(--mid);">Low risk</div>
+    </div>
+    <div style="background:var(--cream);border-radius:6px;padding:8px 12px;flex:1;min-width:80px;text-align:center;">
+      <div style="font-size:1.3rem;font-weight:700;color:var(--ink);">${vendors}</div>
+      <div style="font-size:10px;color:var(--mid);">Vendor systems</div>
+    </div>
+    ${overdue > 0 ? `<div style="background:#FAEEDA;border-radius:6px;padding:8px 12px;flex:1;min-width:80px;text-align:center;">
+      <div style="font-size:1.3rem;font-weight:700;color:#854F0B;">${overdue}</div>
+      <div style="font-size:10px;color:#854F0B;">Review overdue</div>
+    </div>` : ''}
+  </div>`;
+
+  el.innerHTML = summary + html;
+}
+
 function calcGovernanceHealth(){
   // Calculate weekly drift rates from decision history
   if(!DB.decisions.length) return {score:'—', trend:'—', weeks:[]};
