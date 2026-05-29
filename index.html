@@ -116,6 +116,23 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .cta-submit{font-size:14px;font-weight:600;padding:12px 24px;background:var(--ink);color:var(--paper);border:none;border-radius:0 4px 4px 0;cursor:pointer;font-family:var(--sans);}
 .cta-note{font-size:12px;color:var(--mid);margin-top:1rem;}
 footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.footer-links{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin:10px 0;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.footer-links a{
+  font-size:11px;
+  color:var(--mid);
+  text-decoration:none;
+  font-family:var(--mono);
+  transition:color 0.2s;
+}
+.footer-links a:hover{color:var(--accent);}
+.footer-links span{color:var(--mid);font-size:11px;}
 .footer-logo{font-family:var(--mono);font-size:13px;color:var(--mid);}
 .footer-note{font-size:12px;color:var(--mid);}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
@@ -356,7 +373,16 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
 
 <footer>
   <div class="footer-logo">PolicyProof — Constraint Mutation Detection & Verification</div>
-  <div class="footer-note">© 2026 · Built for insurance AI governance</div>
+  <div class="footer-links">
+    <a href="policyproof-terms-of-service.pdf" target="_blank">Terms of Service</a>
+    <span>·</span>
+    <a href="policyproof-privacy-policy.pdf" target="_blank">Privacy Policy</a>
+    <span>·</span>
+    <a href="policyproof-data-handling.pdf" target="_blank">Data Handling</a>
+    <span>·</span>
+    <a href="policyproof-naic-checklist.pdf" target="_blank">Free NAIC Checklist</a>
+  </div>
+  <div class="footer-note">© 2026 · Built for insurance AI governance · suneel@policyproof.ai</div>
 </footer>
 
 <script>
