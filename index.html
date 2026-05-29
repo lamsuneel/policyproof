@@ -19,6 +19,30 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .nav-cta{font-size:13px;font-weight:500;padding:7px 18px;background:var(--ink);color:var(--paper);border-radius:4px;text-decoration:none;cursor:pointer;}
 .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:120px 2.5rem 80px;position:relative;overflow:hidden;}
 .hero-grid{position:absolute;inset:0;opacity:0.04;background-image:linear-gradient(var(--ink) 1px,transparent 1px),linear-gradient(90deg,var(--ink) 1px,transparent 1px);background-size:60px 60px;}
+.alert-banner{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  background:rgba(200,64,42,0.08);
+  border:1px solid rgba(200,64,42,0.25);
+  border-radius:4px;
+  padding:8px 14px;
+  font-size:12px;
+  color:var(--ink);
+  margin-bottom:1.5rem;
+  font-family:var(--mono);
+}
+.alert-dot{
+  width:8px;height:8px;
+  background:var(--accent);
+  border-radius:50%;
+  flex-shrink:0;
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{
+  0%,100%{opacity:1;}
+  50%{opacity:0.4;}
+}
 .hero-tag{font-family:var(--mono);font-size:11px;letter-spacing:0.12em;color:var(--accent);text-transform:uppercase;margin-bottom:1.5rem;opacity:0;animation:fadeUp 0.6s 0.2s forwards;}
 .hero h1{font-family:var(--serif);font-size:clamp(3rem,6vw,5.5rem);line-height:1.08;letter-spacing:-0.02em;color:var(--ink);max-width:800px;opacity:0;animation:fadeUp 0.7s 0.35s forwards;}
 .hero h1 em{font-style:italic;color:var(--accent);}
@@ -184,8 +208,13 @@ footer{padding:2rem 2.5rem;border-top:0.5px solid var(--border);display:flex;ali
 <section class="hero">
   <div class="hero-grid"></div>
   <div class="hero-tag">Insurance AI Governance</div>
-  <h1>When a regulator asks about<br>an AI decision — it takes<br><em>3 to 10 days</em> to find the answer.</h1>
-  <p class="hero-sub">Manual reconstruction. Engineering pulled off real work. Fragmented logs across scattered systems. PolicyProof builds the audit trail automatically — so when anyone asks, you answer in seconds not days.</p>
+  <div class="alert-banner">
+    <span class="alert-dot"></span>
+    CB Financial Services filed the first SEC 8-K triggered by Shadow AI — May 2026. 
+    <a href="https://www.wsgrdataadvisor.com/2026/05/shadow-ai-triggers-first-sec-form-8-k-for-unauthorized-ai-use-what-financial-institutions-and-public-companies-need-to-know/" target="_blank" style="color:var(--accent);text-decoration:underline;">Read the brief →</a>
+  </div>
+  <h1>The first SEC 8-K for<br>Shadow AI was filed<br><em>yesterday.</em></h1>
+  <p class="hero-sub">Regulators are now asking: Did you know which AI tools were running? Were your policies enforced? Can you prove it? PolicyProof answers all three questions — before the filing.</p>
   <div class="hero-actions">
     <span class="btn-primary" onclick="document.getElementById('cta').scrollIntoView({behavior:'smooth'})">Request early access</span>
     <span class="btn-secondary" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">See how it works →</span>
