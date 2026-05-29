@@ -13,6 +13,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 .topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:56px;background:rgba(245,242,237,0.95);backdrop-filter:blur(10px);border-bottom:0.5px solid var(--border);}
 .logo{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--ink);}
 .logo span{color:var(--accent);}
+.tagline-bar{font-size:11px;color:var(--mid);font-family:var(--mono);padding:2px 12px;background:var(--cream);border-radius:4px;white-space:nowrap;}
 .nav{display:flex;gap:2px;background:var(--cream);border:0.5px solid var(--border);border-radius:6px;padding:3px;}
 .nav-btn{padding:6px 14px;font-size:12px;border:none;border-radius:4px;background:transparent;color:var(--mid);cursor:pointer;transition:all 0.15s;font-family:var(--sans);}
 .nav-btn.active{background:var(--paper);color:var(--ink);font-weight:500;border:0.5px solid var(--border);}
@@ -74,6 +75,7 @@ textarea{resize:vertical;line-height:1.6;}
 
 <div class="topbar">
   <a href="/" target="_blank" class="logo" style="text-decoration:none;">Policy<span>Proof</span></a>
+  <div class="tagline-bar">3 to 10 days → seconds. AI compliance audit trail for insurance.</div>
   <div class="nav">
     <button class="nav-btn active" onclick="go('home')">Home</button>
     <button class="nav-btn" onclick="go('registry')">AI Registry</button>
