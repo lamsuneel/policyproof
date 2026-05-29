@@ -395,7 +395,7 @@ function resetDemo(){
 
 function clearAll(){
   if(!confirm('Clear all data and start fresh?')) return;
-  DB.policies=[];DB.decisions=[];DB.mutations=[];DB.activity=[];DB.registry=[];
+  Object.assign(DB, JSON.parse(JSON.stringify(DEMO_DATA)));
   reportText='';
   go('home');
 }
@@ -1049,12 +1049,13 @@ function renderGovernanceTimeline(){
 }
 
 function initApp(){
-  console.log("initApp called, DB.policies:", DB.policies.length, "DB.decisions:", DB.decisions.length);
+  console.log("initApp called, DB.registry:", DB.registry ? DB.registry.length : "undefined");
   updateHome();
   renderHome();
   renderPolicies();
   renderDecisions();
   renderMutationLog();
+  renderRegistry();
   console.log("initApp done, h-policies:", document.getElementById('h-policies').textContent);
 }
 
