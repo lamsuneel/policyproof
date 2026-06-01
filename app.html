@@ -273,18 +273,99 @@ textarea{resize:vertical;line-height:1.6;}
   <!-- DECISIONS -->
   <div class="panel" id="panel-decisions">
     <div class="card">
-      <div class="card-title">Log AI decision</div>
+      <div class="card-title">Log AI decision
+        <span style="font-size:11px;color:var(--mid);font-weight:400;margin-left:8px;">NAIC Exhibit B — Decision Record</span>
+      </div>
+
+      <!-- Section 1: Decision Identity -->
+      <div style="font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:10px;">Decision Identity</div>
       <div class="g2 mb10">
         <div><label class="lbl">Decision ID</label><input type="text" id="dec-id" placeholder="e.g. UW-2026-0441"/></div>
-        <div><label class="lbl">Decision type</label><select id="dec-type"><option>Underwriting approval</option><option>Claims routing</option><option>Coverage determination</option><option>Risk scoring</option><option>Exception review</option></select></div>
+        <div><label class="lbl">Decision type</label>
+          <select id="dec-type">
+            <option>Underwriting approval</option>
+            <option>Underwriting decline</option>
+            <option>Claims approval</option>
+            <option>Claims denial</option>
+            <option>Claims routing</option>
+            <option>Coverage determination</option>
+            <option>Fraud flag</option>
+            <option>Risk scoring</option>
+            <option>Exception review</option>
+          </select>
+        </div>
       </div>
       <div class="g2 mb10">
         <div><label class="lbl">Decision timestamp</label><input type="datetime-local" id="dec-time"/></div>
+        <div><label class="lbl">Case / Claim reference</label><input type="text" id="dec-case" placeholder="e.g. CLM-2026-8841"/></div>
+      </div>
+
+      <!-- Section 2: Policy Version — First Class Field -->
+      <div style="font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:10px;margin-top:16px;">Policy Version State <span style="color:var(--mid);font-weight:400;text-transform:none;letter-spacing:0;">(NAIC Exhibit B §3.3 — first-class field)</span></div>
+      <div class="g2 mb10">
         <div><label class="lbl">Policy category</label><select id="dec-pol-cat" onchange="filterDecPolicies()"><option value="">All categories</option></select></div>
-        <div><label class="lbl">Policy version used by AI</label><select id="dec-pol"><option value="">Not declared</option></select></div>
+        <div><label class="lbl">Policy version used by AI</label><select id="dec-pol" onchange="showPolicyVersionDetail()"><option value="">Not declared</option></select></div>
+      </div>
+      <div id="policy-version-detail" style="display:none;background:var(--cream);border:0.5px solid var(--border);border-radius:6px;padding:12px;margin-bottom:10px;font-size:12px;">
+        <div style="font-weight:600;color:var(--ink);margin-bottom:6px;">Policy version captured at decision time:</div>
+        <div class="g2" style="gap:8px;">
+          <div><span style="color:var(--mid);">Version label: </span><span id="pvd-label" style="font-family:var(--mono);color:var(--ink);"></span></div>
+          <div><span style="color:var(--mid);">Category: </span><span id="pvd-cat" style="font-family:var(--mono);color:var(--ink);"></span></div>
+          <div><span style="color:var(--mid);">Effective from: </span><span id="pvd-from" style="font-family:var(--mono);color:var(--ink);"></span></div>
+          <div><span style="color:var(--mid);">Effective until: </span><span id="pvd-until" style="font-family:var(--mono);color:var(--ink);"></span></div>
+        </div>
+        <div style="margin-top:8px;"><span style="color:var(--mid);">Policy content hash (SHA-256): </span><span id="pvd-hash" style="font-family:var(--mono);font-size:11px;color:var(--info);word-break:break-all;"></span></div>
+        <div id="pvd-drift-warn" style="display:none;margin-top:8px;" class="alert aw">⚠ Policy drift detected — the version declared does not match the currently active policy. This decision will be flagged as stale.</div>
+      </div>
+
+      <!-- Section 3: AI Output -->
+      <div style="font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:10px;margin-top:16px;">AI Output</div>
+      <div class="g2 mb10">
+        <div><label class="lbl">AI recommendation</label>
+          <select id="dec-ai-rec">
+            <option value="">Select AI recommendation</option>
+            <option>APPROVE</option>
+            <option>DENY</option>
+            <option>REFER</option>
+            <option>FLAG</option>
+            <option>SCORE ONLY</option>
+          </select>
+        </div>
+        <div><label class="lbl">AI confidence score (%)</label><input type="text" id="dec-confidence" placeholder="e.g. 94"/></div>
       </div>
       <div class="mb10"><label class="lbl">AI output summary</label><textarea id="dec-out" rows="3" placeholder="e.g. Approved. Coverage $1.8M. Flood rider excluded. Risk score: 72."></textarea></div>
-      <div class="fe"><button class="btn btn-p" onclick="logDecision()">Log & verify</button></div>
+
+      <!-- Section 4: Human Oversight — NAIC Exhibit B §2.3 -->
+      <div style="font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:10px;margin-top:16px;">Human Oversight <span style="color:var(--mid);font-weight:400;text-transform:none;letter-spacing:0;">(NAIC Exhibit B §2.3 — required)</span></div>
+      <div class="g2 mb10">
+        <div><label class="lbl">Reviewer name</label><input type="text" id="dec-reviewer" placeholder="Full name of human reviewer"/></div>
+        <div><label class="lbl">Reviewer title</label><input type="text" id="dec-reviewer-title" placeholder="e.g. Senior Claims Adjuster"/></div>
+      </div>
+      <div class="g2 mb10">
+        <div><label class="lbl">Adjuster licence number (claims)</label><input type="text" id="dec-licence" placeholder="e.g. CA-ADJ-2024-88441"/></div>
+        <div><label class="lbl">Human final decision</label>
+          <select id="dec-human-decision">
+            <option value="">Select final decision</option>
+            <option>APPROVED — agreed with AI</option>
+            <option>DENIED — agreed with AI</option>
+            <option>APPROVED — override</option>
+            <option>DENIED — override</option>
+            <option>REFERRED — escalated</option>
+            <option>MODIFIED — partial override</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Override section — conditionally shown -->
+      <div id="override-section" style="display:none;">
+        <div style="background:var(--warn-bg);border:0.5px solid var(--warn-border);border-radius:6px;padding:12px;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:600;color:var(--warn);margin-bottom:8px;">⚠ Override detected — reason required (NAIC Exhibit B §2.3(d))</div>
+          <label class="lbl">Override reason <span style="color:var(--warn);">*required</span></label>
+          <textarea id="dec-override-reason" rows="3" placeholder="Explain why the human reviewer overrode the AI recommendation. This is required for the 18-month audit lookback window."></textarea>
+        </div>
+      </div>
+
+      <div class="fe"><button class="btn btn-p" onclick="logDecision()">Log & generate Decision Record</button></div>
     </div>
     <div class="card">
       <div class="card-title">Decision log</div>
@@ -413,6 +494,49 @@ function go(name){
 }
 
 function log(type,msg,sub){DB.activity.unshift({type,msg,sub,t:new Date().toISOString()});}
+
+async function sha256(text){
+  const msgBuffer=new TextEncoder().encode(text);
+  const hashBuffer=await crypto.subtle.digest('SHA-256',msgBuffer);
+  const hashArray=Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function showPolicyVersionDetail(){
+  const pId=document.getElementById('dec-pol').value;
+  const detail=document.getElementById('policy-version-detail');
+  const driftWarn=document.getElementById('pvd-drift-warn');
+  if(!pId){detail.style.display='none';return;}
+  const pol=DB.policies.find(p=>p.id==pId);
+  if(!pol){detail.style.display='none';return;}
+  detail.style.display='block';
+  document.getElementById('pvd-label').textContent=pol.label;
+  document.getElementById('pvd-cat').textContent=pol.category||'Uncategorized';
+  document.getElementById('pvd-from').textContent=fmt(pol.from);
+  document.getElementById('pvd-until').textContent=pol.until?fmt(pol.until):'Current (no expiry set)';
+  // Generate SHA-256 of policy content
+  const decTime=document.getElementById('dec-time').value;
+  sha256(pol.text+pol.label+pol.from+(pol.until||'')).then(hash=>{
+    document.getElementById('pvd-hash').textContent=hash;
+  });
+  // Check drift
+  const ts=decTime||new Date().toISOString();
+  const activePol=getActiveAt(ts);
+  if(activePol&&activePol.id!=pol.id){
+    driftWarn.style.display='block';
+  } else {
+    driftWarn.style.display='none';
+  }
+}
+
+document.addEventListener('change',function(e){
+  if(e.target.id==='dec-human-decision'){
+    const val=e.target.value;
+    const overrideSection=document.getElementById('override-section');
+    const isOverride=val.includes('override')||val.includes('OVERRIDE');
+    overrideSection.style.display=isOverride?'block':'none';
+  }
+});
 
 function checkOverlap(category, from, until, excludeId){
   const newFrom = new Date(from);
@@ -604,23 +728,44 @@ function filterDecPolicies(){
   document.getElementById('dec-pol').innerHTML='<option value="">Not declared</option>'+opts;
 }
 
-function logDecision(){
+async function logDecision(){
   const ref=document.getElementById('dec-id').value.trim();
   const type=document.getElementById('dec-type').value;
   const time=document.getElementById('dec-time').value;
   const out=document.getElementById('dec-out').value.trim();
   const pId=document.getElementById('dec-pol').value;
-  if(!ref||!time||!out){alert('Fill in decision ID, timestamp, and output.');return;}
+  const caseRef=document.getElementById('dec-case').value.trim();
+  const aiRec=document.getElementById('dec-ai-rec').value;
+  const confidence=document.getElementById('dec-confidence').value.trim();
+  const reviewer=document.getElementById('dec-reviewer').value.trim();
+  const reviewerTitle=document.getElementById('dec-reviewer-title').value.trim();
+  const licence=document.getElementById('dec-licence').value.trim();
+  const humanDecision=document.getElementById('dec-human-decision').value;
+  const overrideReason=document.getElementById('dec-override-reason')?document.getElementById('dec-override-reason').value.trim():'';
+  const isOverride=humanDecision.includes('override')||humanDecision.includes('OVERRIDE');
+
+  if(!ref||!time||!out){alert('Fill in decision ID, timestamp, and AI output summary.');return;}
+  if(isOverride&&!overrideReason){alert('Override reason is required when the human decision overrides the AI recommendation. This is required by NAIC Exhibit B §2.3(d).');return;}
+
   const usedPol=pId?DB.policies.find(p=>p.id==pId):null;
   const activePol=getActiveAt(time);
   let status='unverified';
   if(usedPol&&activePol)status=usedPol.id===activePol.id?'compliant':'stale';
-  DB.decisions.push({id:Date.now(),ref,type,time,out,usedPol:usedPol?.label||null,activePol:activePol?.label||null,status});
-  log('decision',`Decision logged: ${ref}`,`Status: ${status}`);
-  document.getElementById('dec-id').value='';
-  document.getElementById('dec-time').value='';
-  document.getElementById('dec-out').value='';
-  document.getElementById('dec-pol').value='';
+
+  // Generate record ID and SHA-256 hash
+  const recordId='PP-'+Date.now();
+  const recordData={recordId,ref,type,time,caseRef,usedPol:usedPol?.label||null,usedPolVersion:usedPol?.label||null,usedPolFrom:usedPol?.from||null,activePol:activePol?.label||null,status,aiRec,confidence,out,reviewer,reviewerTitle,licence,humanDecision,isOverride,overrideReason,issuedAt:new Date().toISOString()};
+  const recordHash=await sha256(JSON.stringify(recordData));
+  const policyContentHash=usedPol?await sha256(usedPol.text+usedPol.label+usedPol.from+(usedPol.until||'')):'';
+
+  DB.decisions.push({...recordData,id:Date.now(),recordHash,policyContentHash});
+  log('decision',`Decision logged: ${ref}`,`Status: ${status}${isOverride?' — OVERRIDE recorded':''}`);
+
+  // Clear form
+  ['dec-id','dec-case','dec-confidence','dec-reviewer','dec-reviewer-title','dec-licence','dec-out','dec-override-reason'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['dec-pol','dec-ai-rec','dec-human-decision'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('policy-version-detail').style.display='none';
+  document.getElementById('override-section').style.display='none';
   renderDecisions();updateHome();renderGovernanceTimeline();
 }
 
@@ -631,9 +776,13 @@ function renderDecisions(){
     <div class="row">
       <div class="dot" style="background:${d.status==='compliant'?'#1D9E75':d.status==='stale'?'#EF9F27':'#888780'};"></div>
       <div class="rbody">
-        <div class="rtitle">${d.ref} <span style="font-weight:400;color:var(--mid);">— ${d.type}</span></div>
-        <div class="rmeta">${fmt(d.time)} · Used: ${d.usedPol||'not declared'} · Active: ${d.activePol||'unknown'}</div>
+        <div class="rtitle">${d.ref} <span style="font-weight:400;color:var(--mid);">— ${d.type}</span>${d.isOverride?'<span class="badge b-stale" style="margin-left:6px;">OVERRIDE</span>':''}</div>
+        <div class="rmeta">${fmt(d.time)} · Policy used: <strong>${d.usedPol||'not declared'}</strong> · Active: ${d.activePol||'unknown'}</div>
+        ${d.reviewer?`<div class="rmeta">Reviewer: ${d.reviewer}${d.reviewerTitle?' — '+d.reviewerTitle:''}${d.licence?' · Licence: '+d.licence:''}</div>`:''}
+        ${d.humanDecision?`<div class="rmeta">Human decision: <strong>${d.humanDecision}</strong></div>`:''}
+        ${d.overrideReason?`<div class="rout" style="border-left:2px solid var(--warn-border);background:var(--warn-bg);color:var(--warn);">Override reason: ${d.overrideReason}</div>`:''}
         <div class="rout">${d.out}</div>
+        ${d.recordHash?`<div style="font-size:11px;color:var(--mid);margin-top:4px;font-family:var(--mono);">Record ID: ${d.recordId} · SHA-256: ${d.recordHash.substring(0,32)}...</div>`:''}
         ${d.status==='stale'?`<div style="font-size:12px;color:var(--warn);margin-top:4px;">⚠ Stale drift — AI used outdated policy. Flag for review.</div>`:''}
       </div>
       <span class="badge b-${d.status==='compliant'?'ok':d.status==='stale'?'stale':'none'}">${d.status}</span>
@@ -692,9 +841,11 @@ function renderAudit(){
     <div class="row">
       <div class="dot" style="background:${d.status==='compliant'?'#1D9E75':d.status==='stale'?'#EF9F27':'#888780'};"></div>
       <div class="rbody">
-        <div class="rtitle">${d.ref} — ${d.type}</div>
-        <div class="rmeta">${fmt(d.time)} · Policy used: ${d.usedPol||'not declared'} · Active: ${d.activePol||'unknown'}</div>
+        <div class="rtitle">${d.ref} — ${d.type}${d.isOverride?'<span class="badge b-stale" style="margin-left:6px;">OVERRIDE</span>':''}</div>
+        <div class="rmeta">${fmt(d.time)} · Policy used: <strong>${d.usedPol||'not declared'}</strong> · Active: ${d.activePol||'unknown'}</div>
+        ${d.reviewer?`<div class="rmeta">Reviewer: ${d.reviewer}${d.licence?' · Licence: '+d.licence:''} · ${d.humanDecision||''}</div>`:''}
         <div class="rout">${d.out}</div>
+        ${d.recordHash?`<div style="font-size:11px;color:var(--mid);margin-top:4px;font-family:var(--mono);">SHA-256: ${d.recordHash.substring(0,48)}...</div>`:''}
       </div>
       <span class="badge b-${d.status==='compliant'?'ok':d.status==='stale'?'stale':'none'}">${d.status}</span>
     </div>`).join('');
@@ -745,7 +896,23 @@ function generateReport(){
     `Mutations detected:        ${DB.mutations.length}`,'',
     stale>0?`WARNING: ${stale} decision(s) operated under outdated policy. See detail below.`:`All verified decisions used the correct active policy version.`,'',
     'DECISION RECORD','-'.repeat(15),'',
-    ...DB.decisions.map((d,i)=>`[${i+1}] ${d.ref} - ${d.type}\n    Timestamp:     ${fmt(d.time)}\n    Policy used:   ${d.usedPol||'Not declared'}\n    Active policy: ${d.activePol||'Unknown'}\n    Status:        ${d.status.toUpperCase()}\n    Output:        ${d.out}${d.status==='stale'?'\n    ACTION:        Flag for manual review':''}\n`),'',
+    ...DB.decisions.map((d,i)=>`[${i+1}] ${d.ref} — ${d.type}
+    Record ID:       ${d.recordId||'—'}
+    Timestamp:       ${fmt(d.time)}
+    Case reference:  ${d.caseRef||'—'}
+    Policy used:     ${d.usedPol||'Not declared'}
+    Policy effective:${d.usedPolFrom?fmt(d.usedPolFrom):'—'}
+    Active policy:   ${d.activePol||'Unknown'}
+    Status:          ${d.status.toUpperCase()}
+    AI recommendation:${d.aiRec||'—'} (confidence: ${d.confidence||'—'}%)
+    AI output:       ${d.out}
+    Reviewer:        ${d.reviewer||'Not recorded'} — ${d.reviewerTitle||'—'}
+    Licence:         ${d.licence||'—'}
+    Human decision:  ${d.humanDecision||'Not recorded'}
+    Override:        ${d.isOverride?'YES — '+d.overrideReason:'No'}
+    Policy hash:     ${d.policyContentHash||'—'}
+    Record hash:     ${d.recordHash||'—'}
+    ${d.status==='stale'?'    ACTION: Flag for manual review — stale policy drift detected':''}\n`),'',
     'POLICY VAULT','-'.repeat(12),'',
     ...DB.policies.map(p=>`  ${p.label}\n    Effective: ${fmt(p.from)} → ${p.until?fmt(p.until):'current'}`),'',
     'MUTATION LOG','-'.repeat(12),'',
