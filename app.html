@@ -245,67 +245,14 @@ textarea{resize:vertical;line-height:1.6;}
           <label class="lbl">Effective from<span class="req">*</span></label>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
             <input type="date" id="pol-from-date" placeholder="YYYY-MM-DD"/>
-            <select id="pol-from-time">
-              <option value="00:00">12:00 AM (Midnight)</option>
-              <option value="01:00">1:00 AM</option>
-              <option value="02:00">2:00 AM</option>
-              <option value="03:00">3:00 AM</option>
-              <option value="04:00">4:00 AM</option>
-              <option value="05:00">5:00 AM</option>
-              <option value="06:00">6:00 AM</option>
-              <option value="07:00">7:00 AM</option>
-              <option value="08:00">8:00 AM</option>
-              <option value="09:00">9:00 AM</option>
-              <option value="10:00">10:00 AM</option>
-              <option value="11:00">11:00 AM</option>
-              <option value="12:00" selected>12:00 PM (Noon)</option>
-              <option value="13:00">1:00 PM</option>
-              <option value="14:00">2:00 PM</option>
-              <option value="15:00">3:00 PM</option>
-              <option value="16:00">4:00 PM</option>
-              <option value="17:00">5:00 PM</option>
-              <option value="18:00">6:00 PM</option>
-              <option value="19:00">7:00 PM</option>
-              <option value="20:00">8:00 PM</option>
-              <option value="21:00">9:00 PM</option>
-              <option value="22:00">10:00 PM</option>
-              <option value="23:00">11:00 PM</option>
-              <option value="23:59">11:59 PM (End of day)</option>
-            </select>
+            <input type="time" id="pol-from-time" value="12:00" style="width:100%;font-size:13px;padding:9px 12px;border:0.5px solid var(--border);border-radius:5px;background:var(--cream);color:var(--ink);">
           </div>
         </div>
         <div>
           <label class="lbl">Effective until <span style="color:var(--mid);font-weight:400;">(blank = still current)</span></label>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
             <input type="date" id="pol-until-date" placeholder="Leave blank if current"/>
-            <select id="pol-until-time">
-<option value="">—</option>
-              <option value="00:00">12:00 AM (Midnight)</option>
-              <option value="01:00">1:00 AM</option>
-              <option value="02:00">2:00 AM</option>
-              <option value="03:00">3:00 AM</option>
-              <option value="04:00">4:00 AM</option>
-              <option value="05:00">5:00 AM</option>
-              <option value="06:00">6:00 AM</option>
-              <option value="07:00">7:00 AM</option>
-              <option value="08:00">8:00 AM</option>
-              <option value="09:00">9:00 AM</option>
-              <option value="10:00">10:00 AM</option>
-              <option value="11:00">11:00 AM</option>
-              <option value="12:00">12:00 PM (Noon)</option>
-              <option value="13:00">1:00 PM</option>
-              <option value="14:00">2:00 PM</option>
-              <option value="15:00">3:00 PM</option>
-              <option value="16:00">4:00 PM</option>
-              <option value="17:00">5:00 PM</option>
-              <option value="18:00">6:00 PM</option>
-              <option value="19:00">7:00 PM</option>
-              <option value="20:00">8:00 PM</option>
-              <option value="21:00">9:00 PM</option>
-              <option value="22:00">10:00 PM</option>
-              <option value="23:00">11:00 PM</option>
-              <option value="23:59">11:59 PM (End of day)</option>
-            </select>
+            <input type="time" id="pol-until-time" style="width:100%;font-size:13px;padding:9px 12px;border:0.5px solid var(--border);border-radius:5px;background:var(--cream);color:var(--ink);">
           </div>
           <div style="font-size:11px;color:var(--mid);margin-top:3px;">Leave date blank if this policy version is still active</div>
         </div>
@@ -366,33 +313,7 @@ textarea{resize:vertical;line-height:1.6;}
         <div><label class="lbl">Decision timestamp<span class="req">*</span></label>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
             <input type="date" id="dec-time-date" placeholder="YYYY-MM-DD"/>
-            <select id="dec-time-hour">
-              <option value="00:00">12:00 AM (Midnight)</option>
-              <option value="01:00">1:00 AM</option>
-              <option value="02:00">2:00 AM</option>
-              <option value="03:00">3:00 AM</option>
-              <option value="04:00">4:00 AM</option>
-              <option value="05:00">5:00 AM</option>
-              <option value="06:00">6:00 AM</option>
-              <option value="07:00">7:00 AM</option>
-              <option value="08:00">8:00 AM</option>
-              <option value="09:00">9:00 AM</option>
-              <option value="10:00">10:00 AM</option>
-              <option value="11:00">11:00 AM</option>
-              <option value="12:00" selected>12:00 PM (Noon)</option>
-              <option value="13:00">1:00 PM</option>
-              <option value="14:00">2:00 PM</option>
-              <option value="15:00">3:00 PM</option>
-              <option value="16:00">4:00 PM</option>
-              <option value="17:00">5:00 PM</option>
-              <option value="18:00">6:00 PM</option>
-              <option value="19:00">7:00 PM</option>
-              <option value="20:00">8:00 PM</option>
-              <option value="21:00">9:00 PM</option>
-              <option value="22:00">10:00 PM</option>
-              <option value="23:00">11:00 PM</option>
-              <option value="23:59">11:59 PM (End of day)</option>
-            </select>
+            <input type="time" id="dec-time-hour" value="12:00" style="width:100%;font-size:13px;padding:9px 12px;border:0.5px solid var(--border);border-radius:5px;background:var(--cream);color:var(--ink);">
           </div></div>
         <div><label class="lbl">Case / Claim reference</label><input type="text" id="dec-case" placeholder="e.g. CLM-2026-8841"/></div>
       </div>
