@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Governance Gap Nobody Talks About: AI System Governance vs AI Decision Governance | PolicyProof</title>
+<meta name="description" content="Most insurers can pass an AI system inventory audit. Few can answer the question an NAIC examiner actually asks: which policy version governed this specific AI decision six months ago?">
+<meta name="author" content="Suneel Lam, Founder — PolicyProof">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Georgia', serif;
+    font-size: 18px;
+    line-height: 1.75;
+    color: #1a1a2e;
+    background: #fefefe;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+  .tag {
+    font-family: 'Arial', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #2E75B6;
+    margin-bottom: 16px;
+    display: block;
+  }
+  h1 {
+    font-size: 2.2rem;
+    line-height: 1.25;
+    color: #1F4E79;
+    margin-bottom: 20px;
+    font-weight: 700;
+  }
+  .subtitle {
+    font-size: 1.15rem;
+    color: #444;
+    line-height: 1.6;
+    margin-bottom: 28px;
+    font-style: italic;
+    border-left: 3px solid #2E75B6;
+    padding-left: 16px;
+  }
+  .meta {
+    font-family: 'Arial', sans-serif;
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #e5e5e5;
+  }
+  .meta strong { color: #444; }
+  h2 {
+    font-size: 1.5rem;
+    color: #1F4E79;
+    margin-top: 52px;
+    margin-bottom: 16px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  h3 {
+    font-size: 1.15rem;
+    color: #2E75B6;
+    margin-top: 36px;
+    margin-bottom: 12px;
+    font-weight: 700;
+    font-family: 'Arial', sans-serif;
+  }
+  p { margin-bottom: 20px; }
+  .pullquote {
+    border-left: 4px solid #2E75B6;
+    background: #F0F6FB;
+    padding: 20px 24px;
+    margin: 36px 0;
+    font-size: 1.15rem;
+    font-style: italic;
+    color: #1F4E79;
+    line-height: 1.6;
+    border-radius: 0 6px 6px 0;
+  }
+  .callout {
+    background: #FFF2CC;
+    border: 1px solid #F0C040;
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin: 36px 0;
+    font-family: 'Arial', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .callout-title {
+    font-weight: 700;
+    color: #7F6000;
+    margin-bottom: 8px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .alert {
+    background: #FCE4D6;
+    border: 1px solid #E07040;
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin: 36px 0;
+    font-family: 'Arial', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .alert-title {
+    font-weight: 700;
+    color: #C00000;
+    margin-bottom: 8px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .success {
+    background: #E2EFDA;
+    border: 1px solid #70A040;
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin: 36px 0;
+    font-family: 'Arial', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .success-title {
+    font-weight: 700;
+    color: #375623;
+    margin-bottom: 8px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 36px 0;
+    font-family: 'Arial', sans-serif;
+    font-size: 14px;
+  }
+  th {
+    background: #1F4E79;
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #e5e5e5;
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  tr:nth-child(even) td { background: #F8F9FA; }
+  .check { color: #375623; font-weight: 700; }
+  .cross { color: #C00000; font-weight: 700; }
+  .partial { color: #7F6000; font-weight: 700; }
+  .scenario {
+    background: #F0F0F8;
+    border: 1px solid #CCCCEE;
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin: 36px 0;
+    font-family: 'Arial', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .scenario-title {
+    font-weight: 700;
+    color: #1F4E79;
+    margin-bottom: 8px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 36px 0;
+  }
+  .col-box {
+    padding: 20px;
+    border-radius: 6px;
+    font-family: 'Arial', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .col-bad {
+    background: #FCE4D6;
+    border: 1px solid #E07040;
+  }
+  .col-good {
+    background: #E2EFDA;
+    border: 1px solid #70A040;
+  }
+  .col-title {
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+  .col-bad .col-title { color: #C00000; }
+  .col-good .col-title { color: #375623; }
+  .author-box {
+    background: #F0F6FB;
+    border: 1px solid #C0D8F0;
+    border-radius: 8px;
+    padding: 24px;
+    margin-top: 60px;
+    font-family: 'Arial', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .author-name {
+    font-weight: 700;
+    font-size: 16px;
+    color: #1F4E79;
+    margin-bottom: 4px;
+  }
+  .author-title {
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  .cta-box {
+    background: #1F4E79;
+    border-radius: 8px;
+    padding: 32px;
+    margin-top: 48px;
+    text-align: center;
+    color: white;
+    font-family: 'Arial', sans-serif;
+  }
+  .cta-box h3 {
+    color: white;
+    font-size: 1.2rem;
+    margin-bottom: 12px;
+    margin-top: 0;
+  }
+  .cta-box p {
+    color: #B8D4F0;
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+  .cta-btn {
+    display: inline-block;
+    background: white;
+    color: #1F4E79;
+    font-weight: 700;
+    padding: 12px 28px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 15px;
+  }
+  .footnote {
+    font-size: 14px;
+    color: #888;
+    border-top: 1px solid #e5e5e5;
+    padding-top: 24px;
+    margin-top: 48px;
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+  }
+  @media (max-width: 600px) {
+    h1 { font-size: 1.7rem; }
+    .two-col { grid-template-columns: 1fr; }
+    body { font-size: 16px; padding: 24px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<span class="tag">AI Governance · Insurance Compliance · NAIC</span>
+
+<h1>The Governance Gap Nobody Talks About: AI System Governance vs AI Decision Governance</h1>
+
+<p class="subtitle">Most insurers can pass an AI system inventory audit. Few can answer the question an NAIC examiner actually asks: which compliance policy version governed this specific AI decision six months ago?</p>
+
+<div class="meta">
+  By <strong>Suneel Lam</strong>, Founder — PolicyProof &nbsp;·&nbsp; June 2026 &nbsp;·&nbsp; 10 min read<br>
+  Suneel has 18 years of QA and automation experience at JPMorgan, Wells Fargo, and BNY Mellon. PolicyProof builds AI decision compliance infrastructure for insurance carriers.
+</div>
+
+<p>There is a quiet assumption embedded in most AI governance programs for insurance. The assumption goes like this: if you have documented your AI systems, assessed their risks, established oversight structures, and maintained an audit log of governance activity — you are compliant.</p>
+
+<p>That assumption is partially correct. And partially wrong in a way that will only become clear when an examiner arrives, a plaintiff's lawyer sends a subpoena, or a claimant's attorney files a discovery request.</p>
+
+<p>The gap between "we have AI governance" and "we can prove what governed this specific decision" is the gap most carriers have not yet closed. This article explains why it exists, what it costs, and what closing it actually requires.</p>
+
+<h2>Two Different Questions Regulators Ask</h2>
+
+<p>Start with the distinction that matters. There are two separate questions in play when a regulator examines an insurer's AI program:</p>
+
+<p><strong>Question One — System governance:</strong> Do you have appropriate governance structures around your AI systems? Is there an inventory? Are risks assessed? Is there human oversight? Are bias tests documented?</p>
+
+<p><strong>Question Two — Decision governance:</strong> For this specific AI-assisted decision made on this specific date — what compliance policy version was the AI operating under? Who reviewed it? Was the AI recommendation followed or overridden? If overridden, why?</p>
+
+<div class="pullquote">
+  "Most governance programs answer Question One well. Almost none answer Question Two reliably — because they were never designed to."
+</div>
+
+<p>These are not the same question. They require different infrastructure to answer. And confusing them — treating a well-documented system governance program as proof that decision governance exists — is the gap that surfaces when scrutiny arrives.</p>
+
+<h2>What the NAIC Actually Asks For</h2>
+
+<p>The NAIC AI Systems Evaluation Tool, currently being piloted across 12 states with nationwide adoption expected in November 2026, organizes examination questions across four exhibits. Understanding which exhibit addresses which question is essential.</p>
+
+<table>
+  <tr>
+    <th>Exhibit</th>
+    <th>What Examiners Ask</th>
+    <th>What It Tests</th>
+  </tr>
+  <tr>
+    <td><strong>Exhibit A</strong></td>
+    <td>List every AI system. Which functions. Which decisions. Include vendor models.</td>
+    <td>System governance — inventory completeness</td>
+  </tr>
+  <tr>
+    <td><strong>Exhibit B</strong></td>
+    <td>Oversight structures, accountability chains, decision audit trails, policy compliance evidence for specific decisions</td>
+    <td>Decision governance — this is where most programs break down</td>
+  </tr>
+  <tr>
+    <td><strong>Exhibit C</strong></td>
+    <td>Model design, training data, validation, performance metrics, bias testing per system</td>
+    <td>Model governance — technical layer</td>
+  </tr>
+  <tr>
+    <td><strong>Exhibit D</strong></td>
+    <td>Data sources, quality controls, proxy discrimination potential</td>
+    <td>Data governance — foundational layer</td>
+  </tr>
+</table>
+
+<p>Most governance programs are built to satisfy Exhibits A, C, and D. They have inventories. They have bias testing. They have data documentation.</p>
+
+<p>Exhibit B is the one that breaks them. Because Exhibit B asks not just whether governance policies exist — but whether you can demonstrate, at the individual decision level, that those policies were actually in force when the decision happened.</p>
+
+<div class="callout">
+  <div class="callout-title">NAIC Model Bulletin — Section 1.7</div>
+  Requires insurers to address all phases of an AI System lifecycle including <strong>ongoing monitoring</strong>. Not periodic. Ongoing. The bulletin also defines "Model Drift" in Section 2 — which PolicyProof's stale drift detection directly addresses as a regulatory term of art, not just an operational concern.
+</div>
+
+<h2>The Lokken Case — What Discovery Actually Looks Like</h2>
+
+<p>In February 2025, a federal court allowed breach of contract and bad faith claims to proceed in <em>Estate of Lokken v. UnitedHealth Group</em>. In March 2025, the court granted broad discovery into UnitedHealthcare's AI-driven claims processes.</p>
+
+<p>Gene Lokken's Medicare Advantage coverage had been denied by an AI tool called nH Predict — a model with a reported 90% error rate on appeals. He paid $12,000 to $14,000 per month out of pocket until he died.</p>
+
+<p>The discovery order required production of: all versions of evidence of coverage documents, expected versus actual denial rates, all AI-driven decisions across the relevant period, employee performance evaluations, and financial information on Medicare Advantage revenue.</p>
+
+<div class="alert">
+  <div class="alert-title">The Governing Question in Lokken</div>
+  The court did not simply ask whether UnitedHealthcare had an AI governance program. It compelled production of evidence showing what the AI was doing on specific dates — what it was told to do, what rules it was following, and whether those rules changed. An application log is not an audit trail. If you cannot produce a tamper-evident, timestamped record linking each AI decision to the specific compliance policy that governed it, you are handing plaintiffs their case.
+</div>
+
+<p>The Lokken ruling is not an outlier. It is a preview. Every carrier using AI in claims, underwriting, or pricing decisions faces the same potential exposure. The question is whether the evidence infrastructure exists before the letter arrives.</p>
+
+<h2>Why System Governance Doesn't Solve the Decision Governance Problem</h2>
+
+<p>A well-built AI system governance program typically provides:</p>
+
+<ul style="margin: 0 0 20px 24px; line-height: 2;">
+  <li>A centralized AI inventory with risk classifications</li>
+  <li>Documented bias testing results per model</li>
+  <li>Oversight structures with named roles and responsibilities</li>
+  <li>An audit log of governance activities — models registered, assessments completed, approvals recorded</li>
+  <li>Framework mapping across NAIC, NIST AI RMF, Colorado AI Regulation</li>
+</ul>
+
+<p>This is genuine governance infrastructure. It answers Exhibit A, C, and D questions. It demonstrates that the carrier has a functioning governance program at the system level.</p>
+
+<p>What it does not provide:</p>
+
+<ul style="margin: 0 0 20px 24px; line-height: 2;">
+  <li>A record of which compliance policy version was active when <em>this specific decision</em> was made</li>
+  <li>Evidence that the AI was operating under the current policy — not an outdated version from before the last policy update</li>
+  <li>The identity of the human reviewer who reviewed the AI recommendation for this decision</li>
+  <li>Documentation of whether the reviewer agreed with or overrode the AI recommendation, and why</li>
+  <li>A cryptographically tamper-evident record that the above evidence has not been altered since the decision was made</li>
+</ul>
+
+<div class="scenario">
+  <div class="scenario-title">Real Scenario — How the Gap Surfaces</div>
+  A carrier updates its underwriting guidelines on April 1. The AI underwriting model continues operating under the previous guidelines until the model team processes the update — which takes three weeks. During those three weeks, the AI makes 847 underwriting decisions under the old policy.<br><br>
+  Eight months later, a claimant challenges a coverage decision made on April 12. The carrier's governance program shows that the AI system was approved, assessed, and operating within its documented parameters. What it cannot show is whether the AI was operating under the April 1 guidelines or the March guidelines when it made that specific decision on April 12.<br><br>
+  That is the gap. And it is the gap that creates legal and regulatory exposure — not the absence of a governance program, but the absence of a decision-level audit trail that connects the dot between when policy changed and what policy the AI was using.
+</div>
+
+<h2>The Policy Version Drift Problem</h2>
+
+<p>Insurance compliance policies change frequently. Underwriting guidelines update with new regulatory guidance. Claims handling procedures change after case law developments. Pricing rules are revised for new product filings.</p>
+
+<p>AI systems do not automatically update when policies change. The update process — from policy revision to model retraining or prompt update to production deployment — takes days, weeks, or sometimes months depending on the carrier's technical infrastructure.</p>
+
+<p>During that gap, the AI is operating under an outdated policy. It is applying old rules to new decisions. And unless there is a system explicitly designed to detect and log this — what the NAIC Model Bulletin calls "model drift" — nobody knows it is happening until someone asks.</p>
+
+<div class="two-col">
+  <div class="col-box col-bad">
+    <div class="col-title">Without Decision Governance</div>
+    Policy updates April 1. AI model not updated until April 22. 340 decisions made under old policy. Nobody captures this. Eight months later, examiner asks which policy governed the April 10 decision. Answer: manual reconstruction — engineering team, Git history, compliance policy register. Three days. Legally fragile result.
+  </div>
+  <div class="col-box col-good">
+    <div class="col-title">With Decision Governance</div>
+    Policy updates April 1. Every subsequent decision is timestamped against the active policy version at decision time. April 10 decision immediately shows: AI operating under March 28 policy version — 12 days after effective date of new policy. Stale drift flagged. Examiner receives timestamped, hash-verified evidence pack in minutes.
+  </div>
+</div>
+
+<h2>What Decision-Level Governance Actually Requires</h2>
+
+<p>Closing the gap between system governance and decision governance requires capturing specific evidence at the moment each AI-assisted decision is made. Not assembled before the audit. Not reconstructed from logs. Captured at execution time.</p>
+
+<p>The minimum field set for a defensible AI decision record under NAIC Exhibit B requirements:</p>
+
+<table>
+  <tr>
+    <th>Field</th>
+    <th>What It Proves</th>
+    <th>NAIC Source</th>
+  </tr>
+  <tr>
+    <td><strong>Policy version at decision time</strong></td>
+    <td>Which compliance rules the AI was applying — not the current policy, but the version active at execution</td>
+    <td>Exhibit B §3.3</td>
+  </tr>
+  <tr>
+    <td><strong>Policy effective date</strong></td>
+    <td>Whether the policy was current or whether drift had occurred</td>
+    <td>Model Bulletin Section 2 — Model Drift</td>
+  </tr>
+  <tr>
+    <td><strong>AI recommendation</strong></td>
+    <td>What the AI actually recommended before human review</td>
+    <td>Exhibit B §2.3</td>
+  </tr>
+  <tr>
+    <td><strong>Reviewer identity and title</strong></td>
+    <td>Who reviewed the AI recommendation — named individual with role</td>
+    <td>Exhibit B §2.3</td>
+  </tr>
+  <tr>
+    <td><strong>Adjuster licence number</strong></td>
+    <td>For claims decisions: compliance with state licensing requirements</td>
+    <td>State licensing law</td>
+  </tr>
+  <tr>
+    <td><strong>Human final decision</strong></td>
+    <td>Whether the reviewer agreed with or overrode the AI</td>
+    <td>Exhibit B §2.3(d)</td>
+  </tr>
+  <tr>
+    <td><strong>Override reason</strong></td>
+    <td>If overridden: documented rationale. Required for the 18-month lookback window.</td>
+    <td>Exhibit B §2.3(d)</td>
+  </tr>
+  <tr>
+    <td><strong>Cryptographic hash</strong></td>
+    <td>Tamper-evidence: any modification produces a different hash, immediately detectable</td>
+    <td>Exhibit B — auditability requirement</td>
+  </tr>
+  <tr>
+    <td><strong>Timestamp</strong></td>
+    <td>Exact moment of decision for reconstruction and regulatory response</td>
+    <td>Exhibit B §4.1.3</td>
+  </tr>
+</table>
+
+<p>The key insight in this field set: most of these fields are not captured by system governance programs. They require a separate layer — one that operates at the individual decision level, continuously, from the moment AI enters a compliance-sensitive workflow.</p>
+
+<h2>The "Reconstruction Replacing Proof" Problem</h2>
+
+<p>When an examiner or plaintiff requests evidence of what governed an AI decision six months ago, there are two possible answers.</p>
+
+<p>The first is reconstruction: pulling logs from multiple systems, checking version control history for model configurations, cross-referencing the compliance policy register, interviewing the people involved, and assembling a narrative. This takes days. The evidence is fragile. It can be contested. And it signals to the examiner that governance was not continuous — it was assembled for the purpose of the examination.</p>
+
+<p>The second is proof: producing a timestamped, cryptographically hashed decision record that was created at the moment the decision was made, showing the policy version, the AI recommendation, the reviewer, and the outcome. This takes minutes. The evidence is tamper-evident. It cannot be contested on the basis of reconstruction. And it signals to the examiner that governance was baked into the workflow — not added afterward.</p>
+
+<div class="pullquote">
+  "The organisations that thrive in regulatory scrutiny will not just be the ones that move faster. They will be the ones that preserve evidence at execution — before reconstruction becomes necessary."
+</div>
+
+<p>The difference between reconstruction and proof is not a technology problem. It is an infrastructure decision. Carriers that build decision governance infrastructure before the examination avoid the reconstruction problem entirely. Carriers that wait build it under examination pressure — which is the worst possible time.</p>
+
+<h2>How This Fits Into Your Existing Governance Program</h2>
+
+<p>Decision governance does not replace system governance. It completes it. Think of it as two layers that work together:</p>
+
+<table>
+  <tr>
+    <th>Layer</th>
+    <th>What It Governs</th>
+    <th>When It Operates</th>
+    <th>Examination Relevance</th>
+  </tr>
+  <tr>
+    <td><strong>System governance</strong></td>
+    <td>The AI system as a whole — its registration, risk classification, bias testing, and oversight structure</td>
+    <td>At deployment and periodically through the system lifecycle</td>
+    <td>Satisfies Exhibits A, C, D</td>
+  </tr>
+  <tr>
+    <td><strong>Decision governance</strong></td>
+    <td>Each individual AI-assisted decision — what policy governed it, who reviewed it, what happened</td>
+    <td>Continuously, at the moment each decision is made</td>
+    <td>Satisfies Exhibit B — the one most programs miss</td>
+  </tr>
+</table>
+
+<p>A carrier with strong system governance but no decision governance has a program that looks complete on paper but breaks under examination when Exhibit B questions arrive.</p>
+
+<p>A carrier with both layers has governance that is genuinely defensible — not just at the system level, but at the decision level, for every AI-influenced outcome that could later be challenged.</p>
+
+<h2>Three Questions to Test Your Current Program</h2>
+
+<p>Before your next NAIC examination or market conduct review, ask these three questions of your current AI governance infrastructure:</p>
+
+<div class="callout">
+  <div class="callout-title">Question 1</div>
+  If an examiner named a specific AI-assisted underwriting or claims decision from six months ago and asked which compliance policy version was active when that decision was made — how would you answer? How long would it take? What would the evidence look like?
+</div>
+
+<div class="callout">
+  <div class="callout-title">Question 2</div>
+  Between your last compliance policy update and the next time your AI model was updated to reflect that change — how many decisions did the AI make under the outdated policy? Do you have a record of those decisions and which policy version governed each one?
+</div>
+
+<div class="callout">
+  <div class="callout-title">Question 3</div>
+  For AI-assisted claims decisions in your portfolio — do you have a timestamped record of the licensed adjuster who reviewed each AI recommendation, whether they agreed or overrode it, and if they overrode it, why?
+</div>
+
+<p>If the answer to any of these involves the phrase "we would need to check with engineering" or "it would take a few days to reconstruct," your system governance program is functioning — but your decision governance infrastructure does not yet exist.</p>
+
+<h2>What Good Looks Like</h2>
+
+<p>An insurer with mature decision governance infrastructure can do the following, on demand, without involving engineering teams:</p>
+
+<div class="success">
+  <div class="success-title">Examination-Ready Decision Governance</div>
+  For any AI-assisted decision in the past 36 months: produce a timestamped, tamper-evident evidence pack showing the exact compliance policy version in effect at decision time, the AI recommendation and confidence score, the identity and licence number of the reviewing adjuster, the final human decision, any override and its documented reason, and a cryptographic hash proving the record has not been altered since it was created. Response time: under one hour. No engineering involvement required.
+</div>
+
+<p>This is not a theoretical standard. It is what the NAIC Exhibit B documentation requirements, the Lokken discovery ruling, and the emerging landscape of state AI insurance regulations are converging toward. The carriers that build it now build it on their own terms. The ones that wait build it under examination pressure.</p>
+
+<h2>The Path Forward</h2>
+
+<p>Decision governance infrastructure does not require replacing existing system governance programs. It requires adding a continuous capture layer that operates at the individual decision level — logging the policy version, the AI output, the human reviewer, and the outcome, with cryptographic integrity, for every AI-assisted decision that could later be subject to regulatory or legal scrutiny.</p>
+
+<p>The starting point is not a technology procurement decision. It is an honest assessment of whether your current program can answer the three questions above. If it cannot, the gap is real. The timeline for closing it, given the NAIC examination tool's 2026 nationwide adoption, is shorter than most programs currently assume.</p>
+
+<p>The examination does not ask whether you intended to have governance. It asks whether you can prove what governed each decision when it happened.</p>
+
+<div class="author-box">
+  <div class="author-name">Suneel Lam</div>
+  <div class="author-title">Founder, PolicyProof · 18 years QA and automation at JPMorgan, Wells Fargo, BNY Mellon</div>
+  <p style="margin:0;">PolicyProof builds AI decision compliance infrastructure for insurance carriers — continuous policy version tracking, decision-level audit trails, and NAIC Exhibit B documentation, without requiring engineering team involvement. Learn more at <a href="https://policyproof.vercel.app" style="color:#2E75B6;">policyproof.vercel.app</a></p>
+</div>
+
+<div class="cta-box">
+  <h3>How prepared is your program for Exhibit B?</h3>
+  <p>Take the 60-second NAIC Readiness Assessment and find out where your decision governance gaps are.</p>
+  <a href="https://policyproof.vercel.app/app.html" class="cta-btn">Take the Assessment →</a>
+</div>
+
+<div class="footnote">
+  <strong>References and regulatory sources:</strong><br>
+  NAIC AI Systems Evaluation Tool Pilot — 12 states, launched March 2026. Nationwide adoption expected November 2026 NAIC Fall Meeting. &nbsp;·&nbsp;
+  NAIC Model Bulletin on the Use of Artificial Intelligence Systems by Insurers — 24 states adopted as of 2026. &nbsp;·&nbsp;
+  Estate of Lokken v. UnitedHealth Group, D. Minn. 2023–2025 — February 2025 ruling allowing breach of contract and bad faith claims to proceed; March 2025 broad discovery order. &nbsp;·&nbsp;
+  Colorado AI Insurance Regulation — expanded to auto and health insurers October 2025. &nbsp;·&nbsp;
+  Colorado SB 21-169 / SB26-189 — automated decision-making technology disclosure requirements. &nbsp;·&nbsp;
+  NIST AI Risk Management Framework 1.0 — voluntary framework referenced across 7 of 31 research sources. &nbsp;·&nbsp;
+  SR 26-2 — Federal Reserve model risk management guidance replacing SR 11-7, April 2026.
+</div>
+
+</body>
+</html>
