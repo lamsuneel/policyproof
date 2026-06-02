@@ -121,6 +121,10 @@ textarea{resize:vertical;line-height:1.6;}
       <div id="home-alerts"></div>
     </div>
     <div class="card">
+      <div class="card-title">Action board <span style="font-size:11px;color:var(--mid);font-weight:400;margin-left:6px;">Priority compliance actions</span></div>
+      <div id="action-board"><div class="empty">No actions yet. Start by registering an AI system and policy version.</div></div>
+    </div>
+    <div class="card">
       <div class="card-title">Recent activity</div>
       <div id="home-activity"><div class="empty">No activity yet. Start by registering a policy version.</div></div>
     </div>
@@ -419,6 +423,56 @@ textarea{resize:vertical;line-height:1.6;}
       <div class="metric"><div class="mval" id="a-ok">0</div><div class="mlbl">Compliant</div></div>
       <div class="metric"><div class="mval" id="a-stale">0</div><div class="mlbl">Stale drift</div></div>
       <div class="metric"><div class="mval" id="a-pct">—</div><div class="mlbl">Compliance rate</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">NAIC Readiness Assessment <span style="font-size:11px;color:var(--mid);font-weight:400;margin-left:6px;">How prepared are you for examination?</span></div>
+      <div id="quiz-body">
+        <div style="font-size:13px;color:var(--mid);margin-bottom:14px;">Answer five questions to get your NAIC AI examination readiness score. Takes 60 seconds.</div>
+        <div class="quiz-q" id="qq1">
+          <div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:8px;">1. Do you have an inventory of every AI system making or assisting decisions?</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn" onclick="setQ(1,'yes')" id="q1-yes">Yes</button>
+            <button class="btn" onclick="setQ(1,'partial')" id="q1-partial">Partial</button>
+            <button class="btn" onclick="setQ(1,'no')" id="q1-no">No</button>
+          </div>
+        </div>
+        <div class="quiz-q" id="qq2" style="margin-top:12px;">
+          <div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:8px;">2. Can you show which compliance policy version was active when a specific AI decision was made?</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn" onclick="setQ(2,'yes')" id="q2-yes">Yes</button>
+            <button class="btn" onclick="setQ(2,'partial')" id="q2-partial">Partial</button>
+            <button class="btn" onclick="setQ(2,'no')" id="q2-no">No</button>
+          </div>
+        </div>
+        <div class="quiz-q" id="qq3" style="margin-top:12px;">
+          <div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:8px;">3. Do you log human reviewer identity and decision for every AI-assisted claim or underwriting outcome?</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn" onclick="setQ(3,'yes')" id="q3-yes">Yes</button>
+            <button class="btn" onclick="setQ(3,'partial')" id="q3-partial">Partial</button>
+            <button class="btn" onclick="setQ(3,'no')" id="q3-no">No</button>
+          </div>
+        </div>
+        <div class="quiz-q" id="qq4" style="margin-top:12px;">
+          <div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:8px;">4. When an AI recommendation is overridden, is the reason documented and retained?</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn" onclick="setQ(4,'yes')" id="q4-yes">Yes</button>
+            <button class="btn" onclick="setQ(4,'partial')" id="q4-partial">Partial</button>
+            <button class="btn" onclick="setQ(4,'no')" id="q4-no">No</button>
+          </div>
+        </div>
+        <div class="quiz-q" id="qq5" style="margin-top:12px;">
+          <div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:8px;">5. Could you produce a complete AI decision audit trail for an examiner within 24 hours?</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn" onclick="setQ(5,'yes')" id="q5-yes">Yes</button>
+            <button class="btn" onclick="setQ(5,'partial')" id="q5-partial">Partial</button>
+            <button class="btn" onclick="setQ(5,'no')" id="q5-no">No</button>
+          </div>
+        </div>
+        <div class="fe" style="margin-top:16px;">
+          <button class="btn btn-p" onclick="scoreQuiz()">Get my readiness score</button>
+        </div>
+        <div id="quiz-result" style="display:none;margin-top:16px;"></div>
+      </div>
     </div>
     <div class="card">
       <div class="card-title">Generate audit report</div>
@@ -899,6 +953,7 @@ function updateHome(){
   if(hMut) hMut.textContent=DB.mutations.length;
   if(hDec) hDec.textContent=total;
   if(hCom) hCom.textContent=total?Math.round((ok/total)*100)+'%':'—';
+  renderActionBoard();
 }
 
 function renderAudit(){
@@ -1161,7 +1216,10 @@ function renderRegistry(){
       html += `<div class="row" style="align-items:flex-start;">
         <div class="dot" style="background:${tierColors[tier]};margin-top:4px;"></div>
         <div class="rbody" style="flex:1;">
-          <div class="rtitle">${s.name} <span style="font-size:11px;color:var(--mid);font-weight:400;">${s.sysId ? '(' + s.sysId + ')' : ''}</span></div>
+          <div class="rtitle" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>${s.name} <span style="font-size:11px;color:var(--mid);font-weight:400;">${s.sysId ? '(' + s.sysId + ')' : ''}</span></span>
+            <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px;background:var(--cream);color:${scoreColor(calcSystemScore(s))};">${calcSystemScore(s)}% ready</span>
+          </div>
           <div class="rmeta">${s.function}</div>
           <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap;">
             <span style="font-size:11px;color:var(--mid);">Source: ${sourceLabel}</span>
@@ -1385,6 +1443,184 @@ if(document.readyState === 'loading'){
 } else {
   initApp();
 }
+
+// ============================================================
+// FEATURE: Action Board
+// ============================================================
+function renderActionBoard(){
+  const el = document.getElementById('action-board');
+  if(!el) return;
+  const actions = [];
+
+  // Check AI Registry
+  if(!DB.registry || DB.registry.length === 0){
+    actions.push({sev:'HIGH', title:'Register your AI systems', desc:'NAIC Exhibit A requires an inventory of every AI system. None registered yet.', tab:'registry'});
+  }
+
+  // Check policy versions
+  if(DB.policies.length === 0){
+    actions.push({sev:'HIGH', title:'Register at least one policy version', desc:'No policy versions in vault. AI decisions cannot be verified without a policy baseline.', tab:'policies'});
+  }
+
+  // Check undeclared policy versions in decisions
+  const undeclared = DB.decisions.filter(d => !d.usedPol || d.usedPol === 'Not declared');
+  if(undeclared.length > 0){
+    actions.push({sev:'HIGH', title:`${undeclared.length} decision(s) with no policy version declared`, desc:'NAIC Exhibit B requires policy version documented per decision. These decisions are unverifiable.', tab:'decisions'});
+  }
+
+  // Check stale decisions
+  const stale = DB.decisions.filter(d => d.status === 'stale');
+  if(stale.length > 0){
+    actions.push({sev:'HIGH', title:`${stale.length} decision(s) operating under outdated policy`, desc:'Stale drift detected. AI was using an old policy version when a newer one was active.', tab:'decisions'});
+  }
+
+  // Check missing reviewers
+  const noReviewer = DB.decisions.filter(d => !d.reviewer || d.reviewer.trim() === '');
+  if(noReviewer.length > 0){
+    actions.push({sev:'MED', title:`${noReviewer.length} decision(s) missing human reviewer`, desc:'NAIC Exhibit B §2.3 requires human reviewer identity documented for every AI-assisted decision.', tab:'decisions'});
+  }
+
+  // Check missing licences for claims decisions
+  const claimsNoLicence = DB.decisions.filter(d => (d.type||'').toLowerCase().includes('claim') && (!d.licence || d.licence.trim() === ''));
+  if(claimsNoLicence.length > 0){
+    actions.push({sev:'MED', title:`${claimsNoLicence.length} claims decision(s) missing adjuster licence`, desc:'Most US states require a licensed adjuster for claims decisions. Licence number not recorded.', tab:'decisions'});
+  }
+
+  // Check overrides without reasons
+  const overrideNoReason = DB.decisions.filter(d => d.isOverride && (!d.overrideReason || d.overrideReason.trim() === ''));
+  if(overrideNoReason.length > 0){
+    actions.push({sev:'HIGH', title:`${overrideNoReason.length} override(s) missing documented reason`, desc:'NAIC Exhibit B §2.3(d) requires override reason captured. Missing for some decisions.', tab:'decisions'});
+  }
+
+  // All good
+  if(actions.length === 0){
+    el.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--green-bg,#E2EFDA);border-radius:6px;"><span style="font-size:18px;">✓</span><div><div style="font-weight:600;color:#375623;font-size:14px;">All clear — no compliance actions required</div><div style="font-size:12px;color:#375623;margin-top:2px;">Your governance posture looks good. Keep logging decisions to maintain the trail.</div></div></div>';
+    return;
+  }
+
+  const sevColor = {HIGH:'#C00000', MED:'#7F6000', LOW:'#595959'};
+  const sevBg = {HIGH:'#FCE4D6', MED:'#FFF2CC', LOW:'#F2F2F2'};
+  el.innerHTML = actions.map(a => `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:${sevBg[a.sev]};border-radius:6px;margin-bottom:6px;cursor:pointer;" onclick="switchTab('${a.tab}')">
+      <span style="font-size:11px;font-weight:700;color:${sevColor[a.sev]};background:white;padding:2px 6px;border-radius:3px;margin-top:2px;white-space:nowrap;">${a.sev}</span>
+      <div>
+        <div style="font-weight:600;color:var(--ink);font-size:13px;">${a.title}</div>
+        <div style="font-size:12px;color:var(--mid);margin-top:2px;">${a.desc}</div>
+      </div>
+      <span style="margin-left:auto;color:var(--mid);font-size:12px;">Fix →</span>
+    </div>`).join('');
+}
+
+function switchTab(name){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  const panel = document.getElementById('panel-'+name);
+  if(panel) panel.classList.add('active');
+  const btn = document.querySelector(`[onclick*="'${name}'"]`);
+  if(btn) btn.classList.add('active');
+}
+
+// ============================================================
+// FEATURE: Compliance score per AI system
+// ============================================================
+function calcSystemScore(sys){
+  let score = 0;
+  let max = 0;
+
+  // Has risk tier — 20 points
+  max += 20;
+  if(sys.risk && sys.risk !== '') score += 20;
+
+  // Has vendor/source — 10 points
+  max += 10;
+  if(sys.source && sys.source !== '') score += 10;
+
+  // Has function — 10 points
+  max += 10;
+  if(sys.func && sys.func !== '') score += 10;
+
+  // Has deployment date — 10 points
+  max += 10;
+  if(sys.deployed && sys.deployed !== '') score += 10;
+
+  // Has decisions logged — 20 points
+  max += 20;
+  const sysDecs = DB.decisions.filter(d => d.caseRef && d.caseRef !== '');
+  if(sysDecs.length > 0) score += 20;
+
+  // Decisions have policy version — 20 points
+  max += 20;
+  const allDecs = DB.decisions;
+  if(allDecs.length > 0){
+    const withPol = allDecs.filter(d => d.usedPol && d.usedPol !== 'Not declared').length;
+    score += Math.round((withPol/allDecs.length) * 20);
+  }
+
+  // Has associated policy category — 10 points
+  max += 10;
+  if(sys.policyCategory && sys.policyCategory !== '') score += 10;
+
+  return max > 0 ? Math.round((score/max)*100) : 0;
+}
+
+function scoreColor(pct){
+  if(pct >= 80) return '#1D9E75';
+  if(pct >= 50) return '#EF9F27';
+  return '#C00000';
+}
+
+// ============================================================
+// FEATURE: NAIC Readiness Quiz
+// ============================================================
+const quizAnswers = {};
+function setQ(num, val){
+  quizAnswers[num] = val;
+  ['yes','partial','no'].forEach(v => {
+    const btn = document.getElementById('q'+num+'-'+v);
+    if(btn){
+      btn.style.background = v === val ? 'var(--ink)' : '';
+      btn.style.color = v === val ? 'white' : '';
+    }
+  });
+}
+
+function scoreQuiz(){
+  const scores = {yes:2, partial:1, no:0};
+  let total = 0;
+  for(let i=1; i<=5; i++){
+    total += scores[quizAnswers[i]||'no'];
+  }
+  const pct = Math.round((total/10)*100);
+  const resultEl = document.getElementById('quiz-result');
+  let level, color, bg, msg, next;
+  if(pct >= 80){
+    level='Strong'; color='#375623'; bg='#E2EFDA';
+    msg='Your governance posture is solid. You have the foundational infrastructure in place for an NAIC examination.';
+    next='Focus on continuous monitoring — make sure your audit trail stays current between examinations.';
+  } else if(pct >= 50){
+    level='Partial'; color='#7F6000'; bg='#FFF2CC';
+    msg='You have some governance in place but critical gaps remain. An examiner would likely find areas of concern.';
+    next='Priority: ensure policy version is captured per decision and human reviewer is documented for all AI-assisted decisions.';
+  } else {
+    level='At Risk'; color='#C00000'; bg='#FCE4D6';
+    msg='Significant gaps in your AI governance infrastructure. High exposure if an NAIC examiner or plaintiff requests AI decision documentation.';
+    next='Start immediately: register your AI systems, establish policy version tracking, and log human reviewer identity per decision.';
+  }
+  resultEl.style.display='block';
+  resultEl.innerHTML = `
+    <div style="background:${bg};border-radius:8px;padding:16px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div style="font-size:2.5rem;font-weight:700;color:${color};">${pct}%</div>
+        <div>
+          <div style="font-weight:700;font-size:16px;color:${color};">NAIC Readiness: ${level}</div>
+          <div style="font-size:12px;color:var(--mid);">Based on 5 NAIC Exhibit B criteria</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--ink);margin-bottom:8px;">${msg}</div>
+      <div style="font-size:13px;font-weight:500;color:${color};">Next step: ${next}</div>
+    </div>`;
+}
+
 </script>
 </body>
 </html>
