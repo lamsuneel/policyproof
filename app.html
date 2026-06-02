@@ -23,6 +23,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 .card{background:var(--paper);border:0.5px solid var(--border);border-radius:8px;padding:1.5rem;margin-bottom:1rem;}
 .card-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:1rem;letter-spacing:0.01em;}
 .lbl{font-size:12px;color:var(--mid);margin-bottom:5px;display:block;}
+.req{color:#C00000;margin-left:2px;font-weight:700;}
 input[type=text],input[type=email],input[type=datetime-local],textarea,select{width:100%;font-size:13px;padding:9px 12px;border:0.5px solid var(--border);border-radius:5px;background:var(--cream);color:var(--ink);font-family:var(--sans);transition:border-color 0.15s;}
 input:focus,textarea:focus,select:focus{outline:none;border-color:var(--ink);}
 textarea{resize:vertical;line-height:1.6;}
@@ -131,17 +132,17 @@ textarea{resize:vertical;line-height:1.6;}
       <div class="card-title">Register AI System</div>
       <div class="g2 mb10">
         <div>
-          <label class="lbl">System name</label>
+          <label class="lbl">System name<span class="req">*</span></label>
           <input type="text" id="reg-name" placeholder="e.g. Underwriting Decision Engine"/>
         </div>
         <div>
-          <label class="lbl">System ID / Reference</label>
+          <label class="lbl">System ID / Reference<span class="req">*</span></label>
           <input type="text" id="reg-id" placeholder="e.g. AI-UW-001"/>
         </div>
       </div>
       <div class="g2 mb10">
         <div>
-          <label class="lbl">Function / Use case</label>
+          <label class="lbl">Function / Use case<span class="req">*</span></label>
           <select id="reg-function">
             <option value="">Select function</option>
             <option>Underwriting — Risk scoring</option>
@@ -156,7 +157,7 @@ textarea{resize:vertical;line-height:1.6;}
           </select>
         </div>
         <div>
-          <label class="lbl">Risk tier</label>
+          <label class="lbl">Risk tier<span class="req">*</span></label>
           <select id="reg-risk">
             <option value="">Select risk tier</option>
             <option value="high">High — Directly affects policyholders</option>
@@ -182,7 +183,7 @@ textarea{resize:vertical;line-height:1.6;}
       </div>
       <div class="g2 mb10">
         <div>
-          <label class="lbl">Date deployed</label>
+          <label class="lbl">Date deployed<span class="req">*</span></label>
           <input type="date" id="reg-deployed"/>
         </div>
         <div>
@@ -224,7 +225,7 @@ textarea{resize:vertical;line-height:1.6;}
       <div class="card-title">Register policy version</div>
       <div class="g2 mb10">
         <div>
-          <label class="lbl">Policy category</label>
+          <label class="lbl">Policy category<span class="req">*</span></label>
           <select id="pol-category">
             <option value="">Select category</option>
             <option>Underwriting Guidelines</option>
@@ -237,13 +238,43 @@ textarea{resize:vertical;line-height:1.6;}
             <option>Other</option>
           </select>
         </div>
-        <div><label class="lbl">Version label</label><input type="text" id="pol-label" placeholder="e.g. Q2 2026"/></div>
+        <div><label class="lbl">Version label<span class="req">*</span></label><input type="text" id="pol-label" placeholder="e.g. Q2 2026"/></div>
       </div>
       <div class="g2 mb10">
-        <div><label class="lbl">Effective from</label><input type="datetime-local" id="pol-from"/></div>
-        <div><label class="lbl">Effective until (blank = current)</label><input type="datetime-local" id="pol-until"/></div>
+        <div>
+          <label class="lbl">Effective from<span class="req">*</span></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <input type="date" id="pol-from-date" placeholder="YYYY-MM-DD"/>
+            <select id="pol-from-time">
+              <option value="00:00">12:00 AM (Midnight)</option>
+              <option value="06:00">6:00 AM</option>
+              <option value="08:00">8:00 AM</option>
+              <option value="09:00">9:00 AM</option>
+              <option value="12:00" selected>12:00 PM (Noon)</option>
+              <option value="17:00">5:00 PM</option>
+              <option value="23:59">11:59 PM (End of day)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="lbl">Effective until <span style="color:var(--mid);font-weight:400;">(blank = still current)</span></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <input type="date" id="pol-until-date" placeholder="Leave blank if current"/>
+            <select id="pol-until-time">
+              <option value="">—</option>
+              <option value="00:00">12:00 AM (Midnight)</option>
+              <option value="06:00">6:00 AM</option>
+              <option value="08:00">8:00 AM</option>
+              <option value="09:00">9:00 AM</option>
+              <option value="12:00">12:00 PM (Noon)</option>
+              <option value="17:00">5:00 PM</option>
+              <option value="23:59">11:59 PM (End of day)</option>
+            </select>
+          </div>
+          <div style="font-size:11px;color:var(--mid);margin-top:3px;">Leave date blank if this policy version is still active</div>
+        </div>
       </div>
-      <div class="mb10"><label class="lbl">Policy constraints (key rules)</label><textarea id="pol-text" rows="6" placeholder="e.g.&#10;Max coverage: $2M&#10;Flood exclusion applies in Zone A&#10;Auto-approval threshold: $50,000&#10;Risk score above 85 requires manual review"></textarea></div>
+      <div class="mb10"><label class="lbl">Policy constraints (key rules)<span class="req">*</span></label><textarea id="pol-text" rows="6" placeholder="e.g.&#10;Max coverage: $2M&#10;Flood exclusion applies in Zone A&#10;Auto-approval threshold: $50,000&#10;Risk score above 85 requires manual review"></textarea></div>
       <div class="fe"><button class="btn btn-p" onclick="addPolicy()">+ Save version</button></div>
     </div>
     <div id="overlap-alerts"></div>
@@ -280,7 +311,7 @@ textarea{resize:vertical;line-height:1.6;}
       <!-- Section 1: Decision Identity -->
       <div style="font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:10px;">Decision Identity</div>
       <div class="g2 mb10">
-        <div><label class="lbl">Decision ID</label><input type="text" id="dec-id" placeholder="e.g. UW-2026-0441"/></div>
+        <div><label class="lbl">Decision ID<span class="req">*</span></label><input type="text" id="dec-id" placeholder="e.g. UW-2026-0441"/></div>
         <div><label class="lbl">Decision type</label>
           <select id="dec-type">
             <option>Underwriting approval</option>
@@ -296,7 +327,26 @@ textarea{resize:vertical;line-height:1.6;}
         </div>
       </div>
       <div class="g2 mb10">
-        <div><label class="lbl">Decision timestamp</label><input type="datetime-local" id="dec-time"/></div>
+        <div><label class="lbl">Decision timestamp<span class="req">*</span></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <input type="date" id="dec-time-date" placeholder="YYYY-MM-DD"/>
+            <select id="dec-time-hour">
+              <option value="00:00">12:00 AM</option>
+              <option value="06:00">6:00 AM</option>
+              <option value="08:00">8:00 AM</option>
+              <option value="09:00">9:00 AM</option>
+              <option value="10:00">10:00 AM</option>
+              <option value="11:00">11:00 AM</option>
+              <option value="12:00" selected>12:00 PM</option>
+              <option value="13:00">1:00 PM</option>
+              <option value="14:00">2:00 PM</option>
+              <option value="15:00">3:00 PM</option>
+              <option value="16:00">4:00 PM</option>
+              <option value="17:00">5:00 PM</option>
+              <option value="18:00">6:00 PM</option>
+              <option value="23:59">11:59 PM</option>
+            </select>
+          </div></div>
         <div><label class="lbl">Case / Claim reference</label><input type="text" id="dec-case" placeholder="e.g. CLM-2026-8841"/></div>
       </div>
       <div class="g2 mb10">
@@ -350,7 +400,7 @@ textarea{resize:vertical;line-height:1.6;}
         </div>
         <div><label class="lbl">AI confidence score (%)</label><input type="text" id="dec-confidence" placeholder="e.g. 94"/></div>
       </div>
-      <div class="mb10"><label class="lbl">AI output summary</label><textarea id="dec-out" rows="3" placeholder="e.g. Approved. Coverage $1.8M. Flood rider excluded. Risk score: 72."></textarea></div>
+      <div class="mb10"><label class="lbl">AI output summary<span class="req">*</span></label><textarea id="dec-out" rows="3" placeholder="e.g. Approved. Coverage $1.8M. Flood rider excluded. Risk score: 72."></textarea></div>
 
       <!-- Section 4: Human Oversight — NAIC Exhibit B §2.3 -->
       <div style="font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:10px;margin-top:16px;">Human Oversight <span style="color:var(--mid);font-weight:400;text-transform:none;letter-spacing:0;">(NAIC Exhibit B §2.3 — required)</span></div>
@@ -360,7 +410,7 @@ textarea{resize:vertical;line-height:1.6;}
       </div>
       <div class="g2 mb10">
         <div><label class="lbl">Adjuster licence number (claims)</label><input type="text" id="dec-licence" placeholder="e.g. CA-ADJ-2024-88441"/></div>
-        <div><label class="lbl">Human final decision</label>
+        <div><label class="lbl">Human final decision<span class="req">*</span></label>
           <select id="dec-human-decision">
             <option value="">Select final decision</option>
             <option>APPROVED — agreed with AI</option>
@@ -401,7 +451,7 @@ textarea{resize:vertical;line-height:1.6;}
     <div class="card">
       <div class="card-title">Generate audit report</div>
       <div class="g2 mb10">
-        <div><label class="lbl">Report title</label><input type="text" id="rep-title" value="AI Workflow Compliance Audit"/></div>
+        <div><label class="lbl">Report title<span class="req">*</span></label><input type="text" id="rep-title" value="AI Workflow Compliance Audit"/></div>
         <div><label class="lbl">Prepared for</label><input type="text" id="rep-org" placeholder="e.g. NAIC State Examination 2026"/></div>
       </div>
       <div class="mb10"><label class="lbl">Preparer name / team</label><input type="text" id="rep-prep" placeholder="e.g. AI Governance Team, Acme Insurance"/></div>
@@ -544,7 +594,9 @@ function showPolicyVersionDetail(){
   document.getElementById('pvd-from').textContent=fmt(pol.from);
   document.getElementById('pvd-until').textContent=pol.until?fmt(pol.until):'Current (no expiry set)';
   // Generate SHA-256 of policy content
-  const decTime=document.getElementById('dec-time').value;
+  const decTimeDate=document.getElementById('dec-time-date')?document.getElementById('dec-time-date').value:'';
+  const decTimeHour=document.getElementById('dec-time-hour')?document.getElementById('dec-time-hour').value:'12:00';
+  const decTime=decTimeDate?(decTimeDate+'T'+decTimeHour):'';
   sha256(pol.text+pol.label+pol.from+(pol.until||'')).then(hash=>{
     document.getElementById('pvd-hash').textContent=hash;
   });
@@ -590,10 +642,18 @@ function checkOverlap(category, from, until, excludeId){
 function addPolicy(){
   const category=document.getElementById('pol-category').value;
   const label=document.getElementById('pol-label').value.trim();
-  const from=document.getElementById('pol-from').value;
-  const until=document.getElementById('pol-until').value;
+  const fromDate=document.getElementById('pol-from-date').value;
+  const fromTime=document.getElementById('pol-from-time').value;
+  const untilDate=document.getElementById('pol-until-date').value;
+  const untilTime=document.getElementById('pol-until-time')?document.getElementById('pol-until-time').value:'';
   const text=document.getElementById('pol-text').value.trim();
-  if(!category||!label||!from||!text){alert('Fill in category, version label, effective from, and policy text.');return;}
+  if(!category){alert('Policy category is required. Please select or create a category.');return;}
+  if(!label){alert('Version label is required. Use a clear name like Q2 2026 or Claims-v2.1.');return;}
+  if(!fromDate){alert('Effective from date is required. This is the date the policy version became active.');return;}
+  if(!text){alert('Policy constraints are required. Enter the key rules this policy version enforces.');return;}
+  const from=fromDate+'T'+fromTime;
+  const until=untilDate?(untilDate+'T'+(untilTime||'23:59')):'';
+  if(until&&until<=from){alert('Effective until must be after effective from. Check your dates.');return;}
 
   // Check for overlapping date ranges in same category
   const conflicts = checkOverlap(category, from, until, null);
@@ -613,8 +673,10 @@ function addPolicy(){
   DB.policies.push({id:Date.now(),category,label,from,until,text});
   document.getElementById('pol-category').value='';
   document.getElementById('pol-label').value='';
-  document.getElementById('pol-from').value='';
-  document.getElementById('pol-until').value='';
+  document.getElementById('pol-from-date').value='';
+  document.getElementById('pol-from-time').value='12:00';
+  document.getElementById('pol-until-date').value='';
+  if(document.getElementById('pol-until-time'))document.getElementById('pol-until-time').value='';
   document.getElementById('pol-text').value='';
   log('version','Policy version saved',category+' — '+label);
   renderPolicies();updateHome();
@@ -764,7 +826,9 @@ function filterDecPolicies(){
 async function logDecision(){
   const ref=document.getElementById('dec-id').value.trim();
   const type=document.getElementById('dec-type').value;
-  const time=document.getElementById('dec-time').value;
+  const decDate=document.getElementById('dec-time-date')?document.getElementById('dec-time-date').value:'';
+  const decHour=document.getElementById('dec-time-hour')?document.getElementById('dec-time-hour').value:'12:00';
+  const time=decDate?(decDate+'T'+decHour):'';
   const out=document.getElementById('dec-out').value.trim();
   const pId=document.getElementById('dec-pol').value;
   const caseRef=document.getElementById('dec-case').value.trim();
@@ -779,7 +843,9 @@ async function logDecision(){
   const overrideReason=document.getElementById('dec-override-reason')?document.getElementById('dec-override-reason').value.trim():'';
   const isOverride=humanDecision.includes('override')||humanDecision.includes('OVERRIDE');
 
-  if(!ref||!time||!out){alert('Fill in decision ID, timestamp, and AI output summary.');return;}
+  if(!ref){alert('Decision ID is required. Use a reference like CLM-2026-0441.');return;}
+  if(!decDate){alert('Decision timestamp date is required. Select the date this decision was made.');return;}
+  if(!out){alert('AI output summary is required. Describe what the AI recommended or decided.');return;}
   if(isOverride&&!overrideReason){alert('Override reason is required when the human decision overrides the AI recommendation. This is required by NAIC Exhibit B §2.3(d).');return;}
 
   const usedPol=pId?DB.policies.find(p=>p.id==pId):null;
@@ -798,6 +864,8 @@ async function logDecision(){
 
   // Clear form
   ['dec-id','dec-case','dec-confidence','dec-reviewer','dec-reviewer-title','dec-licence','dec-out','dec-override-reason'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  if(document.getElementById('dec-time-date'))document.getElementById('dec-time-date').value='';
+  if(document.getElementById('dec-time-hour'))document.getElementById('dec-time-hour').value='12:00';
   ['dec-pol','dec-ai-rec','dec-human-decision','dec-state'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('policy-version-detail').style.display='none';
   document.getElementById('override-section').style.display='none';
