@@ -408,9 +408,22 @@ textarea{resize:vertical;line-height:1.6;}
         </div>
       </div>
 
-      <div class="fe"><button class="btn btn-p" onclick="logDecision()">Log & generate Decision Record</button></div>
+      <input type="hidden" id="dec-editing-id" value=""/>
+      <div class="fe" style="gap:8px;">
+        <button class="btn btn-p" onclick="logDecision()">Log & generate Decision Record</button>
+        <button class="btn" id="dec-cancel-edit" onclick="cancelEdit()" style="display:none;">Cancel edit</button>
+      </div>
     </div>
     <div class="card">
+      <div id="dec-filter-banner" style="display:none;background:#FFF2CC;border:0.5px solid #EF9F27;border-radius:6px;padding:10px 14px;margin-bottom:12px;display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-weight:600;font-size:13px;color:#7F6000;" id="dec-filter-title">Filtered view</div>
+            <div style="font-size:12px;color:#7F6000;margin-top:2px;" id="dec-filter-desc">Showing records that need attention</div>
+          </div>
+          <button class="btn" onclick="clearDecFilter()" style="font-size:12px;">Show all</button>
+        </div>
+      </div>
       <div class="card-title">Decision log</div>
       <div id="decision-log"><div class="empty">No decisions logged yet.</div></div>
     </div>
@@ -885,7 +898,25 @@ async function logDecision(){
   const recordHash=await sha256(JSON.stringify(recordData));
   const policyContentHash=usedPol?await sha256(usedPol.text+usedPol.label+usedPol.from+(usedPol.until||'')):'';
 
-  DB.decisions.push({...recordData,id:Date.now(),recordHash,policyContentHash});
+  const editingId = document.getElementById('dec-editing-id')?parseInt(document.getElementById('dec-editing-id').value):null;
+  if(editingId){
+    // Update existing decision
+    const idx = DB.decisions.findIndex(d => d.id === editingId);
+    if(idx >= 0){
+      DB.decisions[idx] = {...DB.decisions[idx], ...recordData, recordHash, policyContentHash};
+      log('decision',`Decision updated: ${ref}`,`Status: ${status}`);
+    }
+    // Reset edit mode
+    if(document.getElementById('dec-editing-id')) document.getElementById('dec-editing-id').value='';
+    const btn = document.querySelector('[onclick="logDecision()"]');
+    if(btn) btn.textContent='Log & generate Decision Record';
+    const cancelBtn = document.getElementById('dec-cancel-edit');
+    if(cancelBtn) cancelBtn.style.display='none';
+  } else {
+    // New decision
+    DB.decisions.push({...recordData,id:Date.now(),recordHash,policyContentHash});
+    log('decision',`Decision logged: ${ref}`,`Status: ${status}${isOverride?' — OVERRIDE recorded':''}`);
+  }
   log('decision',`Decision logged: ${ref}`,`Status: ${status}${isOverride?' — OVERRIDE recorded':''}`);
 
   // Clear form
@@ -898,23 +929,112 @@ async function logDecision(){
   renderDecisions();updateHome();renderGovernanceTimeline();
 }
 
+let decFilter = null; // null = show all, or function to filter
+
+function clearDecFilter(){
+  decFilter = null;
+  const banner = document.getElementById('dec-filter-banner');
+  if(banner) banner.style.display='none';
+  renderDecisions();
+}
+
+function applyDecFilter(filterFn, title, desc){
+  decFilter = filterFn;
+  const banner = document.getElementById('dec-filter-banner');
+  const titleEl = document.getElementById('dec-filter-title');
+  const descEl = document.getElementById('dec-filter-desc');
+  if(banner){ banner.style.display='block'; }
+  if(titleEl) titleEl.textContent = title;
+  if(descEl) descEl.textContent = desc;
+  renderDecisions();
+  // Scroll to decision log
+  const logEl = document.getElementById('decision-log');
+  if(logEl) setTimeout(()=>logEl.scrollIntoView({behavior:'smooth',block:'start'}), 200);
+}
+
+function editDecision(decId){
+  const d = DB.decisions.find(dec => dec.id === decId);
+  if(!d) return;
+
+  // Populate form fields
+  const setVal = (id, val) => { const el=document.getElementById(id); if(el) el.value=val||''; };
+  setVal('dec-id', d.ref);
+  setVal('dec-case', d.caseRef);
+  setVal('dec-out', d.out);
+  setVal('dec-ai-rec', d.aiRec);
+  setVal('dec-confidence', d.confidence);
+  setVal('dec-reviewer', d.reviewer);
+  setVal('dec-reviewer-title', d.reviewerTitle);
+  setVal('dec-licence', d.licence);
+  setVal('dec-human-decision', d.humanDecision);
+  setVal('dec-override-reason', d.overrideReason);
+  setVal('dec-state', d.domicileState);
+
+  // Set date and time
+  if(d.time){
+    const parts = d.time.split('T');
+    setVal('dec-time-date', parts[0]);
+    setVal('dec-time-hour', parts[1]?parts[1].substring(0,5):'12:00');
+  }
+
+  // Set policy dropdown
+  document.getElementById('dec-type').value = d.type || 'Underwriting approval';
+
+  // Show override section if needed
+  const overrideSection = document.getElementById('override-section');
+  const isOv = (d.humanDecision||'').toLowerCase().includes('override');
+  if(overrideSection) overrideSection.style.display = isOv ? 'block' : 'none';
+
+  // Show CO alert if Colorado
+  const coAlert = document.getElementById('co-alert');
+  if(coAlert) coAlert.style.display = d.domicileState==='CO' ? 'flex' : 'none';
+
+  // Update policy dropdowns
+  if(d.usedPolCat) {
+    const catEl = document.getElementById('dec-pol-cat');
+    if(catEl) { catEl.value = d.usedPolCat; filterDecPolicies(); }
+  }
+
+  // Store editing ID
+  document.getElementById('dec-editing-id').value = decId;
+
+  // Update button text
+  const btn = document.querySelector('[onclick="logDecision()"]');
+  if(btn) btn.textContent = 'Update Decision Record';
+  const cancelBtn = document.getElementById('dec-cancel-edit');
+  if(cancelBtn) cancelBtn.style.display='inline-block';
+
+  // Scroll to form
+  const form = document.getElementById('panel-decisions');
+  if(form) form.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
 function renderDecisions(){
   const el=document.getElementById('decision-log');
-  if(!DB.decisions.length){el.innerHTML='<div class="empty">No decisions logged yet.</div>';return;}
-  el.innerHTML=DB.decisions.slice().reverse().map(d=>`
-    <div class="row">
+  const decisions = decFilter ? DB.decisions.filter(decFilter) : DB.decisions;
+  if(!decisions.length){
+    el.innerHTML=decFilter
+      ? '<div class="empty">No decisions match this filter. <button class="btn" onclick="clearDecFilter()" style="margin-left:8px;font-size:12px;">Show all</button></div>'
+      : '<div class="empty">No decisions logged yet.</div>';
+    return;
+  }
+  el.innerHTML=decisions.slice().reverse().map(d=>`
+    <div class="row" id="dec-row-${d.id}" style="transition:background 0.3s;">
       <div class="dot" style="background:${d.status==='compliant'?'#1D9E75':d.status==='stale'?'#EF9F27':'#888780'};"></div>
       <div class="rbody">
-        <div class="rtitle">${d.ref} <span style="font-weight:400;color:var(--mid);">— ${d.type}</span>${d.isOverride?'<span class="badge b-stale" style="margin-left:6px;">OVERRIDE</span>':''}</div>
-        <div class="rmeta">${fmt(d.time)} · Policy used: <strong>${d.usedPol||'not declared'}</strong> · Active: ${d.activePol||'unknown'}</div>
-        ${d.reviewer?`<div class="rmeta">Reviewer: ${d.reviewer}${d.reviewerTitle?' — '+d.reviewerTitle:''}${d.licence?' · Licence: '+d.licence:''}</div>`:''}
+        <div class="rtitle">${d.ref} <span style="font-weight:400;color:var(--mid);">— ${d.type}</span>${d.isOverride?'<span class="badge b-stale" style="margin-left:6px;">OVERRIDE</span>':''}${d.isColorado?'<span class="badge" style="margin-left:6px;background:#E6F1FB;color:#185FA5;">CO AI Act</span>':''}</div>
+        <div class="rmeta">${fmt(d.time)} · Policy used: <strong>${d.usedPol||'<span style="color:#C00000;">not declared</span>'}</strong> · Active: ${d.activePol||'unknown'}</div>
+        ${d.reviewer?`<div class="rmeta">Reviewer: ${d.reviewer}${d.reviewerTitle?' — '+d.reviewerTitle:''}${d.licence?' · Licence: '+d.licence:''}</div>`:'<div class="rmeta" style="color:#C00000;">⚠ No reviewer recorded</div>'}
         ${d.humanDecision?`<div class="rmeta">Human decision: <strong>${d.humanDecision}</strong></div>`:''}
         ${d.overrideReason?`<div class="rout" style="border-left:2px solid var(--warn-border);background:var(--warn-bg);color:var(--warn);">Override reason: ${d.overrideReason}</div>`:''}
         <div class="rout">${d.out}</div>
-        ${d.recordHash?`<div style="font-size:11px;color:var(--mid);margin-top:4px;font-family:var(--mono);">Record ID: ${d.recordId} · SHA-256: ${d.recordHash.substring(0,32)}...</div>`:''}
+        ${d.recordHash?`<div style="font-size:11px;color:var(--mid);margin-top:4px;font-family:var(--mono);">Record ID: ${d.recordId||'—'} · SHA-256: ${d.recordHash.substring(0,32)}...</div>`:''}
         ${d.status==='stale'?`<div style="font-size:12px;color:var(--warn);margin-top:4px;">⚠ Stale drift — AI used outdated policy. Flag for review.</div>`:''}
       </div>
-      <span class="badge b-${d.status==='compliant'?'ok':d.status==='stale'?'stale':'none'}">${d.status}</span>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+        <span class="badge b-${d.status==='compliant'?'ok':d.status==='stale'?'stale':'none'}">${d.status}</span>
+        <button class="btn" onclick="editDecision(${d.id})" style="font-size:11px;padding:3px 8px;">Edit</button>
+      </div>
     </div>`).join('');
 }
 
@@ -1454,42 +1574,42 @@ function renderActionBoard(){
 
   // Check AI Registry
   if(!DB.registry || DB.registry.length === 0){
-    actions.push({sev:'HIGH', title:'Register your AI systems', desc:'NAIC Exhibit A requires an inventory of every AI system. None registered yet.', tab:'registry'});
+    actions.push({sev:'HIGH', title:'Register your AI systems', desc:'NAIC Exhibit A requires an inventory of every AI system. None registered yet.', tab:'registry', filter:''});
   }
 
   // Check policy versions
   if(DB.policies.length === 0){
-    actions.push({sev:'HIGH', title:'Register at least one policy version', desc:'No policy versions in vault. AI decisions cannot be verified without a policy baseline.', tab:'policies'});
+    actions.push({sev:'HIGH', title:'Register at least one policy version', desc:'No policy versions in vault. AI decisions cannot be verified without a policy baseline.', tab:'policies', filter:''});
   }
 
   // Check undeclared policy versions in decisions
   const undeclared = DB.decisions.filter(d => !d.usedPol || d.usedPol === 'Not declared');
   if(undeclared.length > 0){
-    actions.push({sev:'HIGH', title:`${undeclared.length} decision(s) with no policy version declared`, desc:'NAIC Exhibit B requires policy version documented per decision. These decisions are unverifiable.', tab:'decisions'});
+    actions.push({sev:'HIGH', title:`${undeclared.length} decision(s) with no policy version declared`, desc:'NAIC Exhibit B requires policy version documented per decision. These decisions are unverifiable.', tab:'decisions', filter:'undeclared'});
   }
 
   // Check stale decisions
   const stale = DB.decisions.filter(d => d.status === 'stale');
   if(stale.length > 0){
-    actions.push({sev:'HIGH', title:`${stale.length} decision(s) operating under outdated policy`, desc:'Stale drift detected. AI was using an old policy version when a newer one was active.', tab:'decisions'});
+    actions.push({sev:'HIGH', title:`${stale.length} decision(s) operating under outdated policy`, desc:'Stale drift detected. AI was using an old policy version when a newer one was active.', tab:'decisions', filter:'stale'});
   }
 
   // Check missing reviewers
   const noReviewer = DB.decisions.filter(d => !d.reviewer || d.reviewer.trim() === '');
   if(noReviewer.length > 0){
-    actions.push({sev:'MED', title:`${noReviewer.length} decision(s) missing human reviewer`, desc:'NAIC Exhibit B §2.3 requires human reviewer identity documented for every AI-assisted decision.', tab:'decisions'});
+    actions.push({sev:'MED', title:`${noReviewer.length} decision(s) missing human reviewer`, desc:'NAIC Exhibit B §2.3 requires human reviewer identity documented for every AI-assisted decision.', tab:'decisions', filter:'no-reviewer'});
   }
 
   // Check missing licences for claims decisions
   const claimsNoLicence = DB.decisions.filter(d => (d.type||'').toLowerCase().includes('claim') && (!d.licence || d.licence.trim() === ''));
   if(claimsNoLicence.length > 0){
-    actions.push({sev:'MED', title:`${claimsNoLicence.length} claims decision(s) missing adjuster licence`, desc:'Most US states require a licensed adjuster for claims decisions. Licence number not recorded.', tab:'decisions'});
+    actions.push({sev:'MED', title:`${claimsNoLicence.length} claims decision(s) missing adjuster licence`, desc:'Most US states require a licensed adjuster for claims decisions. Licence number not recorded.', tab:'decisions', filter:'no-licence'});
   }
 
   // Check overrides without reasons
   const overrideNoReason = DB.decisions.filter(d => d.isOverride && (!d.overrideReason || d.overrideReason.trim() === ''));
   if(overrideNoReason.length > 0){
-    actions.push({sev:'HIGH', title:`${overrideNoReason.length} override(s) missing documented reason`, desc:'NAIC Exhibit B §2.3(d) requires override reason captured. Missing for some decisions.', tab:'decisions'});
+    actions.push({sev:'HIGH', title:`${overrideNoReason.length} override(s) missing documented reason`, desc:'NAIC Exhibit B §2.3(d) requires override reason captured. Missing for some decisions.', tab:'decisions', filter:'override-no-reason'});
   }
 
   // All good
@@ -1501,7 +1621,7 @@ function renderActionBoard(){
   const sevColor = {HIGH:'#C00000', MED:'#7F6000', LOW:'#595959'};
   const sevBg = {HIGH:'#FCE4D6', MED:'#FFF2CC', LOW:'#F2F2F2'};
   el.innerHTML = actions.map(a => `
-    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:${sevBg[a.sev]};border-radius:6px;margin-bottom:6px;cursor:pointer;" onclick="switchTab('${a.tab}')">
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:${sevBg[a.sev]};border-radius:6px;margin-bottom:6px;cursor:pointer;" onclick="handleActionClick('${a.filter}','${a.tab}','${a.title}','${a.desc}')">
       <span style="font-size:11px;font-weight:700;color:${sevColor[a.sev]};background:white;padding:2px 6px;border-radius:3px;margin-top:2px;white-space:nowrap;">${a.sev}</span>
       <div>
         <div style="font-weight:600;color:var(--ink);font-size:13px;">${a.title}</div>
@@ -1509,6 +1629,21 @@ function renderActionBoard(){
       </div>
       <span style="margin-left:auto;color:var(--mid);font-size:12px;">Fix →</span>
     </div>`).join('');
+}
+
+function handleActionClick(filterType, tab, title, desc){
+  switchTab(tab);
+  if(tab === 'decisions' && filterType){
+    const filters = {
+      'undeclared': d => !d.usedPol || d.usedPol === 'Not declared',
+      'stale': d => d.status === 'stale',
+      'no-reviewer': d => !d.reviewer || d.reviewer.trim() === '',
+      'no-licence': d => (d.type||'').toLowerCase().includes('claim') && (!d.licence || d.licence.trim() === ''),
+      'override-no-reason': d => d.isOverride && (!d.overrideReason || d.overrideReason.trim() === ''),
+    };
+    const fn = filters[filterType];
+    if(fn) applyDecFilter(fn, title, desc + ' — Click Edit on any record to fix it.');
+  }
 }
 
 function switchTab(name){
@@ -1621,6 +1756,20 @@ function scoreQuiz(){
     </div>`;
 }
 
+
+function cancelEdit(){
+  if(document.getElementById('dec-editing-id')) document.getElementById('dec-editing-id').value='';
+  ['dec-id','dec-case','dec-confidence','dec-reviewer','dec-reviewer-title','dec-licence','dec-out','dec-override-reason'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  if(document.getElementById('dec-time-date'))document.getElementById('dec-time-date').value='';
+  if(document.getElementById('dec-time-hour'))document.getElementById('dec-time-hour').value='12:00';
+  ['dec-pol','dec-ai-rec','dec-human-decision','dec-state'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const btn = document.querySelector('[onclick="logDecision()"]');
+  if(btn) btn.textContent='Log & generate Decision Record';
+  const cancelBtn = document.getElementById('dec-cancel-edit');
+  if(cancelBtn) cancelBtn.style.display='none';
+  document.getElementById('override-section').style.display='none';
+  document.getElementById('policy-version-detail').style.display='none';
+}
 </script>
 </body>
 </html>
