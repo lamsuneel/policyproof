@@ -1350,7 +1350,7 @@ function renderRegistry(){
           ${s.desc ? `<div class="rout" style="margin-top:4px;">${s.desc}</div>` : ''}
           ${reviewAlert ? `<div style="font-size:11px;color:#c8402a;margin-top:3px;">⚠ Review overdue — last reviewed over 12 months ago</div>` : ''}
         </div>
-        <span class="badge b-${tier === 'high' ? 'stale' : tier === 'medium' ? 'none' : 'ok'}">${tier} risk</span>
+        <span class="badge" style="background:${tier==='critical'?'#FCE4D6':tier==='high'?'#FFF2CC':tier==='medium'?'#F2F2F2':'#E2EFDA'};color:${tier==='critical'?'#C00000':tier==='high'?'#7F6000':tier==='medium'?'#595959':'#375623'};">${tier} risk</span>
       </div>`;
     });
     html += '</div>';
