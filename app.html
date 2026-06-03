@@ -1315,8 +1315,8 @@ function renderRegistry(){
 
   // Group by risk tier
   const tiers = ['high','medium','low'];
-  const tierLabels = {high:'High Risk — Directly affects policyholders', medium:'Medium Risk — Supports human decisions', low:'Low Risk — Internal workflow only'};
-  const tierColors = {high:'#c8402a', medium:'#EF9F27', low:'#1D9E75'};
+  const tierLabels = {high:'High Risk Systems', medium:'Medium Risk Systems', low:'Low Risk Systems', critical:'Critical Risk Systems'};
+  const tierColors = {high:'#888780', medium:'#888780', low:'#888780', critical:'#888780'};
 
   let html = '';
   tiers.forEach(tier => {
