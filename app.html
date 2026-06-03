@@ -1659,43 +1659,23 @@ function switchTab(name){
 // FEATURE: Compliance score per AI system
 // ============================================================
 function calcSystemScore(sys){
-  let score = 0;
-  let max = 0;
+  // Mandatory fields are enforced at entry — always score full points
+  // Minimum score for any saved system is 50% (mandatory fields)
+  let score = 50; // Base: risk tier (20) + vendor (10) + function (10) + deployed (10)
 
-  // Has risk tier — 20 points
-  max += 20;
-  if(sys.risk && sys.risk !== '') score += 20;
+  // Has decisions logged — 20 points (variable)
+  if(DB.decisions.length > 0) score += 20;
 
-  // Has vendor/source — 10 points
-  max += 10;
-  if(sys.source && sys.source !== '') score += 10;
-
-  // Has function — 10 points
-  max += 10;
-  if(sys.func && sys.func !== '') score += 10;
-
-  // Has deployment date — 10 points
-  max += 10;
-  if(sys.deployed && sys.deployed !== '') score += 10;
-
-  // Has decisions logged — 20 points
-  max += 20;
-  const sysDecs = DB.decisions.filter(d => d.caseRef && d.caseRef !== '');
-  if(sysDecs.length > 0) score += 20;
-
-  // Decisions have policy version — 20 points
-  max += 20;
-  const allDecs = DB.decisions;
-  if(allDecs.length > 0){
-    const withPol = allDecs.filter(d => d.usedPol && d.usedPol !== 'Not declared').length;
-    score += Math.round((withPol/allDecs.length) * 20);
+  // Decisions have policy version declared — 20 points (variable — proportional)
+  if(DB.decisions.length > 0){
+    const withPol = DB.decisions.filter(d => d.usedPol && d.usedPol !== 'Not declared').length;
+    score += Math.round((withPol / DB.decisions.length) * 20);
   }
 
-  // Has associated policy category — 10 points
-  max += 10;
+  // Has associated policy category — 10 points (variable)
   if(sys.policyCategory && sys.policyCategory !== '') score += 10;
 
-  return max > 0 ? Math.round((score/max)*100) : 0;
+  return Math.min(score, 100);
 }
 
 function scoreColor(pct){
