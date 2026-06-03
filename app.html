@@ -1315,7 +1315,7 @@ function renderRegistry(){
 
   // Group by risk tier
   const tiers = ['high','medium','low'];
-  const tierLabels = {high:'High Risk Systems', medium:'Medium Risk Systems', low:'Low Risk Systems', critical:'Critical Risk Systems'};
+  const tierLabels = {high:'Tier 1 — Directly Affects Policyholders', medium:'Tier 2 — Supports Human Decisions', low:'Tier 3 — Internal Workflow Only', critical:'Critical — Autonomous Decisions'};
   const tierColors = {high:'#888780', medium:'#888780', low:'#888780', critical:'#888780'};
 
   let html = '';
@@ -1368,16 +1368,16 @@ function renderRegistry(){
 
   const summary = `<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
     <div style="background:var(--cream);border-radius:6px;padding:8px 12px;flex:1;min-width:80px;text-align:center;">
-      <div style="font-size:1.3rem;font-weight:700;color:#c8402a;">${high}</div>
-      <div style="font-size:10px;color:var(--mid);">High risk</div>
+      <div style="font-size:1.3rem;font-weight:700;color:var(--ink);">${high}</div>
+      <div style="font-size:10px;color:var(--mid);">Tier 1 — High impact</div>
     </div>
     <div style="background:var(--cream);border-radius:6px;padding:8px 12px;flex:1;min-width:80px;text-align:center;">
-      <div style="font-size:1.3rem;font-weight:700;color:#EF9F27;">${medium}</div>
-      <div style="font-size:10px;color:var(--mid);">Medium risk</div>
+      <div style="font-size:1.3rem;font-weight:700;color:var(--ink);">${medium}</div>
+      <div style="font-size:10px;color:var(--mid);">Tier 2 — Medium impact</div>
     </div>
     <div style="background:var(--cream);border-radius:6px;padding:8px 12px;flex:1;min-width:80px;text-align:center;">
-      <div style="font-size:1.3rem;font-weight:700;color:#1D9E75;">${low}</div>
-      <div style="font-size:10px;color:var(--mid);">Low risk</div>
+      <div style="font-size:1.3rem;font-weight:700;color:var(--ink);">${low}</div>
+      <div style="font-size:10px;color:var(--mid);">Tier 3 — Low impact</div>
     </div>
     <div style="background:var(--cream);border-radius:6px;padding:8px 12px;flex:1;min-width:80px;text-align:center;">
       <div style="font-size:1.3rem;font-weight:700;color:var(--ink);">${vendors}</div>
