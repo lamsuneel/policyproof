@@ -1324,7 +1324,7 @@ function renderRegistry(){
     if(!systems.length) return;
 
     html += `<div style="margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:600;color:${tierColors[tier]};letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:6px;">${tierLabels[tier]}</div>`;
+      <div style="font-size:11px;font-weight:600;color:var(--mid);letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:6px;">${tierLabels[tier]}</div>`;
 
     systems.forEach(s => {
       const sourceLabel = s.source === 'inhouse' ? 'In-house' : s.source === 'vendor' ? `Vendor: ${s.vendor || 'Unknown'}` : 'Hybrid';
@@ -1334,7 +1334,7 @@ function renderRegistry(){
       const reviewAlert = daysSinceReview && daysSinceReview > 365;
 
       html += `<div class="row" style="align-items:flex-start;">
-        <div class="dot" style="background:${tierColors[tier]};margin-top:4px;"></div>
+        <div class="dot" style="background:#888780;margin-top:4px;"></div>
         <div class="rbody" style="flex:1;">
           <div class="rtitle" style="display:flex;align-items:center;justify-content:space-between;">
             <span>${s.name} <span style="font-size:11px;color:var(--mid);font-weight:400;">${s.sysId ? '(' + s.sysId + ')' : ''}</span></span>
@@ -1350,7 +1350,7 @@ function renderRegistry(){
           ${s.desc ? `<div class="rout" style="margin-top:4px;">${s.desc}</div>` : ''}
           ${reviewAlert ? `<div style="font-size:11px;color:#c8402a;margin-top:3px;">⚠ Review overdue — last reviewed over 12 months ago</div>` : ''}
         </div>
-        <span class="badge" style="background:${tier==='critical'?'#FCE4D6':tier==='high'?'#FFF2CC':tier==='medium'?'#F2F2F2':'#E2EFDA'};color:${tier==='critical'?'#C00000':tier==='high'?'#7F6000':tier==='medium'?'#595959':'#375623'};">${tier} risk</span>
+
       </div>`;
     });
     html += '</div>';
