@@ -1313,48 +1313,52 @@ function renderRegistry(){
     return;
   }
 
-  // Group by risk tier
-  const tiers = ['high','medium','low'];
-  const tierLabels = {high:'Tier 1 — Directly Affects Policyholders', medium:'Tier 2 — Supports Human Decisions', low:'Tier 3 — Internal Workflow Only', critical:'Critical — Autonomous Decisions'};
-  const tierColors = {high:'#888780', medium:'#888780', low:'#888780', critical:'#888780'};
+  // NAIC tier labels for each row
+  const niacTierLabel = {
+    high: 'NAIC Tier 1',
+    medium: 'NAIC Tier 2',
+    low: 'NAIC Tier 3',
+    critical: 'NAIC Critical'
+  };
+  const niacTierDesc = {
+    high: 'Directly affects policyholders',
+    medium: 'Supports human decisions',
+    low: 'Internal workflow only',
+    critical: 'Autonomous decisions'
+  };
 
-  let html = '';
-  tiers.forEach(tier => {
-    const systems = DB.registry.filter(s => s.risk === tier);
-    if(!systems.length) return;
+  let html = '<div>';
+  DB.registry.forEach(s => {
+    const sourceLabel = s.source === 'inhouse' ? 'In-house' : s.source === 'vendor' ? `Vendor: ${s.vendor || 'Unknown'}` : 'Hybrid';
+    const deployedDate = s.deployed ? new Date(s.deployed).toLocaleDateString('en-US',{month:'short',year:'numeric'}) : '—';
+    const reviewedDate = s.reviewed ? new Date(s.reviewed).toLocaleDateString('en-US',{month:'short',year:'numeric'}) : 'Not reviewed';
+    const daysSinceReview = s.reviewed ? Math.floor((new Date() - new Date(s.reviewed)) / (1000*60*60*24)) : null;
+    const reviewAlert = daysSinceReview && daysSinceReview > 365;
+    const tier = s.risk || 'medium';
+    const tierLabel = niacTierLabel[tier] || 'NAIC Tier 2';
+    const tierDesc = niacTierDesc[tier] || '';
 
-    html += `<div style="margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:600;color:var(--mid);letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:6px;">${tierLabels[tier]}</div>`;
-
-    systems.forEach(s => {
-      const sourceLabel = s.source === 'inhouse' ? 'In-house' : s.source === 'vendor' ? `Vendor: ${s.vendor || 'Unknown'}` : 'Hybrid';
-      const deployedDate = s.deployed ? new Date(s.deployed).toLocaleDateString('en-US',{month:'short',year:'numeric'}) : '—';
-      const reviewedDate = s.reviewed ? new Date(s.reviewed).toLocaleDateString('en-US',{month:'short',year:'numeric'}) : 'Not reviewed';
-      const daysSinceReview = s.reviewed ? Math.floor((new Date() - new Date(s.reviewed)) / (1000*60*60*24)) : null;
-      const reviewAlert = daysSinceReview && daysSinceReview > 365;
-
-      html += `<div class="row" style="align-items:flex-start;">
-        <div class="dot" style="background:#888780;margin-top:4px;"></div>
-        <div class="rbody" style="flex:1;">
-          <div class="rtitle" style="display:flex;align-items:center;justify-content:space-between;">
-            <span>${s.name} <span style="font-size:11px;color:var(--mid);font-weight:400;">${s.sysId ? '(' + s.sysId + ')' : ''}</span></span>
-            <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px;background:var(--cream);color:${scoreColor(calcSystemScore(s))};">${calcSystemScore(s)}% ready</span>
-          </div>
-          <div class="rmeta">${s.function}</div>
-          <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap;">
-            <span style="font-size:11px;color:var(--mid);">Source: ${sourceLabel}</span>
-            <span style="font-size:11px;color:var(--mid);">Deployed: ${deployedDate}</span>
-            <span style="font-size:11px;color:${reviewAlert ? '#c8402a' : 'var(--mid)'};">Last reviewed: ${reviewedDate}${reviewAlert ? ' ⚠' : ''}</span>
-            ${s.policyCat ? `<span style="font-size:11px;color:var(--mid);">Policy: ${s.policyCat}</span>` : ''}
-          </div>
-          ${s.desc ? `<div class="rout" style="margin-top:4px;">${s.desc}</div>` : ''}
-          ${reviewAlert ? `<div style="font-size:11px;color:#c8402a;margin-top:3px;">⚠ Review overdue — last reviewed over 12 months ago</div>` : ''}
+    html += `<div class="row" style="align-items:flex-start;margin-bottom:8px;">
+      <div class="dot" style="background:var(--mid);margin-top:4px;"></div>
+      <div class="rbody" style="flex:1;">
+        <div class="rtitle" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>${s.name} <span style="font-size:11px;color:var(--mid);font-weight:400;">${s.sysId ? '(' + s.sysId + ')' : ''}</span></span>
+          <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px;background:var(--cream);color:${scoreColor(calcSystemScore(s))};">${calcSystemScore(s)}% ready</span>
         </div>
-
-      </div>`;
-    });
-    html += '</div>';
+        <div class="rmeta">${s.function}</div>
+        <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap;align-items:center;">
+          <span style="font-size:11px;color:var(--mid);">Source: ${sourceLabel}</span>
+          <span style="font-size:11px;color:var(--mid);">Deployed: ${deployedDate}</span>
+          <span style="font-size:11px;color:${reviewAlert ? '#c8402a' : 'var(--mid)'};">Last reviewed: ${reviewedDate}${reviewAlert ? ' ⚠' : ''}</span>
+          ${s.policyCat ? `<span style="font-size:11px;color:var(--mid);">Policy: ${s.policyCat}</span>` : ''}
+          <span style="font-size:10px;font-weight:600;color:var(--mid);background:var(--cream);padding:1px 6px;border-radius:3px;border:0.5px solid var(--border);">${tierLabel} · ${tierDesc}</span>
+        </div>
+        ${s.desc ? `<div class="rout" style="margin-top:4px;">${s.desc}</div>` : ''}
+        ${reviewAlert ? `<div style="font-size:11px;color:#c8402a;margin-top:3px;">⚠ Review overdue — last reviewed over 12 months ago</div>` : ''}
+      </div>
+    </div>`;
   });
+  html += '</div>';
 
   // Summary counts
   const high = DB.registry.filter(s=>s.risk==='high').length;
@@ -1366,18 +1370,16 @@ function renderRegistry(){
     return Math.floor((new Date() - new Date(s.reviewed)) / (1000*60*60*24)) > 365;
   }).length;
 
+  const total = DB.registry.length;
+  const avgScore = total ? Math.round(DB.registry.reduce((sum,s) => sum + calcSystemScore(s), 0) / total) : 0;
   const summary = `<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
     <div style="background:var(--cream);border-radius:6px;padding:8px 12px;flex:1;min-width:80px;text-align:center;">
-      <div style="font-size:1.3rem;font-weight:700;color:var(--ink);">${high}</div>
-      <div style="font-size:10px;color:var(--mid);">Tier 1 — High impact</div>
+      <div style="font-size:1.3rem;font-weight:700;color:var(--ink);">${total}</div>
+      <div style="font-size:10px;color:var(--mid);">AI systems registered</div>
     </div>
     <div style="background:var(--cream);border-radius:6px;padding:8px 12px;flex:1;min-width:80px;text-align:center;">
-      <div style="font-size:1.3rem;font-weight:700;color:var(--ink);">${medium}</div>
-      <div style="font-size:10px;color:var(--mid);">Tier 2 — Medium impact</div>
-    </div>
-    <div style="background:var(--cream);border-radius:6px;padding:8px 12px;flex:1;min-width:80px;text-align:center;">
-      <div style="font-size:1.3rem;font-weight:700;color:var(--ink);">${low}</div>
-      <div style="font-size:10px;color:var(--mid);">Tier 3 — Low impact</div>
+      <div style="font-size:1.3rem;font-weight:700;color:${scoreColor(avgScore)};">${avgScore}%</div>
+      <div style="font-size:10px;color:var(--mid);">Avg readiness score</div>
     </div>
     <div style="background:var(--cream);border-radius:6px;padding:8px 12px;flex:1;min-width:80px;text-align:center;">
       <div style="font-size:1.3rem;font-weight:700;color:var(--ink);">${vendors}</div>
