@@ -494,6 +494,11 @@ textarea{resize:vertical;line-height:1.6;}
         <div><label class="lbl">Prepared for</label><input type="text" id="rep-org" placeholder="e.g. NAIC State Examination 2026"/></div>
       </div>
       <div class="mb10"><label class="lbl">Preparer name / team</label><input type="text" id="rep-prep" placeholder="e.g. AI Governance Team, Acme Insurance"/></div>
+      <div class="g2 mb10">
+        <div><label class="lbl">Report period — from</label><input type="date" id="rep-from"/></div>
+        <div><label class="lbl">Report period — to</label><input type="date" id="rep-to"/></div>
+      </div>
+      <div style="font-size:12px;color:var(--mid);margin-bottom:10px;">Leave blank to include all decisions. Set a date range for examination period reports.</div>
       <div class="fe">
         <button class="btn" onclick="showQA()">Regulator Q&A</button>
         <button class="btn btn-p" onclick="generateReport()">Generate report</button>
@@ -1077,9 +1082,21 @@ function updateHome(){
 }
 
 function renderAudit(){
-  const total=DB.decisions.length;
-  const ok=DB.decisions.filter(d=>d.status==='compliant').length;
-  const stale=DB.decisions.filter(d=>d.status==='stale').length;
+  // Apply date range filter
+  const fromDate = document.getElementById('rep-from')?document.getElementById('rep-from').value:'';
+  const toDate = document.getElementById('rep-to')?document.getElementById('rep-to').value:'';
+  const filteredDecisions = DB.decisions.filter(d => {
+    if(!fromDate && !toDate) return true;
+    const dTime = d.time ? new Date(d.time) : null;
+    if(!dTime) return true;
+    if(fromDate && dTime < new Date(fromDate)) return false;
+    if(toDate && dTime > new Date(toDate + 'T23:59:59')) return false;
+    return true;
+  });
+  const total=filteredDecisions.length;
+  const ok=filteredDecisions.filter(d=>d.status==='compliant').length;
+  const stale=filteredDecisions.filter(d=>d.status==='stale').length;
+  const periodNote = fromDate || toDate ? `Report period: ${fromDate||'all'} to ${toDate||'present'}` : 'Report period: All decisions';
   const pct=total?Math.round((ok/total)*100):0;
   document.getElementById('a-total').textContent=total;
   document.getElementById('a-ok').textContent=ok;
@@ -1109,9 +1126,21 @@ function showQA(){
 }
 
 function renderQA(){
-  const total=DB.decisions.length;
-  const ok=DB.decisions.filter(d=>d.status==='compliant').length;
-  const stale=DB.decisions.filter(d=>d.status==='stale').length;
+  // Apply date range filter
+  const fromDate = document.getElementById('rep-from')?document.getElementById('rep-from').value:'';
+  const toDate = document.getElementById('rep-to')?document.getElementById('rep-to').value:'';
+  const filteredDecisions = DB.decisions.filter(d => {
+    if(!fromDate && !toDate) return true;
+    const dTime = d.time ? new Date(d.time) : null;
+    if(!dTime) return true;
+    if(fromDate && dTime < new Date(fromDate)) return false;
+    if(toDate && dTime > new Date(toDate + 'T23:59:59')) return false;
+    return true;
+  });
+  const total=filteredDecisions.length;
+  const ok=filteredDecisions.filter(d=>d.status==='compliant').length;
+  const stale=filteredDecisions.filter(d=>d.status==='stale').length;
+  const periodNote = fromDate || toDate ? `Report period: ${fromDate||'all'} to ${toDate||'present'}` : 'Report period: All decisions';
   const pct=total?Math.round((ok/total)*100):0;
   const pols=[...new Set(DB.decisions.map(d=>d.usedPol).filter(Boolean))];
   const qas=[
@@ -1131,9 +1160,21 @@ async function generateReport(){
   const title=document.getElementById('rep-title').value||'AI Workflow Compliance Audit';
   const org=document.getElementById('rep-org').value||'Regulatory Examination';
   const prep=document.getElementById('rep-prep').value||'AI Governance Team';
-  const total=DB.decisions.length;
-  const ok=DB.decisions.filter(d=>d.status==='compliant').length;
-  const stale=DB.decisions.filter(d=>d.status==='stale').length;
+  // Apply date range filter
+  const fromDate = document.getElementById('rep-from')?document.getElementById('rep-from').value:'';
+  const toDate = document.getElementById('rep-to')?document.getElementById('rep-to').value:'';
+  const filteredDecisions = DB.decisions.filter(d => {
+    if(!fromDate && !toDate) return true;
+    const dTime = d.time ? new Date(d.time) : null;
+    if(!dTime) return true;
+    if(fromDate && dTime < new Date(fromDate)) return false;
+    if(toDate && dTime > new Date(toDate + 'T23:59:59')) return false;
+    return true;
+  });
+  const total=filteredDecisions.length;
+  const ok=filteredDecisions.filter(d=>d.status==='compliant').length;
+  const stale=filteredDecisions.filter(d=>d.status==='stale').length;
+  const periodNote = fromDate || toDate ? `Report period: ${fromDate||'all'} to ${toDate||'present'}` : 'Report period: All decisions';
   const pct=total?Math.round((ok/total)*100):0;
   const reportId='RPT-'+Date.now();
   const generatedAt=new Date().toLocaleString();
@@ -1141,6 +1182,7 @@ async function generateReport(){
   const lines=[
     title.toUpperCase(),'='.repeat(title.length),'',
     `Report ID:     ${reportId}`,
+    `${periodNote}`,
     `Prepared for:  ${org}`,`Prepared by:   ${prep}`,`Generated:     ${generatedAt}`,'',
     'EXECUTIVE SUMMARY','-'.repeat(17),'',
     `Total decisions reviewed:  ${total}`,
@@ -1150,7 +1192,7 @@ async function generateReport(){
     `Mutations detected:        ${DB.mutations.length}`,'',
     stale>0?`WARNING: ${stale} decision(s) operated under outdated policy. See detail below.`:`All verified decisions used the correct active policy version.`,'',
     'DECISION RECORD','-'.repeat(15),'',
-    ...DB.decisions.map((d,i)=>`[${i+1}] ${d.ref} — ${d.type}
+    ...filteredDecisions.map((d,i)=>`[${i+1}] ${d.ref} — ${d.type}
     Record ID:        ${d.recordId||'—'}
     Timestamp:        ${fmt(d.time)}
     Case reference:   ${d.caseRef||'—'}
@@ -1188,6 +1230,7 @@ async function generateReport(){
     ...lines,
     'REPORT INTEGRITY','-'.repeat(16),'',
     `Report ID:     ${reportId}`,
+    `${periodNote}`,
     `SHA-256 Hash:  ${reportHash}`,
     'Verify:        Any change to this document will produce a different SHA-256 hash.',
     'Method:        SHA-256 computed over full report content at generation time.','',
