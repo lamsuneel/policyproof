@@ -217,6 +217,59 @@ textarea{resize:vertical;line-height:1.6;}
           <option>Other</option>
         </select>
       </div>
+
+      <!-- Data Classification Section -->
+      <div style="font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:10px;margin-top:16px;">Data Classification <span style="color:var(--mid);font-weight:400;text-transform:none;letter-spacing:0;">(NAIC Exhibit D — data governance)</span></div>
+      <div class="g2 mb10">
+        <div>
+          <label class="lbl">Data classification level</label>
+          <select id="reg-data-class">
+            <option value="">Select classification</option>
+            <option value="public">Public — no restrictions</option>
+            <option value="internal">Internal — company use only</option>
+            <option value="confidential">Confidential — restricted access</option>
+            <option value="restricted">Restricted — highly sensitive</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">External AI exposure</label>
+          <select id="reg-ai-exposure">
+            <option value="">Select</option>
+            <option value="none">No external AI — internal only</option>
+            <option value="approved">Approved vendor LLM</option>
+            <option value="public">Public LLM — ChatGPT, Claude etc.</option>
+          </select>
+        </div>
+      </div>
+      <div class="mb10">
+        <label class="lbl">Sensitive data types processed</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;" id="reg-data-types">
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="PII" style="margin:0;"> PII</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="PHI" style="margin:0;"> PHI — health data</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Financial" style="margin:0;"> Financial data</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Claims" style="margin:0;"> Claims data</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Medical" style="margin:0;"> Medical records</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Customer" style="margin:0;"> Customer data</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Employee" style="margin:0;"> Employee data</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Legal" style="margin:0;"> Legal data</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="None" style="margin:0;"> None — no sensitive data</label>
+        </div>
+      </div>
+
+      <!-- Regulatory Framework Section -->
+      <div style="font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:10px;margin-top:16px;">Regulatory Frameworks <span style="color:var(--mid);font-weight:400;text-transform:none;letter-spacing:0;">(which frameworks govern this system)</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;" id="reg-frameworks">
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="NAIC" style="margin:0;"> NAIC Model Bulletin</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Colorado" style="margin:0;"> Colorado AI Act</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="EU_AI_Act" style="margin:0;"> EU AI Act</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="GDPR" style="margin:0;"> GDPR</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="HIPAA" style="margin:0;"> HIPAA</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="SR_26_2" style="margin:0;"> SR 26-2 Model Risk</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="NIST" style="margin:0;"> NIST AI RMF</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Internal" style="margin:0;"> Internal AI Policy</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Other" style="margin:0;"> Other</label>
+      </div>
+
       <div class="fe"><button class="btn btn-p" onclick="addAISystem()">Register AI system</button></div>
     </div>
     <div id="registry-alerts"></div>
@@ -1214,6 +1267,12 @@ async function generateReport(){
     ...DB.policies.map(p=>`  ${p.label}\n    Effective: ${fmt(p.from)} → ${p.until?fmt(p.until):'current'}`),'',
     'MUTATION LOG','-'.repeat(12),'',
     DB.mutations.length?DB.mutations.map(m=>`  ${fmt(m.t)} — ${m.from} → ${m.to} (${m.changes} change(s))`).join('\n'):'  No mutations detected.','',
+    'DATA GOVERNANCE SUMMARY','-'.repeat(22),'',
+    `AI systems processing PII:       ${DB.registry.filter(s=>s.dataTypes&&s.dataTypes.includes('PII')).length}`,
+    `AI systems processing PHI:       ${DB.registry.filter(s=>s.dataTypes&&s.dataTypes.includes('PHI')).length}`,
+    `AI systems processing Claims:    ${DB.registry.filter(s=>s.dataTypes&&s.dataTypes.includes('Claims')).length}`,
+    `AI systems with public LLM:      ${DB.registry.filter(s=>s.aiExposure==='public').length}`,
+    `Frameworks in scope:             ${[...new Set(DB.registry.flatMap(s=>s.frameworks||[]))].join(', ')||'Not specified'}`,'',
     'CERTIFICATION','-'.repeat(13),'',
     'This report was generated by PolicyProof — Constraint Mutation Detection & Verification.',
     'All timestamps and policy version tags are system-generated and unaltered.',
@@ -1324,6 +1383,14 @@ function addAISystem(){
   const reviewed = document.getElementById('reg-reviewed').value;
   const desc = document.getElementById('reg-desc').value.trim();
   const policyCat = document.getElementById('reg-policy-cat').value;
+  const dataClass = document.getElementById('reg-data-class')?document.getElementById('reg-data-class').value:'';
+  const aiExposure = document.getElementById('reg-ai-exposure')?document.getElementById('reg-ai-exposure').value:'';
+  // Get checked sensitive data types
+  const dataTypes = [];
+  document.querySelectorAll('#reg-data-types input[type=checkbox]:checked').forEach(cb => dataTypes.push(cb.value));
+  // Get checked regulatory frameworks
+  const frameworks = [];
+  document.querySelectorAll('#reg-frameworks input[type=checkbox]:checked').forEach(cb => frameworks.push(cb.value));
 
   if(!name){alert('System name is required. Enter the name of this AI system.');return;}
   if(!sysId){alert('System ID is required. Use a reference like AI-UW-001.');return;}
@@ -1334,12 +1401,15 @@ function addAISystem(){
 
   DB.registry.push({
     id: Date.now(), name, sysId, function: func, risk, source,
-    vendor, deployed, reviewed, desc, policyCat
+    vendor, deployed, reviewed, desc, policyCat,
+    dataClass, aiExposure, dataTypes, frameworks
   });
 
   // Clear form
   ['reg-name','reg-id','reg-vendor','reg-desc'].forEach(id => document.getElementById(id).value='');
-  ['reg-function','reg-risk','reg-source','reg-policy-cat'].forEach(id => document.getElementById(id).value='');
+  ['reg-function','reg-risk','reg-source','reg-policy-cat','reg-data-class','reg-ai-exposure'].forEach(id => document.getElementById(id).value='');
+  document.querySelectorAll('#reg-data-types input[type=checkbox]').forEach(cb => cb.checked=false);
+  document.querySelectorAll('#reg-frameworks input[type=checkbox]').forEach(cb => cb.checked=false);
   document.getElementById('reg-deployed').value='';
   document.getElementById('reg-reviewed').value='';
 
@@ -1397,6 +1467,9 @@ function renderRegistry(){
           <span style="font-size:10px;font-weight:600;color:var(--mid);background:var(--cream);padding:1px 6px;border-radius:3px;border:0.5px solid var(--border);">${tierLabel} · ${tierDesc}</span>
         </div>
         ${s.desc ? `<div class="rout" style="margin-top:4px;">${s.desc}</div>` : ''}
+        ${(s.dataTypes && s.dataTypes.length > 0) ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${s.dataTypes.map(t => `<span style="font-size:10px;background:#F0F6FB;color:#2E75B6;padding:1px 6px;border-radius:3px;border:0.5px solid #C0D8F0;">${t}</span>`).join('')}</div>` : ''}
+        ${(s.frameworks && s.frameworks.length > 0) ? `<div style="font-size:11px;color:var(--mid);margin-top:3px;">Frameworks: ${s.frameworks.join(' · ')}</div>` : ''}
+        ${s.aiExposure === 'public' ? `<div style="font-size:11px;color:#c8402a;margin-top:3px;">⚠ Public LLM exposure — review data handling</div>` : ''}
         ${reviewAlert ? `<div style="font-size:11px;color:#c8402a;margin-top:3px;">⚠ Review overdue — last reviewed over 12 months ago</div>` : ''}
       </div>
     </div>`;
