@@ -319,6 +319,22 @@ textarea{resize:vertical;line-height:1.6;}
         </div>
       </div>
       <div class="mb10"><label class="lbl">Policy constraints (key rules)<span class="req">*</span></label><textarea id="pol-text" rows="6" placeholder="e.g.&#10;Max coverage: $2M&#10;Flood exclusion applies in Zone A&#10;Auto-approval threshold: $50,000&#10;Risk score above 85 requires manual review"></textarea></div>
+
+      <!-- Policy Traceability Section -->
+      <div style="font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:10px;margin-top:16px;">Regulatory Source <span style="color:var(--mid);font-weight:400;text-transform:none;letter-spacing:0;">(which regulations this policy implements)</span></div>
+      <div style="font-size:12px;color:var(--mid);margin-bottom:8px;">Tag which regulatory frameworks this policy version was written to satisfy. Creates the full evidence chain: Regulation → Policy → Decision.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;" id="pol-frameworks">
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="NAIC_ExhibitB" style="margin:0;"> NAIC Exhibit B §2.3</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="NAIC_ModelBulletin" style="margin:0;"> NAIC Model Bulletin</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Colorado_AI" style="margin:0;"> Colorado AI Act</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="EU_AI_Act_14" style="margin:0;"> EU AI Act Article 14</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="GDPR" style="margin:0;"> GDPR</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="HIPAA" style="margin:0;"> HIPAA</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="NIST_RMF" style="margin:0;"> NIST AI RMF</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="SR_26_2" style="margin:0;"> SR 26-2</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Internal" style="margin:0;"> Internal AI Policy</label>
+      </div>
+
       <div class="fe"><button class="btn btn-p" onclick="addPolicy()">+ Save version</button></div>
     </div>
     <div id="overlap-alerts"></div>
@@ -744,6 +760,8 @@ function addPolicy(){
   const untilDate=document.getElementById('pol-until-date').value;
   const untilTime=document.getElementById('pol-until-time')?document.getElementById('pol-until-time').value:'';
   const text=document.getElementById('pol-text').value.trim();
+  const polFrameworks = [];
+  document.querySelectorAll('#pol-frameworks input[type=checkbox]:checked').forEach(cb => polFrameworks.push(cb.value));
   if(!category){alert('Policy category is required. Please select or create a category.');return;}
   if(!label){alert('Version label is required. Use a clear name like Q2 2026 or Claims-v2.1.');return;}
   if(!fromDate){alert('Effective from date is required. This is the date the policy version became active.');return;}
@@ -767,7 +785,7 @@ function addPolicy(){
     log('conflict', 'Date range conflict detected', category+' — '+label+' overlaps with '+conflictNames);
   }
 
-  DB.policies.push({id:Date.now(),category,label,from,until,text});
+  DB.policies.push({id:Date.now(),category,label,from,until,text,frameworks:polFrameworks});
   document.getElementById('pol-category').value='';
   document.getElementById('pol-label').value='';
   document.getElementById('pol-from-date').value='';
@@ -775,6 +793,7 @@ function addPolicy(){
   document.getElementById('pol-until-date').value='';
   if(document.getElementById('pol-until-time'))document.getElementById('pol-until-time').value='';
   document.getElementById('pol-text').value='';
+  document.querySelectorAll('#pol-frameworks input[type=checkbox]').forEach(cb => cb.checked=false);
   log('version','Policy version saved',category+' — '+label);
   renderPolicies();updateHome();
   renderOverlapAlerts();
@@ -827,6 +846,7 @@ function renderPolicies(){
           <div class="rtitle">${p.label}</div>
           <div class="rmeta">${fmt(p.from)} → ${p.until?fmt(p.until):'current'}</div>
           <div class="rout">${p.text.substring(0,140)}${p.text.length>140?'...':''}</div>
+          ${p.frameworks && p.frameworks.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${p.frameworks.map(f=>`<span style="font-size:10px;background:#E2EFDA;color:#375623;padding:1px 6px;border-radius:3px;border:0.5px solid #A8D090;">${f.replace(/_/g,' ')}</span>`).join('')}</div>` : ''}
         </div>
         <span class="badge ${active?'b-active':'b-none'}">${active?'Active':'Historical'}</span>
       </div>`;
@@ -1264,7 +1284,7 @@ async function generateReport(){
     Record hash:      ${d.recordHash||'—'}
     ${d.status==='stale'?'ACTION:           Flag for manual review — stale policy drift detected':''}\n`),'',
     'POLICY VAULT','-'.repeat(12),'',
-    ...DB.policies.map(p=>`  ${p.label}\n    Effective: ${fmt(p.from)} → ${p.until?fmt(p.until):'current'}`),'',
+    ...DB.policies.map(p=>`  ${p.label}\n    Effective: ${fmt(p.from)} → ${p.until?fmt(p.until):'current'}\n    Regulatory source: ${p.frameworks&&p.frameworks.length>0?p.frameworks.join(', '):'Not specified'}`),'',
     'MUTATION LOG','-'.repeat(12),'',
     DB.mutations.length?DB.mutations.map(m=>`  ${fmt(m.t)} — ${m.from} → ${m.to} (${m.changes} change(s))`).join('\n'):'  No mutations detected.','',
     'DATA GOVERNANCE SUMMARY','-'.repeat(22),'',
