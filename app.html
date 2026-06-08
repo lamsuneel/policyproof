@@ -121,8 +121,8 @@ textarea{resize:vertical;line-height:1.6;}
       <div id="home-alerts"></div>
     </div>
     <div class="card">
-      <div class="card-title">Action board <span style="font-size:11px;color:var(--mid);font-weight:400;margin-left:6px;">Priority compliance actions</span></div>
-      <div id="action-board"><div class="empty">No actions yet. Start by registering an AI system and policy version.</div></div>
+      <div class="card-title">Missing Evidence Dashboard <span style="font-size:11px;color:var(--mid);font-weight:400;margin-left:6px;">What auditors would flag</span></div>
+      <div id="action-board"><div class="empty">No gaps detected. Register AI systems and log decisions to see evidence gaps.</div></div>
     </div>
     <div class="card">
       <div class="card-title">Recent activity</div>
@@ -202,6 +202,16 @@ textarea{resize:vertical;line-height:1.6;}
       <div class="mb10">
         <label class="lbl">Description / Purpose</label>
         <textarea id="reg-desc" placeholder="Brief description of what this AI system does and what decisions it influences..." style="height:70px;"></textarea>
+      </div>
+      <div class="g2 mb10">
+        <div>
+          <label class="lbl">Business owner <span style="font-size:11px;color:var(--mid);">(accountable)</span></label>
+          <input type="text" id="reg-biz-owner" placeholder="e.g. Chief Claims Officer"/>
+        </div>
+        <div>
+          <label class="lbl">Technical owner <span style="font-size:11px;color:var(--mid);">(responsible)</span></label>
+          <input type="text" id="reg-tech-owner" placeholder="e.g. VP Engineering"/>
+        </div>
       </div>
       <div class="mb10">
         <label class="lbl">Linked policy category</label>
@@ -568,9 +578,48 @@ textarea{resize:vertical;line-height:1.6;}
         <div><label class="lbl">Report period — to</label><input type="date" id="rep-to"/></div>
       </div>
       <div style="font-size:12px;color:var(--mid);margin-bottom:10px;">Leave blank to include all decisions. Set a date range for examination period reports.</div>
+
+      <!-- Evidence Request Builder -->
+      <div style="font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;padding:6px 0;border-bottom:0.5px solid var(--border);margin-bottom:10px;margin-top:4px;">Evidence Request Filters <span style="color:var(--mid);font-weight:400;text-transform:none;letter-spacing:0;">(narrow scope for specific audit requests)</span></div>
+      <div class="g2 mb10">
+        <div>
+          <label class="lbl">AI System</label>
+          <select id="rep-system">
+            <option value="">All systems</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Policy version</label>
+          <select id="rep-policy">
+            <option value="">All policy versions</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2 mb10">
+        <div>
+          <label class="lbl">Decision type</label>
+          <select id="rep-dec-type">
+            <option value="">All decision types</option>
+            <option value="override">Overrides only</option>
+            <option value="stale">Stale policy drift only</option>
+            <option value="unverified">Unverified only</option>
+            <option value="compliant">Compliant only</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Data sensitivity</label>
+          <select id="rep-data-type">
+            <option value="">All data types</option>
+            <option value="PII">PII</option>
+            <option value="PHI">PHI</option>
+            <option value="Financial">Financial</option>
+            <option value="Claims">Claims data</option>
+          </select>
+        </div>
+      </div>
       <div class="fe">
         <button class="btn" onclick="showQA()">Regulator Q&A</button>
-        <button class="btn btn-p" onclick="generateReport()">Generate report</button>
+        <button class="btn btn-p" onclick="generateReport()">Generate evidence package</button>
       </div>
     </div>
     <div id="qa-section" style="display:none;">
@@ -639,17 +688,17 @@ const DEMO_DATA = {
     {type:'version', msg:'Policy version saved', sub:'Q1 2026 Underwriting Guidelines', t:'2026-01-01T08:00'}
   ],
   registry:[
-    {id:3001, name:'Underwriting Decision Engine', sysId:'AI-UW-001',
+    {id:3001, bizOwner:'Chief Underwriting Officer', techOwner:'VP Engineering', name:'Underwriting Decision Engine', sysId:'AI-UW-001',
      function:'Underwriting — Risk scoring', risk:'high', source:'vendor',
      vendor:'Guidewire', deployed:'2024-03-01', reviewed:'2026-01-15',
      desc:'Automated risk scoring for commercial property underwriting. Produces risk scores and coverage recommendations for underwriter review.',
      policyCat:'Underwriting Guidelines'},
-    {id:3002, name:'Claims Auto-Approval System', sysId:'AI-CLM-001',
+    {id:3002, bizOwner:'Chief Claims Officer', techOwner:'Director of Claims Technology', name:'Claims Auto-Approval System', sysId:'AI-CLM-001',
      function:'Claims — Auto-approval', risk:'high', source:'inhouse',
      vendor:'', deployed:'2024-09-15', reviewed:'2025-12-01',
      desc:'Automatically approves claims below defined thresholds. Routes higher-value claims to adjusters.',
      policyCat:'Claims Handling Manual'},
-    {id:3003, name:'Fraud Detection Classifier', sysId:'AI-FRD-001',
+    {id:3003, bizOwner:'Head of Special Investigations', techOwner:'VP Data Science', name:'Fraud Detection Classifier', sysId:'AI-FRD-001',
      function:'Claims — Fraud detection', risk:'high', source:'vendor',
      vendor:'FRISS', deployed:'2023-06-01', reviewed:'2026-02-28',
      desc:'ML-based fraud detection flagging suspicious claims patterns for investigation.',
@@ -681,7 +730,7 @@ function go(name){
   if(name==='mutations')fillMutSelects();
   if(name==='decisions')fillDecSelects();
   if(name==='home'){renderHome();renderGovernanceTimeline();}
-  if(name==='audit'){renderAudit();renderReportHistory();}
+  if(name==='audit'){renderAudit();renderReportHistory();populateAuditFilters();}
   if(name==='policies')renderOverlapAlerts();
 }
 
@@ -1155,15 +1204,36 @@ function updateHome(){
 }
 
 function renderAudit(){
-  // Apply date range filter
+  // Apply all filters
   const fromDate = document.getElementById('rep-from')?document.getElementById('rep-from').value:'';
   const toDate = document.getElementById('rep-to')?document.getElementById('rep-to').value:'';
+  const repSystem = document.getElementById('rep-system')?document.getElementById('rep-system').value:'';
+  const repPolicy = document.getElementById('rep-policy')?document.getElementById('rep-policy').value:'';
+  const repDecType = document.getElementById('rep-dec-type')?document.getElementById('rep-dec-type').value:'';
+  const repDataType = document.getElementById('rep-data-type')?document.getElementById('rep-data-type').value:'';
+
   const filteredDecisions = DB.decisions.filter(d => {
-    if(!fromDate && !toDate) return true;
-    const dTime = d.time ? new Date(d.time) : null;
-    if(!dTime) return true;
-    if(fromDate && dTime < new Date(fromDate)) return false;
-    if(toDate && dTime > new Date(toDate + 'T23:59:59')) return false;
+    // Date range
+    if(fromDate || toDate){
+      const dTime = d.time ? new Date(d.time) : null;
+      if(!dTime) return true;
+      if(fromDate && dTime < new Date(fromDate)) return false;
+      if(toDate && dTime > new Date(toDate + 'T23:59:59')) return false;
+    }
+    // AI System filter
+    if(repSystem && d.aiSystem !== repSystem) return false;
+    // Policy version filter
+    if(repPolicy && d.usedPol !== repPolicy) return false;
+    // Decision type filter
+    if(repDecType === 'override' && !d.isOverride) return false;
+    if(repDecType === 'stale' && d.status !== 'stale') return false;
+    if(repDecType === 'unverified' && d.status !== 'unverified') return false;
+    if(repDecType === 'compliant' && d.status !== 'compliant') return false;
+    // Data type filter — matches systems processing that data type
+    if(repDataType){
+      const sys = DB.registry.find(s => s.name === d.aiSystem);
+      if(sys && sys.dataTypes && !sys.dataTypes.includes(repDataType)) return false;
+    }
     return true;
   });
   const total=filteredDecisions.length;
@@ -1199,15 +1269,36 @@ function showQA(){
 }
 
 function renderQA(){
-  // Apply date range filter
+  // Apply all filters
   const fromDate = document.getElementById('rep-from')?document.getElementById('rep-from').value:'';
   const toDate = document.getElementById('rep-to')?document.getElementById('rep-to').value:'';
+  const repSystem = document.getElementById('rep-system')?document.getElementById('rep-system').value:'';
+  const repPolicy = document.getElementById('rep-policy')?document.getElementById('rep-policy').value:'';
+  const repDecType = document.getElementById('rep-dec-type')?document.getElementById('rep-dec-type').value:'';
+  const repDataType = document.getElementById('rep-data-type')?document.getElementById('rep-data-type').value:'';
+
   const filteredDecisions = DB.decisions.filter(d => {
-    if(!fromDate && !toDate) return true;
-    const dTime = d.time ? new Date(d.time) : null;
-    if(!dTime) return true;
-    if(fromDate && dTime < new Date(fromDate)) return false;
-    if(toDate && dTime > new Date(toDate + 'T23:59:59')) return false;
+    // Date range
+    if(fromDate || toDate){
+      const dTime = d.time ? new Date(d.time) : null;
+      if(!dTime) return true;
+      if(fromDate && dTime < new Date(fromDate)) return false;
+      if(toDate && dTime > new Date(toDate + 'T23:59:59')) return false;
+    }
+    // AI System filter
+    if(repSystem && d.aiSystem !== repSystem) return false;
+    // Policy version filter
+    if(repPolicy && d.usedPol !== repPolicy) return false;
+    // Decision type filter
+    if(repDecType === 'override' && !d.isOverride) return false;
+    if(repDecType === 'stale' && d.status !== 'stale') return false;
+    if(repDecType === 'unverified' && d.status !== 'unverified') return false;
+    if(repDecType === 'compliant' && d.status !== 'compliant') return false;
+    // Data type filter — matches systems processing that data type
+    if(repDataType){
+      const sys = DB.registry.find(s => s.name === d.aiSystem);
+      if(sys && sys.dataTypes && !sys.dataTypes.includes(repDataType)) return false;
+    }
     return true;
   });
   const total=filteredDecisions.length;
@@ -1233,15 +1324,36 @@ async function generateReport(){
   const title=document.getElementById('rep-title').value||'AI Workflow Compliance Audit';
   const org=document.getElementById('rep-org').value||'Regulatory Examination';
   const prep=document.getElementById('rep-prep').value||'AI Governance Team';
-  // Apply date range filter
+  // Apply all filters
   const fromDate = document.getElementById('rep-from')?document.getElementById('rep-from').value:'';
   const toDate = document.getElementById('rep-to')?document.getElementById('rep-to').value:'';
+  const repSystem = document.getElementById('rep-system')?document.getElementById('rep-system').value:'';
+  const repPolicy = document.getElementById('rep-policy')?document.getElementById('rep-policy').value:'';
+  const repDecType = document.getElementById('rep-dec-type')?document.getElementById('rep-dec-type').value:'';
+  const repDataType = document.getElementById('rep-data-type')?document.getElementById('rep-data-type').value:'';
+
   const filteredDecisions = DB.decisions.filter(d => {
-    if(!fromDate && !toDate) return true;
-    const dTime = d.time ? new Date(d.time) : null;
-    if(!dTime) return true;
-    if(fromDate && dTime < new Date(fromDate)) return false;
-    if(toDate && dTime > new Date(toDate + 'T23:59:59')) return false;
+    // Date range
+    if(fromDate || toDate){
+      const dTime = d.time ? new Date(d.time) : null;
+      if(!dTime) return true;
+      if(fromDate && dTime < new Date(fromDate)) return false;
+      if(toDate && dTime > new Date(toDate + 'T23:59:59')) return false;
+    }
+    // AI System filter
+    if(repSystem && d.aiSystem !== repSystem) return false;
+    // Policy version filter
+    if(repPolicy && d.usedPol !== repPolicy) return false;
+    // Decision type filter
+    if(repDecType === 'override' && !d.isOverride) return false;
+    if(repDecType === 'stale' && d.status !== 'stale') return false;
+    if(repDecType === 'unverified' && d.status !== 'unverified') return false;
+    if(repDecType === 'compliant' && d.status !== 'compliant') return false;
+    // Data type filter — matches systems processing that data type
+    if(repDataType){
+      const sys = DB.registry.find(s => s.name === d.aiSystem);
+      if(sys && sys.dataTypes && !sys.dataTypes.includes(repDataType)) return false;
+    }
     return true;
   });
   const total=filteredDecisions.length;
@@ -1405,6 +1517,8 @@ function addAISystem(){
   const policyCat = document.getElementById('reg-policy-cat').value;
   const dataClass = document.getElementById('reg-data-class')?document.getElementById('reg-data-class').value:'';
   const aiExposure = document.getElementById('reg-ai-exposure')?document.getElementById('reg-ai-exposure').value:'';
+  const bizOwner = document.getElementById('reg-biz-owner')?document.getElementById('reg-biz-owner').value.trim():'';
+  const techOwner = document.getElementById('reg-tech-owner')?document.getElementById('reg-tech-owner').value.trim():'';
   // Get checked sensitive data types
   const dataTypes = [];
   document.querySelectorAll('#reg-data-types input[type=checkbox]:checked').forEach(cb => dataTypes.push(cb.value));
@@ -1422,11 +1536,12 @@ function addAISystem(){
   DB.registry.push({
     id: Date.now(), name, sysId, function: func, risk, source,
     vendor, deployed, reviewed, desc, policyCat,
-    dataClass, aiExposure, dataTypes, frameworks
+    dataClass, aiExposure, dataTypes, frameworks,
+    bizOwner, techOwner
   });
 
   // Clear form
-  ['reg-name','reg-id','reg-vendor','reg-desc'].forEach(id => document.getElementById(id).value='');
+  ['reg-name','reg-id','reg-vendor','reg-desc','reg-biz-owner','reg-tech-owner'].forEach(id => document.getElementById(id).value='');
   ['reg-function','reg-risk','reg-source','reg-policy-cat','reg-data-class','reg-ai-exposure'].forEach(id => document.getElementById(id).value='');
   document.querySelectorAll('#reg-data-types input[type=checkbox]').forEach(cb => cb.checked=false);
   document.querySelectorAll('#reg-frameworks input[type=checkbox]').forEach(cb => cb.checked=false);
@@ -1485,6 +1600,8 @@ function renderRegistry(){
           <span style="font-size:11px;color:${reviewAlert ? '#c8402a' : 'var(--mid)'};">Last reviewed: ${reviewedDate}${reviewAlert ? ' ⚠' : ''}</span>
           ${s.policyCat ? `<span style="font-size:11px;color:var(--mid);">Policy: ${s.policyCat}</span>` : ''}
           <span style="font-size:10px;font-weight:600;color:var(--mid);background:var(--cream);padding:1px 6px;border-radius:3px;border:0.5px solid var(--border);">${tierLabel} · ${tierDesc}</span>
+          ${s.bizOwner ? `<span style="font-size:11px;color:var(--mid);">Business owner: ${s.bizOwner}</span>` : '<span style="font-size:11px;color:#C00000;">⚠ No business owner</span>'}
+          ${s.techOwner ? `<span style="font-size:11px;color:var(--mid);">Technical owner: ${s.techOwner}</span>` : ''}
         </div>
         ${s.desc ? `<div class="rout" style="margin-top:4px;">${s.desc}</div>` : ''}
         ${(s.dataTypes && s.dataTypes.length > 0) ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${s.dataTypes.map(t => `<span style="font-size:10px;background:#F0F6FB;color:#2E75B6;padding:1px 6px;border-radius:3px;border:0.5px solid #C0D8F0;">${t}</span>`).join('')}</div>` : ''}
@@ -1715,6 +1832,24 @@ function renderActionBoard(){
     actions.push({sev:'HIGH', title:'Register your AI systems', desc:'NAIC Exhibit A requires an inventory of every AI system. None registered yet.', tab:'registry', filter:''});
   }
 
+  // Check missing business owners
+  const noOwner = (DB.registry||[]).filter(s => !s.bizOwner || s.bizOwner.trim() === '');
+  if(noOwner.length > 0){
+    actions.push({sev:'HIGH', title:`${noOwner.length} AI system(s) missing business owner`, desc:'Auditors always ask who owns each AI system. Business owner not recorded for some systems.', tab:'registry', filter:''});
+  }
+
+  // Check missing data classification
+  const noDataClass = (DB.registry||[]).filter(s => !s.dataClass || s.dataClass === '');
+  if(noDataClass.length > 0){
+    actions.push({sev:'MED', title:`${noDataClass.length} AI system(s) missing data classification`, desc:'NAIC Exhibit D requires data governance documentation. Data classification not set.', tab:'registry', filter:''});
+  }
+
+  // Check no regulatory frameworks tagged on policies
+  const noFramework = DB.policies.filter(p => !p.frameworks || p.frameworks.length === 0);
+  if(noFramework.length > 0){
+    actions.push({sev:'MED', title:`${noFramework.length} policy version(s) missing regulatory source`, desc:'Policy traceability requires tagging which regulation each policy implements.', tab:'policies', filter:''});
+  }
+
   // Check policy versions
   if(DB.policies.length === 0){
     actions.push({sev:'HIGH', title:'Register at least one policy version', desc:'No policy versions in vault. AI decisions cannot be verified without a policy baseline.', tab:'policies', filter:''});
@@ -1887,6 +2022,21 @@ function cancelEdit(){
   if(cancelBtn) cancelBtn.style.display='none';
   document.getElementById('override-section').style.display='none';
   document.getElementById('policy-version-detail').style.display='none';
+}
+
+function populateAuditFilters(){
+  // Populate AI system dropdown
+  const sysEl = document.getElementById('rep-system');
+  if(sysEl){
+    const opts = DB.registry.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    sysEl.innerHTML = '<option value="">All systems</option>' + opts;
+  }
+  // Populate policy version dropdown
+  const polEl = document.getElementById('rep-policy');
+  if(polEl){
+    const opts = DB.policies.map(p => `<option value="${p.label}">[${p.category}] ${p.label}</option>`).join('');
+    polEl.innerHTML = '<option value="">All policy versions</option>' + opts;
+  }
 }
 </script>
 </body>
