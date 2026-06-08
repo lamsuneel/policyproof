@@ -1668,6 +1668,14 @@ function renderRegistry(){
         ${(s.frameworks && s.frameworks.length > 0) ? `<div style="font-size:11px;color:var(--mid);margin-top:3px;">Frameworks: ${s.frameworks.join(' · ')}</div>` : ''}
         ${s.aiExposure === 'public' ? `<div style="font-size:11px;color:#c8402a;margin-top:3px;">⚠ Public LLM exposure — review data handling</div>` : ''}
         ${reviewAlert ? `<div style="font-size:11px;color:#c8402a;margin-top:3px;">⚠ Review overdue — last reviewed over 12 months ago</div>` : ''}
+
+        <!-- Relationship View — expandable -->
+        <div style="margin-top:8px;border-top:0.5px solid var(--border);padding-top:8px;">
+          <button onclick="toggleRelView('rel-${s.id}')" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;font-family:var(--sans);">▶ Show linked evidence</button>
+          <div id="rel-${s.id}" style="display:none;margin-top:8px;">
+            ${buildRelView(s)}
+          </div>
+        </div>
       </div>
     </div>`;
   });
@@ -2122,6 +2130,99 @@ function populateAuditFilters(){
     const opts = DB.policies.map(p => `<option value="${p.label}">[${p.category}] ${p.label}</option>`).join('');
     polEl.innerHTML = '<option value="">All policy versions</option>' + opts;
   }
+}
+
+// ============================================================
+// RELATIONSHIP VIEW — links AI system to policies + decisions
+// ============================================================
+function toggleRelView(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const btn = el.previousElementSibling;
+  if(el.style.display === 'none'){
+    el.style.display = 'block';
+    if(btn) btn.textContent = '▼ Hide linked evidence';
+  } else {
+    el.style.display = 'none';
+    if(btn) btn.textContent = '▶ Show linked evidence';
+  }
+}
+
+function buildRelView(sys){
+  // Find linked policies based on policy categories
+  const sysCats = sys.policyCat ? sys.policyCat.split(', ').map(c=>c.trim()) : [];
+  const linkedPolicies = DB.policies.filter(p => sysCats.includes(p.category||''));
+  const activePolicies = linkedPolicies.filter(p => isActive(p, new Date().toISOString()));
+
+  // Find decisions linked to this system
+  const sysDecs = DB.decisions.filter(d => d.aiSystem === sys.name || !d.aiSystem);
+  const compliantDecs = sysDecs.filter(d => d.status === 'compliant').length;
+  const staleDecs = sysDecs.filter(d => d.status === 'stale').length;
+  const overrideDecs = sysDecs.filter(d => d.isOverride).length;
+  const missingReviewer = sysDecs.filter(d => !d.reviewer || d.reviewer.trim() === '').length;
+
+  // Find last audit report mentioning this system
+  let lastReport = '—';
+  try {
+    const history = JSON.parse(localStorage.getItem('pp-report-history')||'[]');
+    if(history.length > 0) lastReport = history[0].generatedAt;
+  } catch(e){}
+
+  // Build compliance score breakdown
+  const score = calcSystemScore(sys);
+  const scoreCol = scoreColor(score);
+
+  let html = `<div style="background:var(--cream);border-radius:6px;padding:12px;font-family:var(--sans);font-size:13px;">`;
+
+  // Three column layout
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">`;
+
+  // Column 1 — Linked Policies
+  html += `<div>
+    <div style="font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Linked Policies</div>`;
+  if(linkedPolicies.length === 0){
+    html += `<div style="color:#C00000;font-size:12px;">⚠ No policies linked</div>`;
+  } else {
+    linkedPolicies.slice(0,4).forEach(p => {
+      const active = isActive(p, new Date().toISOString());
+      html += `<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">
+        <span style="width:6px;height:6px;border-radius:50%;background:${active?'#1D9E75':'#888780'};flex-shrink:0;"></span>
+        <span style="font-size:11px;color:var(--ink);">${p.label}</span>
+        <span style="font-size:10px;color:var(--mid);">${active?'Active':'Historical'}</span>
+      </div>`;
+    });
+    if(linkedPolicies.length > 4) html += `<div style="font-size:11px;color:var(--mid);">+${linkedPolicies.length-4} more</div>`;
+  }
+  html += `</div>`;
+
+  // Column 2 — Decision Summary
+  html += `<div>
+    <div style="font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Decision Evidence</div>
+    <div style="font-size:12px;color:var(--ink);margin-bottom:3px;"><strong>${sysDecs.length}</strong> decisions logged</div>
+    <div style="font-size:11px;color:#1D9E75;margin-bottom:2px;">✓ ${compliantDecs} compliant</div>
+    ${staleDecs > 0 ? `<div style="font-size:11px;color:#EF9F27;margin-bottom:2px;">⚠ ${staleDecs} stale drift</div>` : ''}
+    ${overrideDecs > 0 ? `<div style="font-size:11px;color:var(--mid);margin-bottom:2px;">↩ ${overrideDecs} overrides</div>` : ''}
+    ${missingReviewer > 0 ? `<div style="font-size:11px;color:#C00000;margin-bottom:2px;">⚠ ${missingReviewer} missing reviewer</div>` : ''}
+    ${sysDecs.length === 0 ? `<div style="font-size:11px;color:#C00000;">⚠ No decisions logged</div>` : ''}
+  </div>`;
+
+  // Column 3 — Audit Readiness
+  html += `<div>
+    <div style="font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Audit Readiness</div>
+    <div style="font-size:1.5rem;font-weight:700;color:${scoreCol};line-height:1;">${score}%</div>
+    <div style="font-size:10px;color:var(--mid);margin-bottom:6px;">evidence completeness</div>
+    <div style="font-size:11px;color:var(--mid);">Last report: ${lastReport}</div>
+    <div style="margin-top:6px;">
+      ${sys.bizOwner ? '<div style="font-size:11px;color:#1D9E75;">✓ Owner assigned</div>' : '<div style="font-size:11px;color:#C00000;">✗ No owner</div>'}
+      ${sys.dataClass ? '<div style="font-size:11px;color:#1D9E75;">✓ Data classified</div>' : '<div style="font-size:11px;color:#C00000;">✗ Data not classified</div>'}
+      ${linkedPolicies.length > 0 ? '<div style="font-size:11px;color:#1D9E75;">✓ Policies linked</div>' : '<div style="font-size:11px;color:#C00000;">✗ No policies linked</div>'}
+      ${sysDecs.length > 0 ? '<div style="font-size:11px;color:#1D9E75;">✓ Decisions logged</div>' : '<div style="font-size:11px;color:#C00000;">✗ No decisions logged</div>'}
+    </div>
+  </div>`;
+
+  html += `</div>`; // close grid
+  html += `</div>`; // close container
+  return html;
 }
 </script>
 </body>
