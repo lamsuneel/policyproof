@@ -176,6 +176,21 @@ textarea{resize:vertical;line-height:1.6;}
       </div>
       <div class="g2 mb10">
         <div>
+          <label class="lbl">Business criticality</label>
+          <select id="reg-criticality">
+            <option value="">Select criticality</option>
+            <option value="mission_critical">Mission Critical — core business operations</option>
+            <option value="high">High — significant business impact</option>
+            <option value="medium">Medium — moderate business impact</option>
+            <option value="low">Low — minimal business impact</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end;padding-bottom:2px;">
+          <div style="font-size:12px;color:var(--mid);line-height:1.4;">Auditors prioritize reviews by criticality. A claims denial engine is Mission Critical. A marketing assistant is Low.</div>
+        </div>
+      </div>
+      <div class="g2 mb10">
+        <div>
           <label class="lbl">Vendor or in-house<span class="req">*</span></label>
           <select id="reg-source">
             <option value="">Select</option>
@@ -736,17 +751,17 @@ const DEMO_DATA = {
     {type:'version', msg:'Policy version saved', sub:'Q1 2026 Underwriting Guidelines', t:'2026-01-01T08:00'}
   ],
   registry:[
-    {id:3001, bizOwner:'Chief Underwriting Officer', techOwner:'VP Engineering', lifecycle:'production', oversight:'threshold', modelProvider:'Internal', modelVersion:'UW-Score-v3.1', riskAssessed:'2026-01-15', name:'Underwriting Decision Engine', sysId:'AI-UW-001',
+    {id:3001, bizOwner:'Chief Underwriting Officer', techOwner:'VP Engineering', criticality:'high', lifecycle:'production', oversight:'threshold', modelProvider:'Internal', modelVersion:'UW-Score-v3.1', riskAssessed:'2026-01-15', name:'Underwriting Decision Engine', sysId:'AI-UW-001',
      function:'Underwriting — Risk scoring', risk:'high', source:'vendor',
      vendor:'Guidewire', deployed:'2024-03-01', reviewed:'2026-01-15',
      desc:'Automated risk scoring for commercial property underwriting. Produces risk scores and coverage recommendations for underwriter review.',
      policyCat:'Underwriting Guidelines'},
-    {id:3002, bizOwner:'Chief Claims Officer', techOwner:'Director of Claims Technology', lifecycle:'production', oversight:'threshold', modelProvider:'OpenAI', modelVersion:'GPT-4o', riskAssessed:'2025-12-10', name:'Claims Auto-Approval System', sysId:'AI-CLM-001',
+    {id:3002, bizOwner:'Chief Claims Officer', techOwner:'Director of Claims Technology', criticality:'mission_critical', lifecycle:'production', oversight:'threshold', modelProvider:'OpenAI', modelVersion:'GPT-4o', riskAssessed:'2025-12-10', name:'Claims Auto-Approval System', sysId:'AI-CLM-001',
      function:'Claims — Auto-approval', risk:'high', source:'inhouse',
      vendor:'', deployed:'2024-09-15', reviewed:'2025-12-01',
      desc:'Automatically approves claims below defined thresholds. Routes higher-value claims to adjusters.',
      policyCat:'Claims Handling Manual'},
-    {id:3003, bizOwner:'Head of Special Investigations', techOwner:'VP Data Science', lifecycle:'production', oversight:'every', modelProvider:'Internal', modelVersion:'FraudNet-v2.3', riskAssessed:'2026-02-20', name:'Fraud Detection Classifier', sysId:'AI-FRD-001',
+    {id:3003, bizOwner:'Head of Special Investigations', techOwner:'VP Data Science', criticality:'high', lifecycle:'production', oversight:'every', modelProvider:'Internal', modelVersion:'FraudNet-v2.3', riskAssessed:'2026-02-20', name:'Fraud Detection Classifier', sysId:'AI-FRD-001',
      function:'Claims — Fraud detection', risk:'high', source:'vendor',
      vendor:'FRISS', deployed:'2023-06-01', reviewed:'2026-02-28',
      desc:'ML-based fraud detection flagging suspicious claims patterns for investigation.',
@@ -1569,6 +1584,7 @@ function addAISystem(){
   const aiExposure = document.getElementById('reg-ai-exposure')?document.getElementById('reg-ai-exposure').value:'';
   const bizOwner = document.getElementById('reg-biz-owner')?document.getElementById('reg-biz-owner').value.trim():'';
   const techOwner = document.getElementById('reg-tech-owner')?document.getElementById('reg-tech-owner').value.trim():'';
+  const criticality = document.getElementById('reg-criticality')?document.getElementById('reg-criticality').value:'';
   const lifecycle = document.getElementById('reg-lifecycle')?document.getElementById('reg-lifecycle').value:'';
   const riskAssessed = document.getElementById('reg-risk-assessed')?document.getElementById('reg-risk-assessed').value:'';
   const oversight = document.getElementById('reg-oversight')?document.getElementById('reg-oversight').value:'';
@@ -1592,12 +1608,12 @@ function addAISystem(){
     id: Date.now(), name, sysId, function: func, risk, source,
     vendor, deployed, reviewed, desc, policyCat,
     dataClass, aiExposure, dataTypes, frameworks,
-    bizOwner, techOwner, lifecycle, riskAssessed, oversight, modelProvider, modelVersion
+    bizOwner, techOwner, criticality, lifecycle, riskAssessed, oversight, modelProvider, modelVersion
   });
 
   // Clear form
   ['reg-name','reg-id','reg-vendor','reg-desc','reg-biz-owner','reg-tech-owner','reg-model-version'].forEach(id => document.getElementById(id).value='');
-  ['reg-function','reg-risk','reg-source','reg-lifecycle','reg-risk-assessed','reg-oversight','reg-model-provider'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['reg-function','reg-risk','reg-source','reg-criticality','reg-lifecycle','reg-risk-assessed','reg-oversight','reg-model-provider'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['reg-data-class','reg-ai-exposure'].forEach(id => {const el=document.getElementById(id);if(el)el.value='';});
   document.querySelectorAll('#reg-policy-cat input[type=checkbox]').forEach(cb => cb.checked=false);
   document.querySelectorAll('#reg-data-types input[type=checkbox]').forEach(cb => cb.checked=false);
@@ -1660,6 +1676,7 @@ function renderRegistry(){
           ${s.bizOwner ? `<span style="font-size:11px;color:var(--mid);">Biz owner: ${s.bizOwner}</span>` : '<span style="font-size:11px;color:#C00000;">⚠ No business owner</span>'}
           ${s.techOwner ? `<span style="font-size:11px;color:var(--mid);">Tech owner: ${s.techOwner}</span>` : ''}
           ${s.lifecycle ? `<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:3px;background:${s.lifecycle==='production'?'#E2EFDA':s.lifecycle==='pilot'?'#FFF2CC':s.lifecycle==='suspended'||s.lifecycle==='retired'?'#FCE4D6':'#F2F2F2'};color:${s.lifecycle==='production'?'#375623':s.lifecycle==='pilot'?'#7F6000':s.lifecycle==='suspended'||s.lifecycle==='retired'?'#C00000':'#595959'};">${s.lifecycle}</span>` : ''}
+          ${s.criticality ? `<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:3px;background:${s.criticality==='mission_critical'?'#FCE4D6':s.criticality==='high'?'#FFF2CC':'#F2F2F2'};color:${s.criticality==='mission_critical'?'#C00000':s.criticality==='high'?'#7F6000':'#595959'};">${s.criticality==='mission_critical'?'Mission Critical':s.criticality==='high'?'High Impact':s.criticality==='medium'?'Medium Impact':'Low Impact'}</span>` : ''}
           ${s.oversight ? `<span style="font-size:11px;color:var(--mid);">Oversight: ${s.oversight==='every'?'Required — every decision':s.oversight==='threshold'?'Required above threshold':s.oversight==='exception'?'Exceptions only':'Not required'}</span>` : ''}
           ${s.modelProvider && s.modelProvider !== '' ? `<span style="font-size:11px;color:var(--mid);">Model: ${s.modelProvider}${s.modelVersion?' — '+s.modelVersion:''}</span>` : ''}
         </div>
