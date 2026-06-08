@@ -84,6 +84,7 @@ textarea{resize:vertical;line-height:1.6;}
     <button class="nav-btn" onclick="go('mutations')">Mutations</button>
     <button class="nav-btn" onclick="go('decisions')">Decisions</button>
     <button class="nav-btn" onclick="go('audit')">Audit</button>
+    <button class="nav-btn" onclick="go('impact')">Impact</button>
   </div>
 </div>
 
@@ -571,6 +572,72 @@ textarea{resize:vertical;line-height:1.6;}
     </div>
   </div>
 
+  <!-- IMPACT ASSESSMENT -->
+  <div class="panel" id="panel-impact">
+    <div class="card">
+      <div class="card-title">Log AI Impact Assessment
+        <span style="font-size:11px;color:var(--mid);font-weight:400;margin-left:8px;">NIST AI RMF · EU AI Act Article 9 · NAIC Exhibit B</span>
+      </div>
+      <div style="font-size:12px;color:var(--mid);margin-bottom:14px;">Every governance framework asks: did you assess the risk before deployment? Log impact assessments here to create the evidence artifact that answers that question.</div>
+
+      <div class="g2 mb10">
+        <div>
+          <label class="lbl">Assessment ID</label>
+          <input type="text" id="imp-id" placeholder="e.g. IA-2026-001"/>
+        </div>
+        <div>
+          <label class="lbl">AI System assessed</label>
+          <select id="imp-system">
+            <option value="">Select AI system</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2 mb10">
+        <div>
+          <label class="lbl">Assessment date<span class="req">*</span></label>
+          <input type="date" id="imp-date"/>
+        </div>
+        <div>
+          <label class="lbl">Assessment type</label>
+          <select id="imp-type">
+            <option value="">Select type</option>
+            <option value="initial">Initial — pre-deployment</option>
+            <option value="periodic">Periodic — scheduled review</option>
+            <option value="triggered">Triggered — incident or change</option>
+            <option value="regulatory">Regulatory — examination preparation</option>
+          </select>
+        </div>
+      </div>
+      <div class="mb10">
+        <label class="lbl">Risk summary<span class="req">*</span></label>
+        <textarea id="imp-summary" rows="3" placeholder="Brief summary of the AI system's risk profile and key findings from this assessment..."></textarea>
+      </div>
+      <div class="mb10">
+        <label class="lbl">Known harms or risks identified</label>
+        <textarea id="imp-harms" rows="3" placeholder="e.g. Potential for disparate impact on protected classes. Model performance degrades on edge cases below $10k claims..."></textarea>
+      </div>
+      <div class="mb10">
+        <label class="lbl">Mitigations implemented</label>
+        <textarea id="imp-mitigations" rows="3" placeholder="e.g. Human review required for all claims above $25k. Monthly bias monitoring implemented. Quarterly model validation scheduled..."></textarea>
+      </div>
+      <div class="g2 mb10">
+        <div>
+          <label class="lbl">Approver name</label>
+          <input type="text" id="imp-approver" placeholder="e.g. Chief Risk Officer"/>
+        </div>
+        <div>
+          <label class="lbl">Next review date</label>
+          <input type="date" id="imp-next-review"/>
+        </div>
+      </div>
+      <div class="fe"><button class="btn btn-p" onclick="logImpactAssessment()">Save impact assessment</button></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Impact Assessment Log</div>
+      <div id="impact-log"><div class="empty">No impact assessments logged yet.</div></div>
+    </div>
+  </div>
+
   <!-- AUDIT -->
   <div class="panel" id="panel-audit">
     <div class="g4 mb10">
@@ -741,6 +808,7 @@ const DEMO_DATA = {
   mutations:[
     {id:3001, from:'Q1 2026 Underwriting Guidelines', to:'Q2 2026 Underwriting Guidelines', changes:4, t:'2026-04-01T08:00'}
   ],
+  impacts:[],
   activity:[
     {type:'decision', msg:'Decision logged: UW-2026-0444', sub:'Status: compliant', t:'2026-05-02T13:10'},
     {type:'decision', msg:'Decision logged: CLM-2026-0102', sub:'Status: stale', t:'2026-04-18T16:20'},
@@ -786,7 +854,7 @@ function clearAll(){
 }
 
 function go(name){
-  ['home','registry','policies','mutations','decisions','audit'].forEach((n,i)=>{
+  ['home','registry','policies','mutations','decisions','audit','impact'].forEach((n,i)=>{
     document.getElementById('panel-'+n).classList.toggle('active',n===name);
     document.querySelectorAll('.nav-btn')[i].classList.toggle('active',n===name);
   });
@@ -794,6 +862,7 @@ function go(name){
   if(name==='decisions')fillDecSelects();
   if(name==='home'){renderHome();renderGovernanceTimeline();}
   if(name==='audit'){renderAudit();renderReportHistory();populateAuditFilters();}
+  if(name==='impact'){renderImpactLog();populateImpactSystem();}
   if(name==='policies')renderOverlapAlerts();
 }
 
@@ -2240,6 +2309,80 @@ function buildRelView(sys){
   html += `</div>`; // close grid
   html += `</div>`; // close container
   return html;
+}
+
+// ============================================================
+// IMPACT ASSESSMENT
+// ============================================================
+function populateImpactSystem(){
+  const el = document.getElementById('imp-system');
+  if(!el) return;
+  const opts = DB.registry.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+  el.innerHTML = '<option value="">Select AI system</option>' + opts;
+}
+
+function logImpactAssessment(){
+  const impId = document.getElementById('imp-id').value.trim() || 'IA-' + Date.now();
+  const system = document.getElementById('imp-system').value;
+  const date = document.getElementById('imp-date').value;
+  const type = document.getElementById('imp-type').value;
+  const summary = document.getElementById('imp-summary').value.trim();
+  const harms = document.getElementById('imp-harms').value.trim();
+  const mitigations = document.getElementById('imp-mitigations').value.trim();
+  const approver = document.getElementById('imp-approver').value.trim();
+  const nextReview = document.getElementById('imp-next-review').value;
+
+  if(!date || !summary){
+    alert('Assessment date and risk summary are required.');
+    return;
+  }
+
+  DB.impacts.push({
+    id: Date.now(), impId, system, date, type, summary,
+    harms, mitigations, approver, nextReview,
+    issuedAt: new Date().toISOString()
+  });
+
+  log('impact', `Impact assessment logged: ${impId}`, system || 'All systems');
+
+  // Clear form
+  ['imp-id','imp-summary','imp-harms','imp-mitigations','imp-approver'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  ['imp-system','imp-type'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('imp-date').value='';
+  document.getElementById('imp-next-review').value='';
+
+  renderImpactLog();
+  updateHome();
+}
+
+function renderImpactLog(){
+  const el = document.getElementById('impact-log');
+  if(!el) return;
+  if(!DB.impacts || !DB.impacts.length){
+    el.innerHTML = '<div class="empty">No impact assessments logged yet.</div>';
+    return;
+  }
+  const overdue = [];
+  el.innerHTML = DB.impacts.slice().reverse().map(imp => {
+    const isOverdue = imp.nextReview && new Date(imp.nextReview) < new Date();
+    const typeLabel = imp.type === 'initial' ? 'Initial' : imp.type === 'periodic' ? 'Periodic' : imp.type === 'triggered' ? 'Triggered' : imp.type === 'regulatory' ? 'Regulatory' : imp.type || '—';
+    return `<div class="row" style="align-items:flex-start;">
+      <div class="dot" style="background:${isOverdue?'#C00000':'#1D9E75'};margin-top:4px;"></div>
+      <div class="rbody">
+        <div class="rtitle">${imp.impId} ${imp.system?'— '+imp.system:''} <span style="font-size:11px;color:var(--mid);font-weight:400;">${typeLabel}</span></div>
+        <div class="rmeta">${imp.date ? new Date(imp.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}${imp.approver?' · Approver: '+imp.approver:''}</div>
+        <div class="rout">${imp.summary}</div>
+        ${imp.harms ? `<div style="font-size:12px;color:var(--mid);margin-top:4px;"><strong>Risks:</strong> ${imp.harms.substring(0,120)}${imp.harms.length>120?'...':''}</div>` : ''}
+        ${imp.mitigations ? `<div style="font-size:12px;color:var(--mid);margin-top:2px;"><strong>Mitigations:</strong> ${imp.mitigations.substring(0,120)}${imp.mitigations.length>120?'...':''}</div>` : ''}
+        ${imp.nextReview ? `<div style="font-size:11px;color:${isOverdue?'#C00000':'var(--mid)'};margin-top:4px;">${isOverdue?'⚠ Review overdue — ':'Next review: '}${new Date(imp.nextReview).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>` : ''}
+      </div>
+      <span class="badge ${isOverdue?'b-stale':'b-ok'}">${isOverdue?'overdue':'current'}</span>
+    </div>`;
+  }).join('');
 }
 </script>
 </body>
