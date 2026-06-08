@@ -214,18 +214,17 @@ textarea{resize:vertical;line-height:1.6;}
         </div>
       </div>
       <div class="mb10">
-        <label class="lbl">Linked policy category</label>
-        <select id="reg-policy-cat">
-          <option value="">Select linked policy category</option>
-          <option>Underwriting Guidelines</option>
-          <option>Claims Handling Manual</option>
-          <option>Flood &amp; Exclusion Policy</option>
-          <option>Fraud Detection Rules</option>
-          <option>Reinsurance Attachment Rules</option>
-          <option>Compliance &amp; Regulatory Policy</option>
-          <option>Risk Scoring Rules</option>
-          <option>Other</option>
-        </select>
+        <label class="lbl">Linked policy categories <span style="font-size:11px;color:var(--mid);font-weight:400;">(select all that apply)</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;" id="reg-policy-cat">
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Underwriting Guidelines" style="margin:0;"> Underwriting Guidelines</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Claims Handling Manual" style="margin:0;"> Claims Handling Manual</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Flood &amp; Exclusion Policy" style="margin:0;"> Flood &amp; Exclusion Policy</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Fraud Detection Rules" style="margin:0;"> Fraud Detection Rules</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Reinsurance Attachment Rules" style="margin:0;"> Reinsurance Attachment Rules</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Compliance &amp; Regulatory Policy" style="margin:0;"> Compliance &amp; Regulatory Policy</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Risk Scoring Rules" style="margin:0;"> Risk Scoring Rules</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Other" style="margin:0;"> Other</label>
+        </div>
       </div>
 
       <!-- Data Classification Section -->
@@ -1514,7 +1513,9 @@ function addAISystem(){
   const deployed = document.getElementById('reg-deployed').value;
   const reviewed = document.getElementById('reg-reviewed').value;
   const desc = document.getElementById('reg-desc').value.trim();
-  const policyCat = document.getElementById('reg-policy-cat').value;
+  const policyCatCbs = [];
+  document.querySelectorAll('#reg-policy-cat input[type=checkbox]:checked').forEach(cb => policyCatCbs.push(cb.value));
+  const policyCat = policyCatCbs.join(', ');
   const dataClass = document.getElementById('reg-data-class')?document.getElementById('reg-data-class').value:'';
   const aiExposure = document.getElementById('reg-ai-exposure')?document.getElementById('reg-ai-exposure').value:'';
   const bizOwner = document.getElementById('reg-biz-owner')?document.getElementById('reg-biz-owner').value.trim():'';
@@ -1542,7 +1543,8 @@ function addAISystem(){
 
   // Clear form
   ['reg-name','reg-id','reg-vendor','reg-desc','reg-biz-owner','reg-tech-owner'].forEach(id => document.getElementById(id).value='');
-  ['reg-function','reg-risk','reg-source','reg-policy-cat','reg-data-class','reg-ai-exposure'].forEach(id => document.getElementById(id).value='');
+  ['reg-function','reg-risk','reg-source','reg-data-class','reg-ai-exposure'].forEach(id => document.getElementById(id).value='');
+  document.querySelectorAll('#reg-policy-cat input[type=checkbox]').forEach(cb => cb.checked=false);
   document.querySelectorAll('#reg-data-types input[type=checkbox]').forEach(cb => cb.checked=false);
   document.querySelectorAll('#reg-frameworks input[type=checkbox]').forEach(cb => cb.checked=false);
   document.getElementById('reg-deployed').value='';
@@ -1946,7 +1948,7 @@ function calcSystemScore(sys){
   }
 
   // Has associated policy category — 10 points (variable)
-  if(sys.policyCategory && sys.policyCategory !== '') score += 10;
+  if(sys.policyCat && sys.policyCat !== '') score += 10;
 
   return Math.min(score, 100);
 }
