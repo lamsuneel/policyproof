@@ -22,6 +22,7 @@
   --r4:4px;--r6:6px;--r8:8px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-padding-top:180px;}
 body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh;}
 
 /* TOPBAR */
@@ -35,7 +36,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 .back:hover{background:var(--cream);}
 
 /* CONTEXT STRIP */
-.ctx{background:#111827;color:#d1d9e8;padding:8px 1.75rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
+.ctx{background:#111827;color:#d1d9e8;padding:8px 1.75rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;position:sticky;top:52px;z-index:95;}
 .ctx-org{font-family:var(--mono);font-size:11px;display:flex;align-items:center;gap:14px;}
 .ctx-org span{opacity:.55;}.ctx-org strong{color:#93b8f5;opacity:1;}
 .naic-tag{font-family:var(--mono);font-size:10px;padding:3px 10px;background:rgba(147,184,245,0.12);border:.5px solid rgba(147,184,245,0.25);color:#93b8f5;border-radius:99px;}
@@ -43,7 +44,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 /* LAYOUT */
 .shell{max-width:1080px;margin:0 auto;padding:1.5rem 1.75rem 4rem;}
 
-/* STEPPER */
+/* STEPPER — sticky below topbar(52px) + context strip(36px) = 88px */
 .stepper{display:flex;border:.5px solid var(--border);border-radius:var(--r8);overflow:hidden;margin-bottom:1.5rem;background:var(--cream);position:sticky;top:88px;z-index:90;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
 .stp{flex:1;display:flex;align-items:center;gap:7px;padding:11px 12px;font-size:12px;font-weight:500;color:var(--faint);border-right:.5px solid var(--border);cursor:pointer;transition:all .18s;}
 .stp:last-child{border-right:none;}
@@ -217,6 +218,51 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 .score-bar-fill{height:100%;border-radius:99px;background:var(--red);transition:width 1.2s cubic-bezier(.4,0,.2,1);}
 .score-threshold{position:absolute;top:0;height:100%;width:1.5px;background:var(--ink);opacity:.25;}
 .score-warn{font-family:var(--mono);font-size:10px;color:var(--red);margin-top:5px;}
+
+/* FINDINGS SUMMARY GRID */
+.findings-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.875rem;}
+.fs-item{padding:10px 12px;border-radius:var(--r6);border:.5px solid var(--border);background:var(--cream);}
+.fs-item.r{background:var(--red-bg);border-color:var(--red-border);}
+.fs-item.a{background:var(--amber-bg);border-color:var(--amber-border);}
+.fs-item.g{background:var(--green-bg);border-color:var(--green-border);}
+.fs-item.d{background:var(--discovery-bg);border-color:var(--discovery-border);}
+.fs-val{font-family:var(--serif);font-size:22px;font-weight:600;line-height:1;}
+.fs-item.r .fs-val{color:var(--red);}
+.fs-item.a .fs-val{color:var(--amber);}
+.fs-item.g .fs-val{color:var(--green);}
+.fs-item.d .fs-val{color:var(--discovery);}
+.fs-lbl{font-size:11px;color:var(--mid);margin-top:2px;}
+
+/* DEFENSIBILITY TABLE */
+.def-table{width:100%;border-collapse:collapse;font-size:13px;}
+.def-table th{font-family:var(--mono);font-size:10px;color:var(--faint);text-align:left;padding:7px 12px;border-bottom:.5px solid var(--border);letter-spacing:.03em;}
+.def-table td{padding:0;border-bottom:.5px solid var(--border);}
+.def-table tr:last-child td{border-bottom:none;}
+.def-row-main{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer;transition:background .15s;}
+.def-row-main:hover{background:var(--cream);}
+.def-sys-name{font-weight:600;font-size:13px;}
+.def-sys-id{font-family:var(--mono);font-size:10px;color:var(--faint);margin-left:6px;}
+.def-verdict{font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 10px;border-radius:99px;border:.5px solid;}
+.def-verdict.defensible{background:var(--green-bg);border-color:var(--green-border);color:var(--green);}
+.def-verdict.gaps{background:var(--amber-bg);border-color:var(--amber-border);color:var(--amber);}
+.def-verdict.risk{background:var(--red-bg);border-color:var(--red-border);color:var(--red);}
+.def-verdict.notdef{background:var(--red);color:#fff;border-color:var(--red);}
+.def-expand{display:none;border-top:.5px solid var(--border);background:var(--cream);padding:12px;}
+.def-expand.open{display:block;}
+.def-chain{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;}
+.def-chain-item{padding:8px 10px;border-radius:var(--r4);border:.5px solid var(--border);background:var(--paper);}
+.def-chain-item.pass{background:var(--green-bg);border-color:var(--green-border);}
+.def-chain-item.fail{background:var(--red-bg);border-color:var(--red-border);}
+.def-chain-label{font-family:var(--mono);font-size:9px;color:var(--faint);margin-bottom:3px;letter-spacing:.03em;}
+.def-chain-item.pass .def-chain-label{color:var(--green);}
+.def-chain-item.fail .def-chain-label{color:var(--red);}
+.def-chain-val{font-family:var(--mono);font-size:11px;font-weight:600;}
+.def-chain-item.pass .def-chain-val{color:var(--green);}
+.def-chain-item.fail .def-chain-val{color:var(--red);}
+.def-exposure{font-family:var(--mono);font-size:11px;color:var(--red);margin-top:4px;}
+.def-overall{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:.5px solid var(--border);}
+.def-overall-label{font-size:12px;font-weight:600;color:var(--mid);}
+.def-overall-verdict{font-family:var(--mono);font-size:12px;font-weight:700;}
 
 /* BREAKDOWN TABLE */
 .bk-tbl{width:100%;border-collapse:collapse;font-size:12px;}
@@ -717,6 +763,7 @@ function detectGaps(decRes,policyIdx){
     }
   });
 
+  score=Math.max(score,0);
   return {gaps,dqIssues,vgIssues,score,breakdown};
 }
 
@@ -938,25 +985,130 @@ function gapCard(g){
   </div>`;
 }
 
-// ── RENDER: SCORE ─────────────────────────────────────────────
+// ── RENDER: SCORE + DEFENSIBILITY ────────────────────────────
 function renderScore(){
-  document.getElementById('score-hero-wrap').innerHTML=`<div class="score-hero">
-    <div class="score-ring"><div class="score-num">${AR.score}</div><div class="score-den">/100</div></div>
-    <div class="score-right">
-      <div class="score-heading">NAIC Examination Readiness Score — Meridian Insurance</div>
-      <div class="score-caption">Auto-calculated from imported data · ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
-      <div class="score-bar-labels"><span>0 — Critical</span><span>70 — Threshold</span><span>100 — Ready</span></div>
-      <div class="score-bar-track"><div class="score-bar-fill" style="width:${AR.score}%"></div><div class="score-threshold" style="left:70%"></div></div>
-      <div class="score-warn">⚠ ${AR.score} is below the 70-point examination threshold · Ohio is an active NAIC pilot state</div>
+  const safeScore=Math.max(AR.score,0);
+  const dr=AR.dRes;
+
+  // Findings summary counts
+  const critCount=AR.gaps.filter(g=>g.type==='critical').length;
+  const highCount=AR.gaps.filter(g=>g.type==='high').length;
+  const trustCount=AR.vgIssues.length;
+  const driftCount=AR.dqIssues.length;
+  const defensibleDecs=dr.clean.length;
+  const totalDecs=RAW.decisions.length;
+
+  // Build defensibility data per system
+  const defData=RAW.systems.map(s=>{
+    const ownerOk=!!(s.owner&&s.owner!=='UNASSIGNED');
+    const riskOk=s.riskStatus==='Active'||s.riskStatus==='Active — Incomplete';
+    const oversightOk=s.oversight;
+    const complianceOk=s.complianceSignoff;
+    const policyOk=!dr.mismatches.some(d=>d.systemId===s.id);
+    const interventionOk=s.oversight; // same source for now
+
+    const failCount=[ownerOk,riskOk,oversightOk,complianceOk,policyOk,interventionOk].filter(v=>!v).length;
+    const verdict=failCount===0?'defensible':failCount<=2?'gaps':failCount<=4?'risk':'notdef';
+    const verdictLabel={defensible:'Defensible',gaps:'Defensible with Gaps',risk:'At Risk',notdef:'Not Defensible'}[verdict];
+
+    // Exposure duration
+    let exposure=null;
+    if(!ownerOk&&s.ownerDepartedNote) exposure='18 months without accountable owner';
+    else if(s.riskStatus==='EXPIRED'&&s.riskExpiry) exposure=`${daysBetween(s.riskExpiry,'2025-06-13')} days past risk acceptance expiry`;
+
+    const decsDuring=dr.mismatches.concat(dr.noReviewer).filter(d=>d.systemId===s.id);
+    const uniqueDecs=[...new Set(decsDuring.map(d=>d.id))].length;
+
+    return {s,ownerOk,riskOk,oversightOk,complianceOk,policyOk,interventionOk,verdict,verdictLabel,exposure,uniqueDecs};
+  });
+
+  document.getElementById('score-hero-wrap').innerHTML=`
+    <!-- SYSTEM DEFENSIBILITY SUMMARY -->
+    <div class="card" style="margin-bottom:.875rem;">
+      <div class="card-hd">
+        <span class="card-title">System Defensibility</span>
+        <span class="card-sub">Can each system be defended in an NAIC examination?</span>
+      </div>
+      <table class="def-table">
+        <thead><tr><th>System</th><th>Function</th><th>Tier</th><th>Defensibility</th><th style="width:20px;"></th></tr></thead>
+        <tbody>
+          ${defData.map(d=>`
+            <tr>
+              <td>
+                <div class="def-row-main" onclick="toggleDef('def-${d.s.id}')">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="def-sys-name">${d.s.name}</span>
+                    <span class="def-sys-id">${d.s.id}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:11px;color:var(--mid);">${d.s.fn}</span>
+                    <span style="font-family:var(--mono);font-size:10px;color:var(--faint);">${d.s.tier}</span>
+                    <span class="def-verdict ${d.verdict}">${d.verdictLabel}</span>
+                    <span style="font-size:11px;color:var(--faint);">▾</span>
+                  </div>
+                </div>
+                <div class="def-expand" id="def-${d.s.id}">
+                  <div class="def-chain">
+                    ${[
+                      {label:'OWNER',ok:d.ownerOk,val:d.ownerOk?d.s.owner:'UNASSIGNED'},
+                      {label:'RISK ACCEPTANCE',ok:d.riskOk,val:d.riskOk?d.s.riskStatus:d.s.riskStatus},
+                      {label:'POLICY MAPPING',ok:d.policyOk,val:d.policyOk?'Current':'Version mismatch'},
+                      {label:'OVERSIGHT',ok:d.oversightOk,val:d.oversightOk?'Documented':'Not documented'},
+                      {label:'INTERVENTION CAPABILITY',ok:d.interventionOk,val:d.interventionOk?'Documented':'Not documented'},
+                      {label:'COMPLIANCE SIGN-OFF',ok:d.complianceOk,val:d.complianceOk?'Obtained':'Not obtained'},
+                    ].map(c=>`<div class="def-chain-item ${c.ok?'pass':'fail'}"><div class="def-chain-label">${c.label}</div><div class="def-chain-val">${c.ok?'✓ PASS':'✕ FAIL'}</div><div style="font-size:10px;margin-top:1px;color:var(--mid);">${c.val}</div></div>`).join('')}
+                  </div>
+                  ${d.exposure?`<div class="def-exposure">⚠ Duration of exposure: ${d.exposure}</div>`:''}
+                  ${d.uniqueDecs>0?`<div style="font-family:var(--mono);font-size:10px;color:var(--red);margin-top:3px;">Decisions made during governance gap: ${d.uniqueDecs}</div>`:''}
+                  <div class="def-overall">
+                    <span class="def-overall-label">Overall governance chain:</span>
+                    <span class="def-overall-verdict" style="color:${d.verdict==='defensible'?'var(--green)':d.verdict==='gaps'?'var(--amber)':'var(--red)'};">${d.verdictLabel.toUpperCase()}</span>
+                  </div>
+                </div>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
     </div>
-  </div>`;
 
-  document.getElementById('bk-tbl').innerHTML=`<thead><tr><th>Gap</th><th>System</th><th>NAIC ref</th><th>Points</th></tr></thead><tbody>
-    <tr><td colspan="3" style="color:var(--faint);font-style:italic;font-size:11px;">Starting score</td><td class="neutral">100</td></tr>
-    ${AR.breakdown.map(b=>`<tr><td>${b.gap}</td><td class="mono-sm">${b.system}</td><td class="mono-sm" style="color:var(--blue);">${b.naic}</td><td class="ded">${b.ded}</td></tr>`).join('')}
-    <tr style="background:var(--cream);"><td colspan="2"><strong>NAIC Readiness Score</strong></td><td></td><td class="ded" style="font-size:15px;">${AR.score}/100</td></tr>
-  </tbody>`;
+    <!-- FINDINGS SUMMARY -->
+    <div class="findings-summary">
+      <div class="fs-item r"><div class="fs-val">${critCount}</div><div class="fs-lbl">Critical governance gaps</div></div>
+      <div class="fs-item a"><div class="fs-val">${highCount}</div><div class="fs-lbl">High severity gaps</div></div>
+      <div class="fs-item d"><div class="fs-val">${trustCount}</div><div class="fs-lbl">Trust failures</div></div>
+      <div class="fs-item a"><div class="fs-val">${driftCount}</div><div class="fs-lbl">Governance drift events</div></div>
+      <div class="fs-item g"><div class="fs-val">${defensibleDecs}/${totalDecs}</div><div class="fs-lbl">Fully defensible decisions</div></div>
+      <div class="fs-item r"><div class="fs-val">${defData.filter(d=>d.verdict==='notdef').length}</div><div class="fs-lbl">Systems not defensible</div></div>
+    </div>
 
+    <!-- NAIC SCORE — secondary indicator -->
+    <div class="score-hero">
+      <div class="score-ring">
+        <div class="score-num">${safeScore}</div>
+        <div class="score-den">/100</div>
+      </div>
+      <div class="score-right">
+        <div class="score-heading">NAIC Examination Readiness Index</div>
+        <div class="score-caption">Indicative index only · Auto-calculated from imported data · ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+        <div class="score-bar-labels"><span>0 — Critical</span><span>70 — Threshold</span><span>100 — Ready</span></div>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" style="width:${safeScore}%"></div>
+          <div class="score-threshold" style="left:70%"></div>
+        </div>
+        <div class="score-warn">⚠ ${safeScore}/100 is below the 70-point examination threshold · Ohio is an active NAIC pilot state</div>
+      </div>
+    </div>`;
+
+  // Score breakdown table
+  document.getElementById('bk-tbl').innerHTML=`
+    <thead><tr><th>Gap</th><th>System</th><th>NAIC ref</th><th>Points</th></tr></thead>
+    <tbody>
+      <tr><td colspan="3" style="color:var(--faint);font-style:italic;font-size:11px;">Starting score</td><td class="neutral">100</td></tr>
+      ${AR.breakdown.map(b=>`<tr><td>${b.gap}</td><td class="mono-sm">${b.system}</td><td class="mono-sm" style="color:var(--blue);">${b.naic}</td><td class="ded">${b.ded}</td></tr>`).join('')}
+      <tr style="background:var(--cream);"><td colspan="2"><strong>NAIC Readiness Index</strong></td><td></td><td class="ded" style="font-size:15px;">${safeScore}/100</td></tr>
+    </tbody>`;
+
+  // Priority list
   document.getElementById('pri-list').innerHTML=[
     {n:1,u:true,sys:'FraudGuard ML',sysId:'SYS-002',t:'Assign accountable owner',s:'18 months without a named owner. First question any examiner will ask.',i:'+15 pts'},
     {n:2,u:true,sys:'UnderwriteAssist',sysId:'SYS-003',t:'Renew expired risk acceptance',s:'16+ months past expiry. System should not be in production without valid acceptance.',i:'+12 pts'},
@@ -977,13 +1129,18 @@ function renderScore(){
   </div>`).join('');
 }
 
+function toggleDef(id){
+  const el=document.getElementById(id);
+  el.classList.toggle('open');
+}
+
 // ── RENDER: EXAMINER QUESTIONS ────────────────────────────────
 function renderEQs(){
   const eqs=buildEQs();
   document.getElementById('no-count').textContent=eqs.filter(q=>q.verdict==='NO').length;
   document.getElementById('eq-list').innerHTML=eqs.map(q=>`
     <div class="eq-item">
-      <div class="eq-hd"><span class="eq-system">${q.system}</span><span class="eq-q">"${q.q}"</span><span class="eq-verdict ${q.verdict.toLowerCase()}">${q.verdict}</span></div>
+      <div class="eq-hd"><span class="eq-sys">${q.system}</span><span class="eq-q">"${q.q}"</span><span class="eq-verdict ${q.verdict.toLowerCase()}">${q.verdict}</span></div>
       <div class="eq-body">${q.why}</div>
     </div>`).join('');
 }
@@ -991,7 +1148,29 @@ function renderEQs(){
 // ── RENDER: EVIDENCE ──────────────────────────────────────────
 function renderEvidence(){
   const eqs=buildEQs();
+  const dr=AR.dRes;
+  const totalDecs=RAW.decisions.length;
+  const cleanDecs=dr.clean.length;
+  const cleanPct=Math.round(cleanDecs/totalDecs*100);
+
+  // Governance controls verified
+  const verifiedControls=[];
+  RAW.systems.filter(s=>s.owner&&s.owner!=='UNASSIGNED').forEach(s=>{
+    verifiedControls.push(`✓ ${s.name} has a named accountable owner (${s.owner})`);
+  });
+  RAW.systems.filter(s=>s.complianceSignoff).forEach(s=>{
+    verifiedControls.push(`✓ ${s.name} has compliance department sign-off on record`);
+  });
+  RAW.systems.filter(s=>s.riskStatus==='Active').forEach(s=>{
+    verifiedControls.push(`✓ ${s.name} has an active risk acceptance document (expires ${s.riskExpiry})`);
+  });
+  verifiedControls.push(`✓ ${cleanDecs} of ${totalDecs} decisions (${cleanPct}%) have a named human reviewer on record`);
+  verifiedControls.push(`✓ ${cleanDecs} of ${totalDecs} decisions (${cleanPct}%) used the correct active policy version`);
+  RAW.systems.filter(s=>s.oversight).forEach(s=>{
+    verifiedControls.push(`✓ ${s.name} has a documented oversight and intervention mechanism`);
+  });
   const sections=[
+    {t:'Governance Controls Verified',b:verifiedControls.join('\n'),verified:true},
     {t:'Exhibit A — AI System Inventory',b:RAW.systems.map(s=>`${s.id} | ${s.name} | ${s.fn} | ${s.vendor} | ${s.tier} | Owner: ${s.owner}`).join('\n')},
     {t:'Exhibit B — Governance Gaps',b:AR.gaps.map(g=>`[${g.findingType.toUpperCase()}] ${g.title}\nSystem: ${g.system}\n${g.consequence}\nNAIC: ${g.naic}\nProvenance Level: ${g.provLevel===3?'Governance Discovery':g.provLevel===2?'Cross-Reference':'Single Source'}`).join('\n\n')},
     {t:'Exhibit B — Policy Version Drift',b:AR.dRes.mismatches.map(d=>`${d.id} | ${d.date} | Used: ${d.versionUsed} | Correct: ${d.correctVersion} | MISMATCH | ${d.src}`).join('\n')||'None.'},
@@ -999,7 +1178,13 @@ function renderEvidence(){
     {t:'Examiner Questions — NO Answers',b:eqs.filter(q=>q.verdict==='NO').map(q=>`[NO] ${q.system}: "${q.q}"\n     ${q.why}`).join('\n\n')},
     {t:'Trust Failures — Manual Verification Required',b:AR.vgIssues.length?AR.vgIssues.map(v=>`${v.title}\n${v.detail}\nAction: ${v.action}`).join('\n\n'):'None detected.'},
   ];
-  document.getElementById('ev-sections').innerHTML=sections.map(s=>`<div class="ev-section"><div class="ev-hd"><span>${s.t}</span><span class="tag">NAIC</span></div><div class="ev-body">${s.b}</div></div>`).join('');
+  document.getElementById('ev-sections').innerHTML=sections.map(s=>`
+    <div class="ev-section" style="${s.verified?'border-color:var(--green-border);':''}">
+      <div class="ev-hd" style="${s.verified?'background:var(--green-bg);color:var(--green);':''}">
+        <span>${s.t}</span><span class="tag">${s.verified?'✓ VERIFIED':'NAIC'}</span>
+      </div>
+      <div class="ev-body">${s.b}</div>
+    </div>`).join('');
   document.getElementById('full-report').textContent=buildReport();
 }
 
