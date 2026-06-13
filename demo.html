@@ -1437,26 +1437,54 @@ p{margin-bottom:8pt;line-height:1.6;}
 <!-- SYSTEM DEFENSIBILITY SUMMARY — PAGE 1 HERO -->
 <h1>System Defensibility Summary</h1>
 <p style="margin-bottom:12pt;font-size:10pt;color:#6b6560;">PolicyProof determines whether each AI system can be defended in an NAIC examination — not merely whether governance artifacts exist.</p>
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8pt;margin-bottom:16pt;">
-  ${[
-    {label:'Defensible',count:AR.gaps.length===0?1:0,color:'#0d6648',bg:'#e4f5ee',border:'#5bbf9a'},
-    {label:'With Gaps',count:RAW.systems.filter(s=>s.complianceSignoff&&(s.owner&&s.owner!=='UNASSIGNED')).length-1,color:'#8a5c0a',bg:'#fdf3e0',border:'#e0a83a'},
-    {label:'At Risk',count:1,color:'#b83228',bg:'#faeae8',border:'#dba09a'},
-    {label:'Not Defensible',count:RAW.systems.filter(s=>!s.owner||s.owner==='UNASSIGNED').length,color:'#fff',bg:'#b83228',border:'#b83228'},
-  ].map(d=>`<div style="text-align:center;padding:10pt;background:${d.bg};border:1pt solid ${d.border};border-radius:4pt;">
-    <div style="font-family:'Fraunces',serif;font-size:22pt;font-weight:600;color:${d.color};">${d.count}</div>
-    <div style="font-size:9pt;font-weight:600;color:${d.color};">${d.label}</div>
-  </div>`).join('')}
-</div>
-<div style="border:1pt solid #dba09a;background:#faeae8;border-radius:4pt;padding:12pt;margin-bottom:16pt;">
-  <div style="font-family:'DM Mono',monospace;font-size:8pt;color:#b83228;letter-spacing:.05em;margin-bottom:6pt;">HIGHEST RISK SYSTEM</div>
-  <div style="font-family:'Fraunces',serif;font-size:14pt;font-weight:600;margin-bottom:5pt;">FraudGuard ML <span style="font-family:'DM Mono',monospace;font-size:9pt;color:#9e9890;">SYS-002</span></div>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6pt;margin-top:8pt;">
-    ${['No accountable owner','No risk acceptance document','No compliance sign-off','No oversight mechanism','Cannot intervene in AI decisions','Operating without governance for 18 months'].map(r=>`<div style="font-family:'DM Mono',monospace;font-size:8pt;color:#b83228;">✕ ${r}</div>`).join('')}
+${(()=>{
+  // Compute verdicts using same logic as app — single source of truth
+  const dr2=AR.dRes;
+  const pdfDefData=RAW.systems.map(s=>{
+    const ownerOk=!!(s.owner&&s.owner!=='UNASSIGNED');
+    const riskAbsent=s.riskStatus==='NOT ON FILE';
+    const riskExpired=s.riskStatus==='EXPIRED';
+    const riskOk=s.riskStatus==='Active'||s.riskStatus==='Active — Incomplete';
+    const policyOk=!dr2.mismatches.some(d=>d.systemId===s.id);
+    const oversightOk=s.oversight;
+    const interventionOk=s.oversight;
+    const complianceOk=s.complianceSignoff;
+    const authChainBroken=(!riskOk&&!complianceOk&&!interventionOk);
+    const notDef=!ownerOk||riskAbsent||authChainBroken;
+    const atRisk=!notDef&&(riskExpired||(!oversightOk&&!interventionOk));
+    const withGaps=!notDef&&!atRisk&&(!policyOk||!complianceOk||!oversightOk||!interventionOk);
+    return notDef?'notdef':atRisk?'risk':withGaps?'gaps':'defensible';
+  });
+  const counts={defensible:0,gaps:0,risk:0,notdef:0};
+  pdfDefData.forEach(v=>counts[v]++);
+  const highestRiskSys=RAW.systems.find((s,i)=>pdfDefData[i]==='notdef')||RAW.systems.find((s,i)=>pdfDefData[i]==='risk');
+  const tiles=[
+    {label:'Defensible',count:counts.defensible,color:'#0d6648',bg:'#e4f5ee',border:'#5bbf9a'},
+    {label:'With Gaps',count:counts.gaps,color:'#8a5c0a',bg:'#fdf3e0',border:'#e0a83a'},
+    {label:'At Risk',count:counts.risk,color:'#b83228',bg:'#faeae8',border:'#dba09a'},
+    {label:'Not Defensible',count:counts.notdef,color:'#fff',bg:'#b83228',border:'#b83228'},
+  ];
+  const highestRiskFailures=highestRiskSys?[
+    !(highestRiskSys.owner&&highestRiskSys.owner!=='UNASSIGNED')?'No accountable owner':'',
+    highestRiskSys.riskStatus==='NOT ON FILE'?'No risk acceptance document':'',
+    highestRiskSys.riskStatus==='EXPIRED'?'Risk acceptance expired':'',
+    !highestRiskSys.complianceSignoff?'No compliance sign-off':'',
+    !highestRiskSys.oversight?'No oversight mechanism':'',
+  ].filter(Boolean):[];
+  return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8pt;margin-bottom:16pt;">
+    ${tiles.map(d=>`<div style="text-align:center;padding:10pt;background:${d.bg};border:1pt solid ${d.border};border-radius:4pt;">
+      <div style="font-family:'Fraunces',serif;font-size:22pt;font-weight:600;color:${d.color};">${d.count}</div>
+      <div style="font-size:9pt;font-weight:600;color:${d.color};">${d.label}</div>
+    </div>`).join('')}
   </div>
-</div>
-
-<!-- SCORE BREAKDOWN -->
+  ${highestRiskSys?`<div style="border:1pt solid #dba09a;background:#faeae8;border-radius:4pt;padding:12pt;margin-bottom:16pt;">
+    <div style="font-family:'DM Mono',monospace;font-size:8pt;color:#b83228;letter-spacing:.05em;margin-bottom:6pt;">HIGHEST RISK SYSTEM</div>
+    <div style="font-family:'Fraunces',serif;font-size:14pt;font-weight:600;margin-bottom:5pt;">${highestRiskSys.name} <span style="font-family:'DM Mono',monospace;font-size:9pt;color:#9e9890;">${highestRiskSys.id}</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6pt;margin-top:8pt;">
+      ${highestRiskFailures.map(r=>`<div style="font-family:'DM Mono',monospace;font-size:8pt;color:#b83228;">✕ ${r}</div>`).join('')}
+    </div>
+  </div>`:''}`;
+})()}
 <!-- GOVERNANCE CHAIN ASSESSMENT -->
 <h1>Governance Chain Assessment</h1>
 <p style="margin-bottom:12pt;font-size:10pt;color:#6b6560;">For each AI system, PolicyProof evaluates six governance chain dimensions. Each FAIL represents a governance chain weakness that may limit the organisation's ability to defend the system during examination.</p>
