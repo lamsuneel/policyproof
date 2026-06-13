@@ -44,7 +44,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 .shell{max-width:1080px;margin:0 auto;padding:1.5rem 1.75rem 4rem;}
 
 /* STEPPER */
-.stepper{display:flex;border:.5px solid var(--border);border-radius:var(--r8);overflow:hidden;margin-bottom:1.5rem;background:var(--cream);}
+.stepper{display:flex;border:.5px solid var(--border);border-radius:var(--r8);overflow:hidden;margin-bottom:1.5rem;background:var(--cream);position:sticky;top:88px;z-index:90;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
 .stp{flex:1;display:flex;align-items:center;gap:7px;padding:11px 12px;font-size:12px;font-weight:500;color:var(--faint);border-right:.5px solid var(--border);cursor:pointer;transition:all .18s;}
 .stp:last-child{border-right:none;}
 .stp.active{background:var(--ink);color:var(--paper);}
@@ -415,7 +415,7 @@ input[type=file]{display:none;}
       <div class="sep"></div>
       <div class="row-end">
         <button class="btn" onclick="copyReport()">Copy report</button>
-        <button class="btn btn-red" onclick="dlReport()">⬇ Download evidence package</button>
+        <button class="btn btn-red" onclick="dlReport()">⬇ Export as PDF</button>
       </div>
     </div>
     <div class="card"><div class="card-hd"><span class="card-title">Full audit report</span></div><div class="report-box" id="full-report"></div></div>
@@ -539,11 +539,11 @@ function detectGaps(decRes,policyIdx){
       consequence:`${s.name} has processed live ${s.fn.toLowerCase()} decisions for 18 months with no named accountable owner. ${s.ownerDepartedNote||''} No individual can be held responsible for any decision this system has made. If an examiner asks who is accountable — there is no answer.`,
       drift:null,
       chain:[
-        {label:'Marcus Webb — named owner',detail:'VP Fraud Operations · FraudGuard ML accountability holder',date:'Pre Dec 2023',ok:true},
-        {label:'Webb departed the organisation',detail:'December 2023 · No handover · No documented transition',date:'Dec 2023',ok:false},
-        {label:'Owner field set to UNASSIGNED',detail:'Jira ticket AIOPS-1002 · No replacement ever assigned',date:'Dec 2023',ok:false},
-        {label:`System continues processing live decisions`,detail:`${uniqueDecs} decisions made during accountability gap · Fraud flags · Claim clearances`,date:'Dec 2023 → Jun 2025',ok:false},
-        {label:'No named human accountable today',detail:'18 months of decisions with zero accountability on record',date:'Jun 2025',ok:false},
+        {label:'Marcus Webb — named owner',detail:'VP Fraud Operations · FraudGuard ML accountability holder on record',date:'Pre Dec 2023',ok:true},
+        {label:'Jira comment records departure',detail:'AIOPS-1002 comment (Michelle Torres, 18 Mar 2024): "IT sponsor Marcus Webb departed December 2023" · Source: free-text comment field, not HR system',date:'Dec 2023',ok:false},
+        {label:'Owner field set to UNASSIGNED',detail:'Jira ticket AIOPS-1002 · Reassignment request sent to VP Operations · No response received',date:'Dec 2023',ok:false},
+        {label:'System continues processing live decisions',detail:'Fraud flags and clearances continue · No named human accountable for any decision made during this period',date:'Dec 2023 → Jun 2025',ok:false},
+        {label:'No accountable owner on record today',detail:'18 months of decisions with no named accountable human · Cannot be defended in examination',date:'Jun 2025',ok:false},
       ],
       examinerQ:'Who is accountable for FraudGuard ML\'s decisions?',
       examinerVerdict:'NO',
@@ -771,7 +771,7 @@ function loadDemo(){
   });
 }
 function goStep(n){
-  if(n>1&&!analysisComplete) return;
+  if(n>2&&!analysisComplete) return;
   [1,2,3,4,5].forEach(i=>{
     document.getElementById('panel-'+i).classList.toggle('active',i===n);
     const s=document.getElementById('stp'+i);
@@ -779,6 +779,7 @@ function goStep(n){
     if(i<n)s.classList.add('done');
     if(i===n)s.classList.add('active');
   });
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 function switchTab(name){
   ['gaps','dq','verif'].forEach((t,i)=>{
@@ -957,12 +958,23 @@ function renderScore(){
   </tbody>`;
 
   document.getElementById('pri-list').innerHTML=[
-    {n:1,u:true,t:'Assign owner to FraudGuard ML',s:'18 months without a named owner. First question any examiner will ask.',i:'+15 pts'},
-    {n:2,u:true,t:'Renew UnderwriteAssist risk acceptance',s:'16+ months past expiry. System should not be in production.',i:'+12 pts'},
-    {n:3,u:true,t:'File risk acceptance for FraudGuard ML',s:'No document has ever existed. Cannot be deferred.',i:'+12 pts'},
-    {n:4,u:false,t:'Update ClaimScore AI to policy v2.1',s:'3 decisions logged under wrong version. 149 days of drift.',i:'+10 pts'},
-    {n:5,u:false,t:'Obtain compliance sign-off for FraudGuard ML and DocExtract Pro',s:'Both lack compliance department approval.',i:'+5 pts each'},
-  ].map(p=>`<div class="pri-item"><div class="pri-n${p.u?' urgent':''}">${p.n}</div><div><div class="pri-title">${p.t}</div><div class="pri-sub">${p.s}</div><div class="pri-impact">${p.i} if resolved</div></div></div>`).join('');
+    {n:1,u:true,sys:'FraudGuard ML',sysId:'SYS-002',t:'Assign accountable owner',s:'18 months without a named owner. First question any examiner will ask.',i:'+15 pts'},
+    {n:2,u:true,sys:'UnderwriteAssist',sysId:'SYS-003',t:'Renew expired risk acceptance',s:'16+ months past expiry. System should not be in production without valid acceptance.',i:'+12 pts'},
+    {n:3,u:true,sys:'FraudGuard ML',sysId:'SYS-002',t:'File initial risk acceptance document',s:'No risk acceptance has ever been filed. Cannot be deferred.',i:'+12 pts'},
+    {n:4,u:false,sys:'ClaimScore AI',sysId:'SYS-001',t:'Update system to policy v2.1',s:'3 decisions logged under v1.8 after v2.1 became active. 149 days of drift.',i:'+10 pts'},
+    {n:5,u:false,sys:'DocExtract Pro',sysId:'SYS-005',t:'Obtain compliance department sign-off',s:'Deployed with IT approval only. No compliance sign-off on record.',i:'+5 pts'},
+  ].map(p=>`<div class="pri-item">
+    <div class="pri-n${p.u?' urgent':''}">${p.n}</div>
+    <div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+        <span style="font-family:var(--mono);font-size:9px;padding:2px 7px;background:var(--ink);color:var(--paper);border-radius:99px;">${p.sys}</span>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--faint);">${p.sysId}</span>
+      </div>
+      <div class="pri-title">${p.t}</div>
+      <div class="pri-sub">${p.s}</div>
+      <div class="pri-impact">${p.i} if resolved</div>
+    </div>
+  </div>`).join('');
 }
 
 // ── RENDER: EXAMINER QUESTIONS ────────────────────────────────
@@ -1025,8 +1037,208 @@ NAIC READINESS SCORE${' '.repeat(38)}${AR.score}/100
 PolicyProof v4 · v4-meridian-demo · ${now}`;
 }
 
+async function computeHash(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
 function copyReport(){navigator.clipboard.writeText(document.getElementById('full-report').textContent);alert('Copied.');}
-function dlReport(){const b=new Blob([document.getElementById('full-report').textContent],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`policyproof-meridian-${new Date().toISOString().split('T')[0]}.txt`;a.click();}
+
+async function dlReport(){
+  const eqs=buildEQs();
+  const reportData=buildReport();
+  const hash=await computeHash(reportData);
+  const now=new Date();
+  const nowStr=now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const reportId='PP-'+Date.now().toString(36).toUpperCase();
+
+  const html=`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<title>PolicyProof Evidence Package — Meridian Insurance</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,300&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Instrument Sans',sans-serif;font-size:11pt;color:#0c0c0c;background:#fff;padding:0;}
+@page{size:letter;margin:1in 1in 1in 1in;}
+@media print{.no-print{display:none!important;}body{padding:0;}}
+.cover{padding:48pt 0 36pt;border-bottom:3px solid #0c0c0c;margin-bottom:24pt;}
+.cover-logo{font-family:'Fraunces',serif;font-size:28pt;font-weight:600;color:#0c0c0c;margin-bottom:4pt;}
+.cover-logo em{font-style:italic;color:#b83228;}
+.cover-title{font-family:'Fraunces',serif;font-size:18pt;font-weight:300;color:#333;margin-bottom:16pt;}
+.cover-meta{display:grid;grid-template-columns:1fr 1fr;gap:8pt;font-size:9pt;}
+.cover-meta-item{padding:8pt;background:#f7f4ef;border-radius:4pt;}
+.cover-meta-label{font-family:'DM Mono',monospace;font-size:8pt;color:#6b6560;margin-bottom:2pt;letter-spacing:.04em;}
+.cover-meta-value{font-weight:600;}
+.score-banner{margin:24pt 0;padding:16pt;background:#faeae8;border:1pt solid #dba09a;border-radius:6pt;display:flex;align-items:center;gap:16pt;}
+.score-circle{width:72pt;height:72pt;border-radius:50%;border:3pt solid #b83228;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;flex-shrink:0;}
+.score-num{font-family:'Fraunces',serif;font-size:26pt;font-weight:600;color:#b83228;line-height:1;}
+.score-den{font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;}
+.score-right{flex:1;}
+.score-title{font-family:'Fraunces',serif;font-size:14pt;font-weight:600;margin-bottom:4pt;}
+.score-sub{font-size:10pt;color:#6b6560;margin-bottom:6pt;}
+.score-warn{font-family:'DM Mono',monospace;font-size:9pt;color:#b83228;}
+h1{font-family:'Fraunces',serif;font-size:16pt;font-weight:600;color:#0c0c0c;margin:24pt 0 8pt;padding-bottom:6pt;border-bottom:1.5pt solid #0c0c0c;page-break-after:avoid;}
+h2{font-family:'Fraunces',serif;font-size:12pt;font-weight:600;color:#1a4f8a;margin:16pt 0 6pt;page-break-after:avoid;}
+h3{font-family:'DM Mono',monospace;font-size:9pt;font-weight:500;color:#6b6560;letter-spacing:.04em;margin:12pt 0 4pt;text-transform:uppercase;}
+p{margin-bottom:8pt;line-height:1.6;}
+.finding{border:1pt solid #e2ddd5;border-radius:6pt;padding:12pt;margin-bottom:10pt;page-break-inside:avoid;}
+.finding.critical{border-color:#dba09a;background:#faeae8;}
+.finding.high{border-color:#e0a83a;background:#fdf3e0;}
+.finding-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6pt;gap:8pt;}
+.finding-badges{display:flex;gap:5pt;align-items:center;margin-bottom:4pt;}
+.badge-sev{font-family:'DM Mono',monospace;font-size:7.5pt;font-weight:600;padding:2pt 6pt;border-radius:99pt;letter-spacing:.04em;}
+.badge-sev.critical{background:#b83228;color:#fff;}
+.badge-sev.high{background:#8a5c0a;color:#fff;}
+.badge-type{font-family:'DM Mono',monospace;font-size:7.5pt;padding:2pt 6pt;border-radius:99pt;border:0.5pt solid;}
+.badge-type.missing{background:#faeae8;color:#b83228;border-color:#dba09a;}
+.badge-type.drift{background:#fdf3e0;color:#8a5c0a;border-color:#e0a83a;}
+.badge-type.trust{background:#f0ebfc;color:#3b1f6e;border-color:#9b7dd4;}
+.finding-title{font-family:'Fraunces',serif;font-size:11pt;font-weight:600;color:#0c0c0c;line-height:1.3;}
+.finding-pts{font-family:'DM Mono',monospace;font-size:10pt;font-weight:600;color:#b83228;white-space:nowrap;}
+.finding-consequence{font-size:10pt;line-height:1.6;margin-bottom:8pt;}
+.drift-box{background:#fff;border:0.5pt solid #e0a83a;border-radius:4pt;padding:8pt;margin-bottom:8pt;}
+.drift-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6pt;margin-top:5pt;}
+.drift-label{font-family:'DM Mono',monospace;font-size:7.5pt;color:#8a5c0a;margin-bottom:1pt;}
+.drift-val{font-family:'DM Mono',monospace;font-size:9pt;font-weight:500;color:#8a5c0a;}
+.drift-val.red{color:#b83228;font-weight:700;}
+.exam-box{background:#f7f4ef;border-radius:4pt;padding:8pt;margin-bottom:8pt;}
+.exam-row{display:flex;gap:6pt;margin-bottom:4pt;font-size:9.5pt;}
+.exam-label{font-family:'DM Mono',monospace;font-size:8pt;color:#6b6560;width:90pt;flex-shrink:0;}
+.exam-val{flex:1;color:#0c0c0c;}
+.exam-val.bad{color:#b83228;font-weight:600;}
+.verdict{font-family:'DM Mono',monospace;font-size:9pt;font-weight:600;margin-top:4pt;}
+.verdict.no{color:#b83228;}.verdict.partial{color:#8a5c0a;}
+.naic-ref{font-family:'DM Mono',monospace;font-size:8pt;color:#1a4f8a;margin-top:4pt;}
+.gov-disc{border:0.5pt solid #9b7dd4;border-radius:4pt;overflow:hidden;margin-top:8pt;}
+.gov-disc-hd{background:#3b1f6e;padding:5pt 8pt;font-family:'DM Mono',monospace;font-size:8pt;font-weight:500;color:#fff;letter-spacing:.05em;}
+.gov-disc-body{background:#f0ebfc;padding:8pt;}
+.gov-disc-stmt{font-size:9.5pt;color:#3b1f6e;font-weight:600;margin-bottom:5pt;}
+.gov-disc-sources{display:flex;gap:4pt;flex-wrap:wrap;}
+.gov-source{font-family:'DM Mono',monospace;font-size:8pt;padding:2pt 6pt;background:#fff;border:0.5pt solid #9b7dd4;color:#3b1f6e;border-radius:3pt;}
+.xref{font-family:'DM Mono',monospace;font-size:8pt;padding:2pt 8pt;background:#e8f0fa;color:#1a4f8a;border:0.5pt solid #6da0e0;border-radius:99pt;display:inline-block;margin-top:5pt;}
+.src-line{font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;margin-top:4pt;}
+.eq-item{border:.5pt solid #e2ddd5;border-radius:4pt;margin-bottom:6pt;overflow:hidden;page-break-inside:avoid;}
+.eq-hd{display:flex;align-items:center;padding:7pt 10pt;background:#f7f4ef;gap:8pt;}
+.eq-sys{font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;flex-shrink:0;}
+.eq-q{font-size:9.5pt;font-style:italic;flex:1;}
+.eq-v{font-family:'DM Mono',monospace;font-size:8pt;font-weight:600;padding:2pt 7pt;border-radius:99pt;}
+.eq-v.no{background:#b83228;color:#fff;}.eq-v.partial{background:#8a5c0a;color:#fff;}
+.eq-body{padding:6pt 10pt;font-size:9pt;color:#6b6560;border-top:.5pt solid #e2ddd5;}
+.drift-item{border:.5pt solid #e0a83a;background:#fdf3e0;border-radius:4pt;padding:8pt;margin-bottom:6pt;}
+.drift-item-title{font-weight:600;color:#8a5c0a;font-size:10pt;margin-bottom:3pt;}
+.drift-item-detail{font-size:9pt;color:#0c0c0c;}
+.drift-item-src{font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;margin-top:3pt;}
+.trust-item{border:.5pt solid #9b7dd4;background:#f0ebfc;border-radius:4pt;padding:8pt;margin-bottom:6pt;}
+.trust-item-title{font-weight:600;color:#3b1f6e;font-size:10pt;margin-bottom:3pt;}
+.trust-item-action{font-family:'DM Mono',monospace;font-size:8pt;color:#3b1f6e;margin-top:4pt;}
+.hash-box{background:#f7f4ef;border:1pt solid #e2ddd5;border-radius:4pt;padding:10pt;margin-top:16pt;font-family:'DM Mono',monospace;font-size:8pt;color:#6b6560;page-break-inside:avoid;}
+.hash-title{font-weight:600;color:#0c0c0c;margin-bottom:4pt;}
+.hash-val{word-break:break-all;color:#1a4f8a;margin-bottom:3pt;}
+.hash-note{font-size:7.5pt;color:#9e9890;}
+.chain-table{width:100%;border-collapse:collapse;margin:8pt 0;}
+.chain-table td{padding:5pt 8pt;border:.5pt solid #e2ddd5;font-size:9pt;vertical-align:top;}
+.chain-table tr:first-child td{background:#f7f4ef;font-weight:600;}
+.chain-dot-ok{color:#0d6648;font-weight:700;}
+.chain-dot-gap{color:#b83228;font-weight:700;}
+.bk-tbl{width:100%;border-collapse:collapse;font-size:9.5pt;margin-top:8pt;}
+.bk-tbl th{font-family:'DM Mono',monospace;font-size:8pt;color:#6b6560;text-align:left;padding:5pt 8pt;border-bottom:1pt solid #e2ddd5;background:#f7f4ef;}
+.bk-tbl td{padding:5pt 8pt;border-bottom:.5pt solid #e2ddd5;}
+.bk-tbl tr:last-child td{font-weight:700;background:#f7f4ef;}
+.ded{color:#b83228;font-family:'DM Mono',monospace;font-weight:700;}
+.print-btn{position:fixed;bottom:20px;right:20px;padding:10px 22px;background:#0c0c0c;color:#fff;border:none;border-radius:6px;font-size:14px;font-family:'Instrument Sans',sans-serif;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.2);}
+.print-btn:hover{background:#333;}
+</style>
+</head>
+<body>
+<button class="print-btn no-print" onclick="window.print()">Print / Save as PDF</button>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-logo">Policy<em>Proof</em></div>
+  <div class="cover-title">NAIC Examination Evidence Package</div>
+  <div class="cover-meta">
+    <div class="cover-meta-item"><div class="cover-meta-label">ORGANISATION</div><div class="cover-meta-value">Meridian Insurance</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">GENERATED</div><div class="cover-meta-value">${nowStr}</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">REPORT ID</div><div class="cover-meta-value">${reportId}</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">STATE</div><div class="cover-meta-value">Ohio — NAIC Pilot Active</div></div>
+  </div>
+</div>
+
+<!-- SCORE BANNER -->
+<div class="score-banner">
+  <div class="score-circle"><div class="score-num">${AR.score}</div><div class="score-den">/100</div></div>
+  <div class="score-right">
+    <div class="score-title">NAIC Examination Readiness Score</div>
+    <div class="score-sub">Auto-calculated from 5 imported data sources · ${nowStr}</div>
+    <div class="score-warn">⚠ ${AR.score}/100 is below the 70-point examination threshold — Significant examination risk</div>
+  </div>
+</div>
+
+<!-- SCORE BREAKDOWN -->
+<h1>Score Breakdown</h1>
+<table class="bk-tbl">
+  <thead><tr><th>Gap Type</th><th>System</th><th>NAIC Reference</th><th>Deduction</th></tr></thead>
+  <tbody>
+    <tr><td colspan="3" style="color:#9e9890;font-style:italic;font-size:8.5pt;">Starting score</td><td style="font-family:'DM Mono',monospace;">100</td></tr>
+    ${AR.breakdown.map(b=>`<tr><td>${b.gap}</td><td style="font-family:'DM Mono',monospace;font-size:8.5pt;">${b.system}</td><td style="font-family:'DM Mono',monospace;font-size:8.5pt;color:#1a4f8a;">${b.naic}</td><td class="ded">${b.ded}</td></tr>`).join('')}
+    <tr><td colspan="2"><strong>NAIC Readiness Score</strong></td><td></td><td class="ded" style="font-size:13pt;">${AR.score}/100</td></tr>
+  </tbody>
+</table>
+
+<!-- GOVERNANCE GAPS -->
+<h1>Governance Gaps (${AR.gaps.length} detected)</h1>
+${AR.gaps.map(g=>{
+  const ftLabel={missing:'Missing',drift:'Drift',trust:'Trust Failure'}[g.findingType]||g.findingType;
+  const driftHtml=g.drift?`<div class="drift-box"><strong style="font-size:8.5pt;font-family:'DM Mono',monospace;color:#8a5c0a;">GOVERNANCE DRIFT DETECTED</strong><div class="drift-grid"><div><div class="drift-label">CURRENT POLICY</div><div class="drift-val">${g.drift.currentPolicy}</div></div><div><div class="drift-label">SYSTEM USING</div><div class="drift-val red">${g.drift.systemUsing}</div></div><div><div class="drift-label">DRIFT STARTED</div><div class="drift-val">${fmt(g.drift.driftStarted)}</div></div><div><div class="drift-label">DURATION</div><div class="drift-val red">${g.drift.driftDays} days</div></div></div><div style="margin-top:5pt;font-family:'DM Mono',monospace;font-size:8pt;color:#8a5c0a;">Affected decisions: ${g.drift.affectedDecisions}</div></div>`:'';
+  const chainHtml=g.chain?`<table class="chain-table">${g.chain.map(n=>`<tr><td style="width:140pt;"><span class="${n.ok?'chain-dot-ok':'chain-dot-gap'}">${n.ok?'●':'✕'}</span> <strong>${n.label}</strong></td><td>${n.detail}</td><td style="width:90pt;font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">${n.date}</td></tr>`).join('')}</table>`:'';
+  const evClass=g.examinerVerdict==='NO'?'no':'partial';
+  const examHtml=`<div class="exam-box"><h3 style="margin-top:0;">EXAMINER IMPACT</h3><div class="exam-row"><span class="exam-label">Question:</span><span class="exam-val">"${g.examinerQ}"</span></div><div class="exam-row"><span class="exam-label">Cannot demonstrate:</span><span class="exam-val bad">${g.examinerCannotDemonstrate}</span></div><div class="exam-row"><span class="exam-label">Likely outcome:</span><span class="exam-val">${g.examinerLikelyOutcome}</span></div><div class="exam-row"><span class="exam-label">Remediation:</span><span class="exam-val">${g.examinerRemediation}</span></div><div class="verdict ${evClass}">● Meridian can answer today: ${g.examinerVerdict}</div><div class="naic-ref">📋 ${g.naic}</div></div>`;
+  const provHtml=g.provLevel===3?`<div class="gov-disc"><div class="gov-disc-hd">● GOVERNANCE DISCOVERY</div><div class="gov-disc-body"><div class="gov-disc-stmt">${g.govDiscoveryStmt}</div><div class="gov-disc-sources">${g.provenanceSources.map(s=>`<span class="gov-source">${s}</span>`).join('')}</div></div></div>`:g.provLevel===2?`<span class="xref">⊕ CROSS-REFERENCE · ${g.provenanceSources.join(' + ')}</span>`:`<div class="src-line">Source: ${g.provenanceSources[0]}</div>`;
+  return `<div class="finding ${g.type}">
+    <div class="finding-header">
+      <div>
+        <div class="finding-badges"><span class="badge-sev ${g.type}">${g.type.toUpperCase()}</span><span class="badge-type ${g.findingType}">${ftLabel}</span><span style="font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">${g.system}${g.systemId?' · '+g.systemId:''}</span></div>
+        <div class="finding-title">${g.title}</div>
+      </div>
+      <span class="finding-pts">${g.pts}</span>
+    </div>
+    <div class="finding-consequence">${g.consequence}</div>
+    ${driftHtml}${chainHtml}${examHtml}${provHtml}
+  </div>`;
+}).join('')}
+
+<!-- EXAMINER QUESTIONS -->
+<h1>Examiner Questions Meridian Cannot Answer (${eqs.filter(q=>q.verdict==='NO').length} unanswerable)</h1>
+${eqs.map(q=>`<div class="eq-item"><div class="eq-hd"><span class="eq-sys">${q.system}</span><span class="eq-q">"${q.q}"</span><span class="eq-v ${q.verdict.toLowerCase()}">${q.verdict}</span></div><div class="eq-body">${q.why}</div></div>`).join('')}
+
+<!-- GOVERNANCE DRIFT -->
+<h1>Governance Drift (${AR.dqIssues.length} items)</h1>
+${AR.dqIssues.map(d=>`<div class="drift-item"><div class="drift-item-title">${d.title}</div><div class="drift-item-detail">${d.detail}</div><div class="drift-item-src">Source: ${d.src}</div></div>`).join('')}
+
+<!-- TRUST FAILURES -->
+<h1>Trust Failures — Manual Verification Required (${AR.vgIssues.length})</h1>
+${AR.vgIssues.length?AR.vgIssues.map(v=>`<div class="trust-item"><div class="trust-item-title">${v.title}</div><p style="font-size:9.5pt;margin-top:3pt;">${v.detail}</p><div class="trust-item-action">→ Required action: ${v.action}</div><div class="drift-item-src" style="margin-top:4pt;font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">Source: ${v.src}</div></div>`).join(''):'<p>None detected.</p>'}
+
+<!-- TAMPER-PROOF HASH -->
+<div class="hash-box">
+  <div class="hash-title">Tamper-Evident Report Hash</div>
+  <div class="hash-val">SHA-256: ${hash}</div>
+  <div class="hash-note">This hash was computed from the findings data at time of export. Any modification to the evidence package will produce a different hash, confirming tampering has occurred. Generated: ${nowStr} · Report ID: ${reportId}</div>
+</div>
+
+<div style="margin-top:24pt;padding-top:12pt;border-top:1pt solid #e2ddd5;font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;display:flex;justify-content:space-between;">
+  <span>PolicyProof v4 · v4-meridian-demo</span>
+  <span>Generated: ${nowStr}</span>
+  <span>Report: ${reportId}</span>
+</div>
+</body></html>`;
+
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
 </script>
 </body>
 </html>
