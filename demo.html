@@ -349,7 +349,7 @@ input[type=file]{display:none;}
   <div class="stepper">
     <div class="stp active" id="stp1" onclick="goStep(1)"><div class="stp-n">1</div>Import</div>
     <div class="stp" id="stp2" onclick="goStep(2)"><div class="stp-n">2</div>Analyse</div>
-    <div class="stp" id="stp3" onclick="goStep(3)"><div class="stp-n">3</div>Readiness Score</div>
+    <div class="stp" id="stp3" onclick="goStep(3)"><div class="stp-n">3</div>System Defensibility</div>
     <div class="stp" id="stp4" onclick="goStep(4)"><div class="stp-n">4</div>Examiner Questions</div>
     <div class="stp" id="stp5" onclick="goStep(5)"><div class="stp-n">5</div>Evidence Package</div>
   </div>
@@ -422,22 +422,19 @@ input[type=file]{display:none;}
         <div class="tab-panel" id="tab-dq"><div id="dq-list"></div></div>
         <div class="tab-panel" id="tab-verif"><div id="vg-list"></div></div>
       </div>
-      <div class="row-end"><button class="btn btn-p" onclick="goStep(3)">View readiness score →</button></div>
+      <div class="row-end"><button class="btn btn-p" onclick="goStep(3)">View system defensibility →</button></div>
     </div>
   </div>
 
-  <!-- PANEL 3: SCORE -->
+  <!-- PANEL 3: SYSTEM DEFENSIBILITY -->
   <div class="panel" id="panel-3">
+    <div class="card" style="margin-bottom:.75rem;">
+      <p style="font-family:var(--serif);font-size:15px;font-weight:300;font-style:italic;color:var(--mid);line-height:1.6;">PolicyProof does not start with findings. It determines whether each AI system can be defended in an examination.</p>
+    </div>
     <div id="score-hero-wrap"></div>
     <div class="g2 mb">
-      <div class="card" style="margin:0;"><div class="card-hd"><span class="card-title">Score breakdown</span></div><table class="bk-tbl" id="bk-tbl"></table></div>
       <div class="card" style="margin:0;"><div class="card-hd"><span class="card-title">Priority remediation</span></div><div id="pri-list"></div></div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><span class="card-title">What this score means</span></div>
-      <div class="alert a-amber"><span>⚠</span><span><strong>61/100 — Significant examination risk.</strong> Below 70 triggers material findings in NAIC examination. Ohio is an active pilot state. Examiners are asking these exact questions today.</span></div>
-      <div class="quote">"Regulators rarely say: you had no policy. More often they say: show me how you knew the policy was working."<div class="quote-src">— Senior RegTech practitioner, 20+ years compliance</div></div>
-      <div class="quote">"The gap only surfaces a year later when your retention window turns out shorter than your accountability window."<div class="quote-src">— Compliance practitioner</div></div>
+      <div class="card" style="margin:0;"><div class="card-hd"><span class="card-title">Readiness index breakdown</span><span class="card-sub">Reference only</span></div><table class="bk-tbl" id="bk-tbl"></table></div>
     </div>
     <div class="row-end"><button class="btn btn-p" onclick="goStep(4)">See examiner questions →</button></div>
   </div>
@@ -990,7 +987,6 @@ function renderScore(){
   const safeScore=Math.max(AR.score,0);
   const dr=AR.dRes;
 
-  // Findings summary counts
   const critCount=AR.gaps.filter(g=>g.type==='critical').length;
   const highCount=AR.gaps.filter(g=>g.type==='high').length;
   const trustCount=AR.vgIssues.length;
@@ -998,50 +994,103 @@ function renderScore(){
   const defensibleDecs=dr.clean.length;
   const totalDecs=RAW.decisions.length;
 
-  // Build defensibility data per system
+  // Consequence language for each chain dimension
+  function chainConsequence(dim, ok, s){
+    const fails={
+      owner:'No named human accountable for decisions',
+      risk: s.riskStatus==='NOT ON FILE'?'No documented authorisation to operate this system':'Authorisation to operate has expired',
+      policy:'Operating under superseded policy',
+      oversight:'No mechanism to stop or override AI decisions',
+      intervention:'Cannot intervene if system produces harmful output',
+      compliance:'Deployed without compliance authorisation',
+    };
+    const passes={
+      owner:s.owner,
+      risk:'Active — expires '+s.riskExpiry,
+      policy:'Current governing version',
+      oversight:'Documented',
+      intervention:'Documented',
+      compliance:'Obtained',
+    };
+    return ok ? passes[dim] : fails[dim];
+  }
+
   const defData=RAW.systems.map(s=>{
     const ownerOk=!!(s.owner&&s.owner!=='UNASSIGNED');
-    const riskOk=s.riskStatus==='Active'||s.riskStatus==='Active — Incomplete';
+    const riskOk=s.riskStatus==='Active';
     const oversightOk=s.oversight;
     const complianceOk=s.complianceSignoff;
     const policyOk=!dr.mismatches.some(d=>d.systemId===s.id);
-    const interventionOk=s.oversight; // same source for now
-
+    const interventionOk=s.oversight;
     const failCount=[ownerOk,riskOk,oversightOk,complianceOk,policyOk,interventionOk].filter(v=>!v).length;
     const verdict=failCount===0?'defensible':failCount<=2?'gaps':failCount<=4?'risk':'notdef';
     const verdictLabel={defensible:'Defensible',gaps:'Defensible with Gaps',risk:'At Risk',notdef:'Not Defensible'}[verdict];
-
-    // Exposure duration
     let exposure=null;
     if(!ownerOk&&s.ownerDepartedNote) exposure='18 months without accountable owner';
     else if(s.riskStatus==='EXPIRED'&&s.riskExpiry) exposure=`${daysBetween(s.riskExpiry,'2025-06-13')} days past risk acceptance expiry`;
-
     const decsDuring=dr.mismatches.concat(dr.noReviewer).filter(d=>d.systemId===s.id);
     const uniqueDecs=[...new Set(decsDuring.map(d=>d.id))].length;
-
     return {s,ownerOk,riskOk,oversightOk,complianceOk,policyOk,interventionOk,verdict,verdictLabel,exposure,uniqueDecs};
   });
 
+  // Defensibility counts for summary
+  const defCounts={defensible:0,gaps:0,risk:0,notdef:0};
+  defData.forEach(d=>defCounts[d.verdict]++);
+  const highestRisk=defData.find(d=>d.verdict==='notdef')||defData.find(d=>d.verdict==='risk');
+
   document.getElementById('score-hero-wrap').innerHTML=`
-    <!-- SYSTEM DEFENSIBILITY SUMMARY -->
-    <div class="card" style="margin-bottom:.875rem;">
-      <div class="card-hd">
-        <span class="card-title">System Defensibility</span>
-        <span class="card-sub">Can each system be defended in an NAIC examination?</span>
+    <!-- SYSTEM DEFENSIBILITY SUMMARY HEADER -->
+    <div class="card" style="margin-bottom:.875rem;border-color:var(--red-border);">
+      <div class="card-hd" style="margin-bottom:.75rem;">
+        <span class="card-title">System Defensibility Summary</span>
+        <span class="card-sub">5 systems analysed · ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</span>
       </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem;">
+        <div style="text-align:center;padding:10px;background:var(--green-bg);border:.5px solid var(--green-border);border-radius:var(--r6);">
+          <div style="font-family:var(--serif);font-size:22px;font-weight:600;color:var(--green);">${defCounts.defensible}</div>
+          <div style="font-size:11px;color:var(--green);font-weight:500;">Defensible</div>
+        </div>
+        <div style="text-align:center;padding:10px;background:var(--amber-bg);border:.5px solid var(--amber-border);border-radius:var(--r6);">
+          <div style="font-family:var(--serif);font-size:22px;font-weight:600;color:var(--amber);">${defCounts.gaps}</div>
+          <div style="font-size:11px;color:var(--amber);font-weight:500;">With Gaps</div>
+        </div>
+        <div style="text-align:center;padding:10px;background:var(--red-bg);border:.5px solid var(--red-border);border-radius:var(--r6);">
+          <div style="font-family:var(--serif);font-size:22px;font-weight:600;color:var(--red);">${defCounts.risk}</div>
+          <div style="font-size:11px;color:var(--red);font-weight:500;">At Risk</div>
+        </div>
+        <div style="text-align:center;padding:10px;background:var(--red);border-radius:var(--r6);">
+          <div style="font-family:var(--serif);font-size:22px;font-weight:600;color:#fff;">${defCounts.notdef}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.8);font-weight:500;">Not Defensible</div>
+        </div>
+      </div>
+      ${highestRisk?`<div style="padding:10px 12px;background:var(--red-bg);border:.5px solid var(--red-border);border-radius:var(--r6);">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--red);letter-spacing:.05em;margin-bottom:4px;">HIGHEST RISK SYSTEM</div>
+        <div style="font-weight:600;font-size:13px;margin-bottom:5px;">${highestRisk.s.name} <span style="font-family:var(--mono);font-size:10px;color:var(--faint);">${highestRisk.s.id}</span></div>
+        <div style="font-size:11px;color:var(--mid);">${[
+          !highestRisk.ownerOk?'No accountable owner':'',
+          !highestRisk.riskOk?'No valid risk acceptance':'',
+          !highestRisk.complianceOk?'No compliance sign-off':'',
+          !highestRisk.oversightOk?'No oversight mechanism':'',
+        ].filter(Boolean).join(' · ')}</div>
+      </div>`:''}
+    </div>
+
+    <!-- PER-SYSTEM DEFENSIBILITY TABLE -->
+    <div class="card" style="margin-bottom:.875rem;">
+      <div class="card-hd"><span class="card-title">Per-system governance chain</span><span class="card-sub">Click any system to expand</span></div>
       <table class="def-table">
-        <thead><tr><th>System</th><th>Function</th><th>Tier</th><th>Defensibility</th><th style="width:20px;"></th></tr></thead>
+        <thead><tr><th>System</th><th>Tier</th><th>Verdict</th><th style="width:20px;"></th></tr></thead>
         <tbody>
           ${defData.map(d=>`
             <tr>
               <td>
                 <div class="def-row-main" onclick="toggleDef('def-${d.s.id}')">
-                  <div style="display:flex;align-items:center;gap:8px;">
+                  <div style="display:flex;align-items:center;gap:8px;flex:1;">
                     <span class="def-sys-name">${d.s.name}</span>
                     <span class="def-sys-id">${d.s.id}</span>
+                    <span style="font-size:11px;color:var(--mid);">${d.s.fn}</span>
                   </div>
                   <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:11px;color:var(--mid);">${d.s.fn}</span>
                     <span style="font-family:var(--mono);font-size:10px;color:var(--faint);">${d.s.tier}</span>
                     <span class="def-verdict ${d.verdict}">${d.verdictLabel}</span>
                     <span style="font-size:11px;color:var(--faint);">▾</span>
@@ -1050,13 +1099,17 @@ function renderScore(){
                 <div class="def-expand" id="def-${d.s.id}">
                   <div class="def-chain">
                     ${[
-                      {label:'OWNER',ok:d.ownerOk,val:d.ownerOk?d.s.owner:'UNASSIGNED'},
-                      {label:'RISK ACCEPTANCE',ok:d.riskOk,val:d.riskOk?d.s.riskStatus:d.s.riskStatus},
-                      {label:'POLICY MAPPING',ok:d.policyOk,val:d.policyOk?'Current':'Version mismatch'},
-                      {label:'OVERSIGHT',ok:d.oversightOk,val:d.oversightOk?'Documented':'Not documented'},
-                      {label:'INTERVENTION CAPABILITY',ok:d.interventionOk,val:d.interventionOk?'Documented':'Not documented'},
-                      {label:'COMPLIANCE SIGN-OFF',ok:d.complianceOk,val:d.complianceOk?'Obtained':'Not obtained'},
-                    ].map(c=>`<div class="def-chain-item ${c.ok?'pass':'fail'}"><div class="def-chain-label">${c.label}</div><div class="def-chain-val">${c.ok?'✓ PASS':'✕ FAIL'}</div><div style="font-size:10px;margin-top:1px;color:var(--mid);">${c.val}</div></div>`).join('')}
+                      {dim:'owner',label:'OWNER',ok:d.ownerOk},
+                      {dim:'risk',label:'RISK ACCEPTANCE',ok:d.riskOk},
+                      {dim:'policy',label:'POLICY CURRENCY',ok:d.policyOk},
+                      {dim:'oversight',label:'OVERSIGHT',ok:d.oversightOk},
+                      {dim:'intervention',label:'INTERVENTION CAPABILITY',ok:d.interventionOk},
+                      {dim:'compliance',label:'COMPLIANCE SIGN-OFF',ok:d.complianceOk},
+                    ].map(c=>`<div class="def-chain-item ${c.ok?'pass':'fail'}">
+                      <div class="def-chain-label">${c.label}</div>
+                      <div class="def-chain-val">${c.ok?'✓ PASS':'✕ FAIL'}</div>
+                      <div style="font-size:10px;margin-top:2px;color:var(--mid);line-height:1.3;">${chainConsequence(c.dim,c.ok,d.s)}</div>
+                    </div>`).join('')}
                   </div>
                   ${d.exposure?`<div class="def-exposure">⚠ Duration of exposure: ${d.exposure}</div>`:''}
                   ${d.uniqueDecs>0?`<div style="font-family:var(--mono);font-size:10px;color:var(--red);margin-top:3px;">Decisions made during governance gap: ${d.uniqueDecs}</div>`:''}
@@ -1079,42 +1132,24 @@ function renderScore(){
       <div class="fs-item a"><div class="fs-val">${driftCount}</div><div class="fs-lbl">Governance drift events</div></div>
       <div class="fs-item g"><div class="fs-val">${defensibleDecs}/${totalDecs}</div><div class="fs-lbl">Fully defensible decisions</div></div>
       <div class="fs-item r"><div class="fs-val">${defData.filter(d=>d.verdict==='notdef').length}</div><div class="fs-lbl">Systems not defensible</div></div>
-    </div>
-
-    <!-- NAIC SCORE — secondary indicator -->
-    <div class="score-hero">
-      <div class="score-ring">
-        <div class="score-num">${safeScore}</div>
-        <div class="score-den">/100</div>
-      </div>
-      <div class="score-right">
-        <div class="score-heading">NAIC Examination Readiness Index</div>
-        <div class="score-caption">Indicative index only · Auto-calculated from imported data · ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
-        <div class="score-bar-labels"><span>0 — Critical</span><span>70 — Threshold</span><span>100 — Ready</span></div>
-        <div class="score-bar-track">
-          <div class="score-bar-fill" style="width:${safeScore}%"></div>
-          <div class="score-threshold" style="left:70%"></div>
-        </div>
-        <div class="score-warn">⚠ ${safeScore}/100 is below the 70-point examination threshold · Ohio is an active NAIC pilot state</div>
-      </div>
     </div>`;
 
-  // Score breakdown table
+  // Score breakdown — reference only, demoted
   document.getElementById('bk-tbl').innerHTML=`
-    <thead><tr><th>Gap</th><th>System</th><th>NAIC ref</th><th>Points</th></tr></thead>
+    <thead><tr><th>Gap</th><th>System</th><th>NAIC ref</th><th>Pts</th></tr></thead>
     <tbody>
-      <tr><td colspan="3" style="color:var(--faint);font-style:italic;font-size:11px;">Starting score</td><td class="neutral">100</td></tr>
-      ${AR.breakdown.map(b=>`<tr><td>${b.gap}</td><td class="mono-sm">${b.system}</td><td class="mono-sm" style="color:var(--blue);">${b.naic}</td><td class="ded">${b.ded}</td></tr>`).join('')}
-      <tr style="background:var(--cream);"><td colspan="2"><strong>NAIC Readiness Index</strong></td><td></td><td class="ded" style="font-size:15px;">${safeScore}/100</td></tr>
+      <tr><td colspan="3" style="color:var(--faint);font-style:italic;font-size:10px;">Starting score</td><td class="neutral">100</td></tr>
+      ${AR.breakdown.map(b=>`<tr><td style="font-size:11px;">${b.gap}</td><td class="mono-sm">${b.system}</td><td class="mono-sm" style="color:var(--blue);">${b.naic}</td><td class="ded">${b.ded}</td></tr>`).join('')}
+      <tr style="background:var(--cream);"><td colspan="2" style="font-size:11px;"><strong>NAIC Readiness Index</strong></td><td></td><td class="ded">${safeScore}/100</td></tr>
     </tbody>`;
 
   // Priority list
   document.getElementById('pri-list').innerHTML=[
     {n:1,u:true,sys:'FraudGuard ML',sysId:'SYS-002',t:'Assign accountable owner',s:'18 months without a named owner. First question any examiner will ask.',i:'+15 pts'},
-    {n:2,u:true,sys:'UnderwriteAssist',sysId:'SYS-003',t:'Renew expired risk acceptance',s:'16+ months past expiry. System should not be in production without valid acceptance.',i:'+12 pts'},
-    {n:3,u:true,sys:'FraudGuard ML',sysId:'SYS-002',t:'File initial risk acceptance document',s:'No risk acceptance has ever been filed. Cannot be deferred.',i:'+12 pts'},
-    {n:4,u:false,sys:'ClaimScore AI',sysId:'SYS-001',t:'Update system to policy v2.1',s:'3 decisions logged under v1.8 after v2.1 became active. 149 days of drift.',i:'+10 pts'},
-    {n:5,u:false,sys:'DocExtract Pro',sysId:'SYS-005',t:'Obtain compliance department sign-off',s:'Deployed with IT approval only. No compliance sign-off on record.',i:'+5 pts'},
+    {n:2,u:true,sys:'UnderwriteAssist',sysId:'SYS-003',t:'Renew expired risk acceptance',s:'16+ months past expiry. System operating without valid authorisation.',i:'+12 pts'},
+    {n:3,u:true,sys:'FraudGuard ML',sysId:'SYS-002',t:'File initial risk acceptance',s:'No risk acceptance has ever existed. Cannot be deferred.',i:'+12 pts'},
+    {n:4,u:false,sys:'ClaimScore AI',sysId:'SYS-001',t:'Update to current governing policy',s:'3 decisions made under superseded policy. 149 days of drift.',i:'+10 pts'},
+    {n:5,u:false,sys:'DocExtract Pro',sysId:'SYS-005',t:'Obtain compliance sign-off',s:'Deployed without compliance authorisation.',i:'+5 pts'},
   ].map(p=>`<div class="pri-item">
     <div class="pri-n${p.u?' urgent':''}">${p.n}</div>
     <div>
@@ -1348,27 +1383,43 @@ p{margin-bottom:8pt;line-height:1.6;}
     <div class="cover-meta-item"><div class="cover-meta-label">GENERATED</div><div class="cover-meta-value">${nowStr}</div></div>
     <div class="cover-meta-item"><div class="cover-meta-label">REPORT ID</div><div class="cover-meta-value">${reportId}</div></div>
     <div class="cover-meta-item"><div class="cover-meta-label">STATE</div><div class="cover-meta-value">Ohio — NAIC Pilot Active</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">SYSTEMS ANALYSED</div><div class="cover-meta-value">${RAW.systems.length}</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">CRITICAL FINDINGS</div><div class="cover-meta-value">${AR.gaps.filter(g=>g.type==='critical').length}</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">TRUST FAILURES</div><div class="cover-meta-value">${AR.vgIssues.length}</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">READINESS INDEX</div><div class="cover-meta-value">${Math.max(AR.score,0)}/100</div></div>
   </div>
 </div>
 
-<!-- SCORE BANNER -->
-<div class="score-banner">
-  <div class="score-circle"><div class="score-num">${AR.score}</div><div class="score-den">/100</div></div>
-  <div class="score-right">
-    <div class="score-title">NAIC Examination Readiness Score</div>
-    <div class="score-sub">Auto-calculated from 5 imported data sources · ${nowStr}</div>
-    <div class="score-warn">⚠ ${AR.score}/100 is below the 70-point examination threshold — Significant examination risk</div>
+<!-- SYSTEM DEFENSIBILITY SUMMARY — PAGE 1 HERO -->
+<h1>System Defensibility Summary</h1>
+<p style="margin-bottom:12pt;font-size:10pt;color:#6b6560;">PolicyProof determines whether each AI system can be defended in an NAIC examination — not merely whether governance artifacts exist.</p>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8pt;margin-bottom:16pt;">
+  ${[
+    {label:'Defensible',count:AR.gaps.length===0?1:0,color:'#0d6648',bg:'#e4f5ee',border:'#5bbf9a'},
+    {label:'With Gaps',count:RAW.systems.filter(s=>s.complianceSignoff&&(s.owner&&s.owner!=='UNASSIGNED')).length-1,color:'#8a5c0a',bg:'#fdf3e0',border:'#e0a83a'},
+    {label:'At Risk',count:1,color:'#b83228',bg:'#faeae8',border:'#dba09a'},
+    {label:'Not Defensible',count:RAW.systems.filter(s=>!s.owner||s.owner==='UNASSIGNED').length,color:'#fff',bg:'#b83228',border:'#b83228'},
+  ].map(d=>`<div style="text-align:center;padding:10pt;background:${d.bg};border:1pt solid ${d.border};border-radius:4pt;">
+    <div style="font-family:'Fraunces',serif;font-size:22pt;font-weight:600;color:${d.color};">${d.count}</div>
+    <div style="font-size:9pt;font-weight:600;color:${d.color};">${d.label}</div>
+  </div>`).join('')}
+</div>
+<div style="border:1pt solid #dba09a;background:#faeae8;border-radius:4pt;padding:12pt;margin-bottom:16pt;">
+  <div style="font-family:'DM Mono',monospace;font-size:8pt;color:#b83228;letter-spacing:.05em;margin-bottom:6pt;">HIGHEST RISK SYSTEM</div>
+  <div style="font-family:'Fraunces',serif;font-size:14pt;font-weight:600;margin-bottom:5pt;">FraudGuard ML <span style="font-family:'DM Mono',monospace;font-size:9pt;color:#9e9890;">SYS-002</span></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6pt;margin-top:8pt;">
+    ${['No accountable owner','No risk acceptance document','No compliance sign-off','No oversight mechanism','Cannot intervene in AI decisions','Operating without governance for 18 months'].map(r=>`<div style="font-family:'DM Mono',monospace;font-size:8pt;color:#b83228;">✕ ${r}</div>`).join('')}
   </div>
 </div>
 
 <!-- SCORE BREAKDOWN -->
-<h1>Score Breakdown</h1>
+<h1>Readiness Index Breakdown <span style="font-size:12pt;font-weight:400;color:#6b6560;">(Reference only)</span></h1>
 <table class="bk-tbl">
   <thead><tr><th>Gap Type</th><th>System</th><th>NAIC Reference</th><th>Deduction</th></tr></thead>
   <tbody>
     <tr><td colspan="3" style="color:#9e9890;font-style:italic;font-size:8.5pt;">Starting score</td><td style="font-family:'DM Mono',monospace;">100</td></tr>
     ${AR.breakdown.map(b=>`<tr><td>${b.gap}</td><td style="font-family:'DM Mono',monospace;font-size:8.5pt;">${b.system}</td><td style="font-family:'DM Mono',monospace;font-size:8.5pt;color:#1a4f8a;">${b.naic}</td><td class="ded">${b.ded}</td></tr>`).join('')}
-    <tr><td colspan="2"><strong>NAIC Readiness Score</strong></td><td></td><td class="ded" style="font-size:13pt;">${AR.score}/100</td></tr>
+    <tr><td colspan="2"><strong>NAIC Readiness Index</strong></td><td></td><td class="ded" style="font-size:13pt;">${Math.max(AR.score,0)}/100</td></tr>
   </tbody>
 </table>
 
