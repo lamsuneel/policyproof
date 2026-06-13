@@ -389,7 +389,7 @@ input[type=file]{display:none;}
 
   <!-- PANEL 2: ANALYSIS -->
   <div class="panel" id="panel-2">
-    <div class="card">
+    <div class="card" id="prog-card">
       <div class="card-hd"><span class="card-title">Running gap detection engine</span></div>
       <div class="prog-label" id="prog-lbl">Initialising...</div>
       <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
@@ -434,7 +434,7 @@ input[type=file]{display:none;}
     <div id="score-hero-wrap"></div>
     <div class="g2 mb">
       <div class="card" style="margin:0;"><div class="card-hd"><span class="card-title">Priority remediation</span></div><div id="pri-list"></div></div>
-      <div class="card" style="margin:0;"><div class="card-hd"><span class="card-title">Readiness index breakdown</span><span class="card-sub">Reference only</span></div><table class="bk-tbl" id="bk-tbl"></table></div>
+      <div class="card" style="margin:0;"><div class="card-hd"><span class="card-title">Examination Risk Factors</span><span class="card-sub">Reference only</span></div><table class="bk-tbl" id="bk-tbl"></table></div>
     </div>
     <div class="row-end"><button class="btn btn-p" onclick="goStep(4)">See examiner questions →</button></div>
   </div>
@@ -595,7 +595,7 @@ function detectGaps(decRes,policyIdx){
       examinerRemediation:'Assign named owner, document accountability chain, resubmit for compliance sign-off.',
       naic:'NAIC Exhibit B §2.1',
       provenanceSources:['AI Inventory (Jira)','Decision Logs','Risk Registry','Oversight Records'],
-      govDiscoveryStmt:'This finding required evidence from 4 independent governance records. No individual source identified this issue.',
+      defImpact:'This system cannot be defended if an examiner asks who is accountable for its decisions.',
       pts:'-15 pts'
     });
   });
@@ -628,6 +628,7 @@ function detectGaps(decRes,policyIdx){
       naic:'NAIC Exhibit B §3.3(c)',
       provenanceSources:['Policy Library (SharePoint)','Decision Logs'],
       govDiscoveryStmt:null,
+      defImpact:`${m.decisions.length} decisions made by this system cannot be tied to an active governing policy. An examiner asking to see the policy will find a version that was not in force at decision time.`,
       pts:'-10 pts'
     });
   });
@@ -658,6 +659,7 @@ function detectGaps(decRes,policyIdx){
       naic:'NAIC Exhibit D · Model Bulletin §1.7',
       provenanceSources:missing?['AI Inventory (Jira)','Risk Registry','Decision Logs','Oversight Records']:['Risk Registry','Decision Logs'],
       govDiscoveryStmt:missing?'This finding required evidence from 4 independent governance records. No individual source identified this issue.':null,
+      defImpact:missing?'This system cannot be defended — the organisation has no documented authorisation to operate it.':'This system may be suspended — it has operated without valid authorisation for '+days+' days.',
       pts:'-12 pts'
     });
   });
@@ -683,6 +685,7 @@ function detectGaps(decRes,policyIdx){
       naic:'NAIC Exhibit B §2.3',
       provenanceSources:['Decision Logs'],
       govDiscoveryStmt:null,
+      defImpact:`${decRes.noReviewer.length} decisions cannot be defended — there is no human reviewer on record to demonstrate governance oversight was applied.`,
       pts:'-8 pts'
     });
   }
@@ -705,6 +708,7 @@ function detectGaps(decRes,policyIdx){
       naic:'NAIC Exhibit B §2.3(d)',
       provenanceSources:['AI Inventory (Jira)'],
       govDiscoveryStmt:null,
+      defImpact:`This system cannot be defended if an examiner asks how Meridian would stop ${s.name} from producing a harmful decision.`,
       pts:'-8 pts'
     });
   });
@@ -727,6 +731,7 @@ function detectGaps(decRes,policyIdx){
       naic:'NAIC Exhibit C',
       provenanceSources:['AI Inventory (Jira)'],
       govDiscoveryStmt:null,
+      defImpact:`This system cannot be defended — it was deployed and has operated without compliance department authorisation.`,
       pts:'-5 pts'
     });
   });
@@ -859,6 +864,7 @@ function runAnalysis(){
 }
 
 function finish(){
+  document.getElementById('prog-card').style.display='none';
   const pIdx=buildPolicyVersionIndex(RAW.policyVersions);
   const dRes=processDecisions(RAW.decisions,pIdx);
   AR=detectGaps(dRes,pIdx);
@@ -910,9 +916,11 @@ function renderAnalysis(){
 }
 
 function gapCard(g){
-  // Finding type badge
   const ftLabel={missing:'Missing',drift:'Drift',trust:'Trust Failure'}[g.findingType]||g.findingType;
   const ftClass={missing:'ftype-missing',drift:'ftype-drift',trust:'ftype-trust'}[g.findingType]||'ftype-missing';
+
+  // Defensibility impact sentence
+  const defImpact=`<div style="font-family:var(--mono);font-size:10px;font-weight:500;color:var(--red);background:var(--red-bg);border:.5px solid var(--red-border);border-radius:var(--r4);padding:5px 9px;margin-bottom:10px;"><span style="letter-spacing:.04em;opacity:.7;">DEFENSIBILITY IMPACT · </span>${g.defImpact||'This finding reduces the defensibility of '+g.system+' in an NAIC examination.'}</div>`;
 
   // Drift box
   const driftHtml=g.drift?`<div class="drift-box">
@@ -976,6 +984,7 @@ function gapCard(g){
       <span class="gap-pts">${g.pts}</span>
     </div>
     <div class="gap-body">
+      ${defImpact}
       <div class="gap-consequence">${g.consequence}</div>
       ${driftHtml}${chainHtml}${examHtml}${provHtml}
     </div>
@@ -1033,7 +1042,7 @@ function renderScore(){
     return {s,ownerOk,riskOk,oversightOk,complianceOk,policyOk,interventionOk,verdict,verdictLabel,exposure,uniqueDecs};
   });
 
-  // Defensibility counts for summary
+  // Defensibility counts — computed from defData, must sum to total systems
   const defCounts={defensible:0,gaps:0,risk:0,notdef:0};
   defData.forEach(d=>defCounts[d.verdict]++);
   const highestRisk=defData.find(d=>d.verdict==='notdef')||defData.find(d=>d.verdict==='risk');
@@ -1413,7 +1422,44 @@ p{margin-bottom:8pt;line-height:1.6;}
 </div>
 
 <!-- SCORE BREAKDOWN -->
-<h1>Readiness Index Breakdown <span style="font-size:12pt;font-weight:400;color:#6b6560;">(Reference only)</span></h1>
+<!-- GOVERNANCE CHAIN ASSESSMENT -->
+<h1>Governance Chain Assessment</h1>
+<p style="margin-bottom:12pt;font-size:10pt;color:#6b6560;">For each AI system, PolicyProof evaluates six governance chain dimensions. A single FAIL means the system cannot be fully defended if that dimension is questioned in examination.</p>
+${RAW.systems.map(s=>{
+  const dr2=AR.dRes;
+  const ownerOk=!!(s.owner&&s.owner!=='UNASSIGNED');
+  const riskOk=s.riskStatus==='Active';
+  const policyOk=!dr2.mismatches.some(d=>d.systemId===s.id);
+  const oversightOk=s.oversight;
+  const interventionOk=s.oversight;
+  const complianceOk=s.complianceSignoff;
+  const fails=[ownerOk,riskOk,policyOk,oversightOk,interventionOk,complianceOk].filter(v=>!v).length;
+  const verdict=fails===0?'DEFENSIBLE':fails<=2?'DEFENSIBLE WITH GAPS':fails<=4?'AT RISK':'NOT DEFENSIBLE';
+  const vColor=fails===0?'#0d6648':fails<=2?'#8a5c0a':'#b83228';
+  return `<div style="border:1pt solid #e2ddd5;border-radius:4pt;margin-bottom:10pt;overflow:hidden;page-break-inside:avoid;">
+    <div style="background:#f7f4ef;padding:8pt 10pt;display:flex;justify-content:space-between;align-items:center;">
+      <div><strong style="font-size:11pt;">${s.name}</strong> <span style="font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">${s.id} · ${s.tier}</span></div>
+      <span style="font-family:'DM Mono',monospace;font-size:9pt;font-weight:700;color:${vColor};">${verdict}</span>
+    </div>
+    <table style="width:100%;border-collapse:collapse;">
+      ${[
+        {label:'Owner',ok:ownerOk,consequence:ownerOk?s.owner:'No named human accountable for decisions'},
+        {label:'Risk Acceptance',ok:riskOk,consequence:riskOk?'Active — expires '+s.riskExpiry:(s.riskStatus==='NOT ON FILE'?'No documented authorisation to operate this system':'Authorisation to operate has expired')},
+        {label:'Policy Currency',ok:policyOk,consequence:policyOk?'Current governing version':'Operating under superseded policy'},
+        {label:'Oversight',ok:oversightOk,consequence:oversightOk?'Documented':'No mechanism to stop or override AI decisions'},
+        {label:'Intervention Capability',ok:interventionOk,consequence:interventionOk?'Documented':'Cannot intervene if system produces harmful output'},
+        {label:'Compliance Sign-Off',ok:complianceOk,consequence:complianceOk?'Obtained':'Deployed without compliance authorisation'},
+      ].map((c,i)=>`<tr style="background:${i%2===0?'#fff':'#fafaf9'};">
+        <td style="padding:5pt 10pt;width:130pt;font-family:'DM Mono',monospace;font-size:8pt;color:#6b6560;">${c.label}</td>
+        <td style="padding:5pt 8pt;width:60pt;font-family:'DM Mono',monospace;font-size:8.5pt;font-weight:700;color:${c.ok?'#0d6648':'#b83228'};">${c.ok?'✓ PASS':'✕ FAIL'}</td>
+        <td style="padding:5pt 8pt;font-size:9pt;color:${c.ok?'#0c0c0c':'#b83228'};">${c.consequence}</td>
+      </tr>`).join('')}
+    </table>
+  </div>`;
+}).join('')}
+
+<!-- EXAMINATION RISK FACTORS -->
+<h1>Examination Risk Factors <span style="font-size:12pt;font-weight:400;color:#6b6560;">(Reference only)</span></h1>
 <table class="bk-tbl">
   <thead><tr><th>Gap Type</th><th>System</th><th>NAIC Reference</th><th>Deduction</th></tr></thead>
   <tbody>
