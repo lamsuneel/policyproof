@@ -860,6 +860,8 @@ function renderAnalysis(){
   document.getElementById('vg-list').innerHTML=AR.vgIssues.length
     ?AR.vgIssues.map(v=>`<div class="vg-item"><div class="vg-title">${v.title}</div><div class="vg-detail">${v.detail}</div><div class="vg-action">→ Required action: ${v.action}</div><div class="dq-src" style="font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:4px;">Source: ${v.src}</div></div>`).join('')
     :'<p style="font-size:13px;color:var(--faint);padding:1rem 0;">No trust failures detected.</p>';
+
+  document.getElementById('analysis-out').style.display='block';
 }
 
 function gapCard(g){
