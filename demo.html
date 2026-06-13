@@ -615,7 +615,7 @@ function detectGaps(decRes,policyIdx){
     gaps.push({
       type:'critical',findingType:'drift',provLevel:2,
       id:'GAP-VER-'+m.systemId,
-      title:`${m.decisions.length} decisions made under superseded policy — ${driftDays} days of drift`,
+      title:`${m.decisions.length} decisions made after governing policy changed — ${driftDays} days of policy execution drift`,
       system:sys?.name,systemId:m.systemId,
       consequence:`${m.decisions.length} decisions were made using ${m.versionUsed} after ${m.correctVersion} became the governing policy. Each of these decisions cannot be tied to the policy that was in force at the time they were made. If an examiner selects any one of these decisions and asks which policy governed it, Meridian cannot produce a valid answer.`,
       drift:{currentPolicy:m.correctVersion,systemUsing:m.versionUsed,driftStarted:driftStart,driftDays,affectedDecisions:m.decisions.length},
@@ -957,7 +957,7 @@ function gapCard(g){
 
   // Provenance — level-based
   let provHtml='';
-  if(g.provLevel===3){
+  if(g.provLevel===3&&g.govDiscoveryStmt){
     provHtml=`<div class="gov-discovery">
       <div class="gov-discovery-hd"><span class="gov-discovery-label">● GOVERNANCE DISCOVERY</span></div>
       <div class="gov-discovery-body">
@@ -968,7 +968,7 @@ function gapCard(g){
   } else if(g.provLevel===2){
     provHtml=`<div style="margin-top:8px;"><span class="prov-xref">⊕ CROSS-REFERENCE · ${g.provenanceSources.join(' + ')}</span></div>`;
   } else {
-    provHtml=`<div class="prov-src">Source: ${g.provenanceSources[0]}</div>`;
+    provHtml=`<div class="prov-src">Source: ${g.provenanceSources[0]||''}</div>`;
   }
 
   return `<div class="gap-card ${g.type}">
@@ -1007,8 +1007,8 @@ function renderScore(){
   function chainConsequence(dim, ok, s){
     const fails={
       owner:'No named human accountable for decisions',
-      risk: s.riskStatus==='NOT ON FILE'?'No documented authorisation to operate this system':'Authorisation to operate has expired',
-      policy:'Operating under superseded policy',
+      risk: s.riskStatus==='NOT ON FILE'?'No documented authorisation to operate this system':'Authorisation to operate has expired — governance chain degraded',
+      policy:'Policy execution drift detected — system running after governing policy changed',
       oversight:'No mechanism to stop or override AI decisions',
       intervention:'Cannot intervene if system produces harmful output',
       compliance:'Deployed without compliance authorisation',
@@ -1026,20 +1026,54 @@ function renderScore(){
 
   const defData=RAW.systems.map(s=>{
     const ownerOk=!!(s.owner&&s.owner!=='UNASSIGNED');
-    const riskOk=s.riskStatus==='Active';
+    // Risk: Active = ok, Expired = degraded (AT RISK), NOT ON FILE = absent (NOT DEFENSIBLE)
+    const riskAbsent=s.riskStatus==='NOT ON FILE';
+    const riskExpired=s.riskStatus==='EXPIRED';
+    const riskOk=s.riskStatus==='Active'||s.riskStatus==='Active — Incomplete';
     const oversightOk=s.oversight;
     const complianceOk=s.complianceSignoff;
     const policyOk=!dr.mismatches.some(d=>d.systemId===s.id);
     const interventionOk=s.oversight;
-    const failCount=[ownerOk,riskOk,oversightOk,complianceOk,policyOk,interventionOk].filter(v=>!v).length;
-    const verdict=failCount===0?'defensible':failCount<=2?'gaps':failCount<=4?'risk':'notdef';
+
+    // Governance-chain-aware verdict — not arithmetic
+    // NOT DEFENSIBLE: accountability or authorisation chain is absent (not just degraded)
+    //   - No owner (cannot answer "who is accountable?")
+    //   - Risk acceptance never existed (no documented authorisation)
+    //   - Auth chain broken across multiple dimensions (DocExtract: no risk + no compliance + no intervention)
+    const authChainBroken=(!riskOk&&!complianceOk&&!interventionOk); // multiple auth failures
+    const notDef=!ownerOk||riskAbsent||authChainBroken;
+
+    // AT RISK: chain exists but examination defense is weakened
+    //   - Risk acceptance expired (chain degraded, not absent)
+    //   - Missing intervention or oversight on a system with otherwise intact chain
+    const atRisk=!notDef&&(riskExpired||(!oversightOk&&!interventionOk));
+
+    // DEFENSIBLE WITH GAPS: owner and auth chain intact, minor gaps
+    //   - Policy drift only, or compliance sign-off missing, or single operational gap
+    const withGaps=!notDef&&!atRisk&&(!policyOk||!complianceOk||!oversightOk||!interventionOk);
+
+    const verdict=notDef?'notdef':atRisk?'risk':withGaps?'gaps':'defensible';
     const verdictLabel={defensible:'Defensible',gaps:'Defensible with Gaps',risk:'At Risk',notdef:'Not Defensible'}[verdict];
+
+    // Defensibility rationale — the "why" sentence
+    const failures=[];
+    if(!ownerOk) failures.push('no accountable owner');
+    if(riskAbsent) failures.push('no risk acceptance document');
+    if(riskExpired) failures.push('risk acceptance expired '+daysBetween(s.riskExpiry,'2025-06-13')+' days ago');
+    if(!policyOk) failures.push('policy execution drift');
+    if(!oversightOk) failures.push('no oversight mechanism');
+    if(!interventionOk) failures.push('no intervention capability');
+    if(!complianceOk) failures.push('no compliance sign-off');
+    const rationale=failures.length===0
+      ? `${s.name} passes all six governance chain dimensions and can be defended in examination.`
+      : `${s.name} is ${verdictLabel.toUpperCase()} because: ${failures.join(' · ')}.`;
+
     let exposure=null;
     if(!ownerOk&&s.ownerDepartedNote) exposure='18 months without accountable owner';
-    else if(s.riskStatus==='EXPIRED'&&s.riskExpiry) exposure=`${daysBetween(s.riskExpiry,'2025-06-13')} days past risk acceptance expiry`;
+    else if(riskExpired&&s.riskExpiry) exposure=`${daysBetween(s.riskExpiry,'2025-06-13')} days past risk acceptance expiry — governance chain degraded`;
     const decsDuring=dr.mismatches.concat(dr.noReviewer).filter(d=>d.systemId===s.id);
     const uniqueDecs=[...new Set(decsDuring.map(d=>d.id))].length;
-    return {s,ownerOk,riskOk,oversightOk,complianceOk,policyOk,interventionOk,verdict,verdictLabel,exposure,uniqueDecs};
+    return {s,ownerOk,riskOk,riskAbsent,riskExpired,oversightOk,complianceOk,policyOk,interventionOk,verdict,verdictLabel,rationale,exposure,uniqueDecs};
   });
 
   // Defensibility counts — computed from defData, must sum to total systems
@@ -1106,6 +1140,7 @@ function renderScore(){
                   </div>
                 </div>
                 <div class="def-expand" id="def-${d.s.id}">
+                  <div style="font-size:12px;font-weight:500;color:${d.verdict==='defensible'?'var(--green)':d.verdict==='gaps'?'var(--amber)':'var(--red)'};background:${d.verdict==='defensible'?'var(--green-bg)':d.verdict==='gaps'?'var(--amber-bg)':'var(--red-bg)'};border:.5px solid ${d.verdict==='defensible'?'var(--green-border)':d.verdict==='gaps'?'var(--amber-border)':'var(--red-border)'};border-radius:var(--r4);padding:8px 10px;margin-bottom:10px;line-height:1.5;">${d.rationale}</div>
                   <div class="def-chain">
                     ${[
                       {dim:'owner',label:'OWNER',ok:d.ownerOk},
@@ -1157,7 +1192,7 @@ function renderScore(){
     {n:1,u:true,sys:'FraudGuard ML',sysId:'SYS-002',t:'Assign accountable owner',s:'18 months without a named owner. First question any examiner will ask.',i:'+15 pts'},
     {n:2,u:true,sys:'UnderwriteAssist',sysId:'SYS-003',t:'Renew expired risk acceptance',s:'16+ months past expiry. System operating without valid authorisation.',i:'+12 pts'},
     {n:3,u:true,sys:'FraudGuard ML',sysId:'SYS-002',t:'File initial risk acceptance',s:'No risk acceptance has ever existed. Cannot be deferred.',i:'+12 pts'},
-    {n:4,u:false,sys:'ClaimScore AI',sysId:'SYS-001',t:'Update to current governing policy',s:'3 decisions made under superseded policy. 149 days of drift.',i:'+10 pts'},
+    {n:4,u:false,sys:'ClaimScore AI',sysId:'SYS-001',t:'Update to current governing policy',s:'3 decisions made after governing policy changed. 149 days of policy execution drift.',i:'+10 pts'},
     {n:5,u:false,sys:'DocExtract Pro',sysId:'SYS-005',t:'Obtain compliance sign-off',s:'Deployed without compliance authorisation.',i:'+5 pts'},
   ].map(p=>`<div class="pri-item">
     <div class="pri-n${p.u?' urgent':''}">${p.n}</div>
@@ -1428,24 +1463,42 @@ p{margin-bottom:8pt;line-height:1.6;}
 ${RAW.systems.map(s=>{
   const dr2=AR.dRes;
   const ownerOk=!!(s.owner&&s.owner!=='UNASSIGNED');
-  const riskOk=s.riskStatus==='Active';
+  const riskAbsent=s.riskStatus==='NOT ON FILE';
+  const riskExpired=s.riskStatus==='EXPIRED';
+  const riskOk=s.riskStatus==='Active'||s.riskStatus==='Active — Incomplete';
   const policyOk=!dr2.mismatches.some(d=>d.systemId===s.id);
   const oversightOk=s.oversight;
   const interventionOk=s.oversight;
   const complianceOk=s.complianceSignoff;
-  const fails=[ownerOk,riskOk,policyOk,oversightOk,interventionOk,complianceOk].filter(v=>!v).length;
-  const verdict=fails===0?'DEFENSIBLE':fails<=2?'DEFENSIBLE WITH GAPS':fails<=4?'AT RISK':'NOT DEFENSIBLE';
-  const vColor=fails===0?'#0d6648':fails<=2?'#8a5c0a':'#b83228';
+  const authChainBroken=(!riskOk&&!complianceOk&&!interventionOk);
+  const notDef=!ownerOk||riskAbsent||authChainBroken;
+  const atRisk=!notDef&&(riskExpired||(!oversightOk&&!interventionOk));
+  const withGaps=!notDef&&!atRisk&&(!policyOk||!complianceOk||!oversightOk||!interventionOk);
+  const verdict=notDef?'NOT DEFENSIBLE':atRisk?'AT RISK':withGaps?'DEFENSIBLE WITH GAPS':'DEFENSIBLE';
+  const vColor=notDef?'#b83228':atRisk?'#8a5c0a':withGaps?'#8a5c0a':'#0d6648';
+  const vBg=notDef?'#faeae8':atRisk?'#fdf3e0':withGaps?'#fdf3e0':'#e4f5ee';
+  const failures=[];
+  if(!ownerOk) failures.push('no accountable owner');
+  if(riskAbsent) failures.push('no risk acceptance document');
+  if(riskExpired) failures.push('risk acceptance expired');
+  if(!policyOk) failures.push('policy execution drift');
+  if(!oversightOk) failures.push('no oversight mechanism');
+  if(!interventionOk) failures.push('no intervention capability');
+  if(!complianceOk) failures.push('no compliance sign-off');
+  const rationale=failures.length===0
+    ?`${s.name} passes all six governance chain dimensions and can be defended in examination.`
+    :`${s.name} is ${verdict} because: ${failures.join(' · ')}.`;
   return `<div style="border:1pt solid #e2ddd5;border-radius:4pt;margin-bottom:10pt;overflow:hidden;page-break-inside:avoid;">
-    <div style="background:#f7f4ef;padding:8pt 10pt;display:flex;justify-content:space-between;align-items:center;">
+    <div style="background:#f7f4ef;padding:8pt 10pt;display:flex;justify-content:space-between;align-items:center;border-bottom:1pt solid #e2ddd5;">
       <div><strong style="font-size:11pt;">${s.name}</strong> <span style="font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">${s.id} · ${s.tier}</span></div>
-      <span style="font-family:'DM Mono',monospace;font-size:9pt;font-weight:700;color:${vColor};">${verdict}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:9pt;font-weight:700;color:${vColor};background:${vBg};padding:3pt 8pt;border-radius:99pt;">${verdict}</span>
     </div>
+    <div style="padding:8pt 10pt;font-size:9.5pt;font-weight:500;color:${vColor};background:${vBg};border-bottom:1pt solid #e2ddd5;">${rationale}</div>
     <table style="width:100%;border-collapse:collapse;">
       ${[
         {label:'Owner',ok:ownerOk,consequence:ownerOk?s.owner:'No named human accountable for decisions'},
-        {label:'Risk Acceptance',ok:riskOk,consequence:riskOk?'Active — expires '+s.riskExpiry:(s.riskStatus==='NOT ON FILE'?'No documented authorisation to operate this system':'Authorisation to operate has expired')},
-        {label:'Policy Currency',ok:policyOk,consequence:policyOk?'Current governing version':'Operating under superseded policy'},
+        {label:'Risk Acceptance',ok:riskOk,consequence:riskOk?'Active — expires '+s.riskExpiry:(riskAbsent?'No documented authorisation to operate this system':'Authorisation to operate has expired — governance chain degraded')},
+        {label:'Policy Currency',ok:policyOk,consequence:policyOk?'Current governing version':'Policy execution drift — decisions made after governing policy changed'},
         {label:'Oversight',ok:oversightOk,consequence:oversightOk?'Documented':'No mechanism to stop or override AI decisions'},
         {label:'Intervention Capability',ok:interventionOk,consequence:interventionOk?'Documented':'Cannot intervene if system produces harmful output'},
         {label:'Compliance Sign-Off',ok:complianceOk,consequence:complianceOk?'Obtained':'Deployed without compliance authorisation'},
