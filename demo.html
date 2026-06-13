@@ -1459,7 +1459,7 @@ p{margin-bottom:8pt;line-height:1.6;}
 <!-- SCORE BREAKDOWN -->
 <!-- GOVERNANCE CHAIN ASSESSMENT -->
 <h1>Governance Chain Assessment</h1>
-<p style="margin-bottom:12pt;font-size:10pt;color:#6b6560;">For each AI system, PolicyProof evaluates six governance chain dimensions. A single FAIL means the system cannot be fully defended if that dimension is questioned in examination.</p>
+<p style="margin-bottom:12pt;font-size:10pt;color:#6b6560;">For each AI system, PolicyProof evaluates six governance chain dimensions. Each FAIL represents a governance chain weakness that may limit the organisation's ability to defend the system during examination.</p>
 ${RAW.systems.map(s=>{
   const dr2=AR.dRes;
   const ownerOk=!!(s.owner&&s.owner!=='UNASSIGNED');
@@ -1530,7 +1530,7 @@ ${AR.gaps.map(g=>{
   const chainHtml=g.chain?`<table class="chain-table">${g.chain.map(n=>`<tr><td style="width:140pt;"><span class="${n.ok?'chain-dot-ok':'chain-dot-gap'}">${n.ok?'●':'✕'}</span> <strong>${n.label}</strong></td><td>${n.detail}</td><td style="width:90pt;font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">${n.date}</td></tr>`).join('')}</table>`:'';
   const evClass=g.examinerVerdict==='NO'?'no':'partial';
   const examHtml=`<div class="exam-box"><h3 style="margin-top:0;">EXAMINER IMPACT</h3><div class="exam-row"><span class="exam-label">Question:</span><span class="exam-val">"${g.examinerQ}"</span></div><div class="exam-row"><span class="exam-label">Cannot demonstrate:</span><span class="exam-val bad">${g.examinerCannotDemonstrate}</span></div><div class="exam-row"><span class="exam-label">Likely outcome:</span><span class="exam-val">${g.examinerLikelyOutcome}</span></div><div class="exam-row"><span class="exam-label">Remediation:</span><span class="exam-val">${g.examinerRemediation}</span></div><div class="verdict ${evClass}">● Meridian can answer today: ${g.examinerVerdict}</div><div class="naic-ref">📋 ${g.naic}</div></div>`;
-  const provHtml=g.provLevel===3?`<div class="gov-disc"><div class="gov-disc-hd">● GOVERNANCE DISCOVERY</div><div class="gov-disc-body"><div class="gov-disc-stmt">${g.govDiscoveryStmt}</div><div class="gov-disc-sources">${g.provenanceSources.map(s=>`<span class="gov-source">${s}</span>`).join('')}</div></div></div>`:g.provLevel===2?`<span class="xref">⊕ CROSS-REFERENCE · ${g.provenanceSources.join(' + ')}</span>`:`<div class="src-line">Source: ${g.provenanceSources[0]}</div>`;
+  const provHtml=g.provLevel===3&&g.govDiscoveryStmt?`<div class="gov-disc"><div class="gov-disc-hd">● GOVERNANCE DISCOVERY</div><div class="gov-disc-body"><div class="gov-disc-stmt">${g.govDiscoveryStmt}</div><div class="gov-disc-sources">${g.provenanceSources.map(s=>`<span class="gov-source">${s}</span>`).join('')}</div></div></div>`:g.provLevel===2?`<span class="xref">⊕ CROSS-REFERENCE · ${g.provenanceSources.join(' + ')}</span>`:`<div class="src-line">Source: ${g.provenanceSources[0]||''}</div>`;
   return `<div class="finding ${g.type}">
     <div class="finding-header">
       <div>
