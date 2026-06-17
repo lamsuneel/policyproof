@@ -562,12 +562,14 @@ function daysBetween(d1,d2){return Math.floor((new Date(d2)-new Date(d1))/864000
 function fmt(d){return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
 
 // ════════════════════════════════════════════════════════════════
+// ── GLOBAL DATE ──────────────────────────────────────────────
+const TODAY=new Date();
+const TODAY_STR=TODAY.toISOString().split('T')[0];
+
 // GAP DETECTION
 // ════════════════════════════════════════════════════════════════
 function detectGaps(decRes,policyIdx){
   const gaps=[],dqIssues=[...decRes.dqIssues],vgIssues=[];
-  const TODAY=new Date();
-  const TODAY_STR=TODAY.toISOString().split('T')[0];
   let score=100,breakdown=[];
 
   // ── GAP 1: No owner — Missing — Level 3 Governance Discovery ──
