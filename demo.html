@@ -478,11 +478,11 @@ input[type=file]{display:none;}
 // ════════════════════════════════════════════════════════════════
 const RAW = {
   systems:[
-    {id:'SYS-001',name:'ClaimScore AI',fn:'Claims Processing',vendor:'Verisk / GPT-4',tier:'Tier 2',owner:'Sarah Chen',ownerEmail:'sarah.chen@meridianins.com',policyId:'POL-CLAIMS-001',oversight:true,complianceSignoff:true,riskExpiry:'2025-01-10',riskStatus:'Active',jiraKey:'AIOPS-1001'},
+    {id:'SYS-001',name:'ClaimScore AI',fn:'Claims Processing',vendor:'Verisk / GPT-4',tier:'Tier 2',owner:'Sarah Chen',ownerEmail:'sarah.chen@meridianins.com',policyId:'POL-CLAIMS-001',oversight:true,complianceSignoff:true,riskExpiry:'2025-01-10',riskStatus:'EXPIRED',jiraKey:'AIOPS-1001'},
     {id:'SYS-002',name:'FraudGuard ML',fn:'Fraud Detection',vendor:'Internal / XGBoost',tier:'Tier 1',owner:'UNASSIGNED',ownerEmail:'',ownerDepartedNote:'Marcus Webb — VP Fraud Operations — departed December 2023. No replacement assigned.',policyId:'POL-FRAUD-002',oversight:false,complianceSignoff:false,riskExpiry:null,riskStatus:'NOT ON FILE',jiraKey:'AIOPS-1002'},
     {id:'SYS-003',name:'UnderwriteAssist',fn:'Underwriting',vendor:'Gradient AI',tier:'Tier 2',owner:'James Okafor',ownerEmail:'james.okafor@meridianins.com',policyId:'POL-UW-003',oversight:true,complianceSignoff:true,riskExpiry:'2024-02-10',riskStatus:'EXPIRED',jiraKey:'AIOPS-1003'},
-    {id:'SYS-004',name:'CustomerIQ',fn:'Customer Marketing',vendor:'Salesforce Einstein',tier:'Tier 3',owner:'Lisa Tran',ownerEmail:'lisa.tran@meridianins.com',policyId:'POL-OVERSIGHT-004',oversight:false,complianceSignoff:true,riskExpiry:'2025-06-10',riskStatus:'Active',jiraKey:'AIOPS-1004'},
-    {id:'SYS-005',name:'DocExtract Pro',fn:'Document Processing',vendor:'AWS Textract / Claude',tier:'Tier 2',owner:'Mark Singh',ownerEmail:'mark.singh@meridianins.com',policyId:'POL-VENDOR-005',oversight:false,complianceSignoff:false,riskExpiry:'2025-04-08',riskStatus:'Active — Incomplete',jiraKey:'AIOPS-1005'},
+    {id:'SYS-004',name:'CustomerIQ',fn:'Customer Marketing',vendor:'Salesforce Einstein',tier:'Tier 3',owner:'Lisa Tran',ownerEmail:'lisa.tran@meridianins.com',policyId:'POL-OVERSIGHT-004',oversight:false,complianceSignoff:true,riskExpiry:'2025-06-10',riskStatus:'EXPIRED',jiraKey:'AIOPS-1004'},
+    {id:'SYS-005',name:'DocExtract Pro',fn:'Document Processing',vendor:'AWS Textract / Claude',tier:'Tier 2',owner:'Mark Singh',ownerEmail:'mark.singh@meridianins.com',policyId:'POL-VENDOR-005',oversight:false,complianceSignoff:false,riskExpiry:'2025-04-08',riskStatus:'EXPIRED',jiraKey:'AIOPS-1005'},
   ],
   policyVersions:[
     {systemId:'SYS-001',version:'v1.8',effectiveFrom:'2024-07-01',effectiveTo:'2025-01-14',policyId:'POL-CLAIMS-001',approvedBy:'David Park',approverActive:true},
@@ -566,7 +566,8 @@ function fmt(d){return new Date(d).toLocaleDateString('en-US',{month:'short',day
 // ════════════════════════════════════════════════════════════════
 function detectGaps(decRes,policyIdx){
   const gaps=[],dqIssues=[...decRes.dqIssues],vgIssues=[];
-  const TODAY=new Date('2025-06-13');
+  const TODAY=new Date();
+  const TODAY_STR=TODAY.toISOString().split('T')[0];
   let score=100,breakdown=[];
 
   // ── GAP 1: No owner — Missing — Level 3 Governance Discovery ──
@@ -610,7 +611,7 @@ function detectGaps(decRes,policyIdx){
     const sys=RAW.systems.find(s=>s.id===m.systemId);
     const dates=m.decisions.map(d=>d.date).sort();
     const driftStart=dates[0];
-    const driftDays=daysBetween(driftStart,'2025-06-13');
+    const driftDays=daysBetween(driftStart,TODAY_STR);
     score-=10; breakdown.push({gap:'Policy version mismatch',system:sys?.name,ded:-10,naic:'Exhibit B §3.3'});
     gaps.push({
       type:'critical',findingType:'drift',provLevel:2,
@@ -637,7 +638,7 @@ function detectGaps(decRes,policyIdx){
   RAW.systems.forEach(s=>{
     const expired=s.riskStatus==='EXPIRED',missing=s.riskStatus==='NOT ON FILE';
     if(!expired&&!missing) return;
-    const days=expired&&s.riskExpiry?daysBetween(s.riskExpiry,'2025-06-13'):null;
+    const days=expired&&s.riskExpiry?daysBetween(s.riskExpiry,TODAY_STR):null;
     const ft=missing?'missing':'drift';
     const pl=missing?3:2;
     score-=12; breakdown.push({gap:missing?'No risk acceptance on file':'Expired risk acceptance',system:s.name,ded:-12,naic:'Exhibit D'});
@@ -1059,7 +1060,7 @@ function renderScore(){
     const failures=[];
     if(!ownerOk) failures.push('no accountable owner');
     if(riskAbsent) failures.push('no risk acceptance document');
-    if(riskExpired) failures.push('risk acceptance expired '+daysBetween(s.riskExpiry,'2025-06-13')+' days ago');
+    if(riskExpired) failures.push('risk acceptance expired '+daysBetween(s.riskExpiry,TODAY_STR)+' days ago');
     if(!policyOk) failures.push('policy execution drift');
     if(!oversightOk) failures.push('no oversight mechanism');
     if(!interventionOk) failures.push('no intervention capability');
@@ -1070,7 +1071,7 @@ function renderScore(){
 
     let exposure=null;
     if(!ownerOk&&s.ownerDepartedNote) exposure='18 months without accountable owner';
-    else if(riskExpired&&s.riskExpiry) exposure=`${daysBetween(s.riskExpiry,'2025-06-13')} days past risk acceptance expiry — governance chain degraded`;
+    else if(riskExpired&&s.riskExpiry) exposure=`${daysBetween(s.riskExpiry,TODAY_STR)} days past risk acceptance expiry — governance chain degraded`;
     const decsDuring=dr.mismatches.concat(dr.noReviewer).filter(d=>d.systemId===s.id);
     const uniqueDecs=[...new Set(decsDuring.map(d=>d.id))].length;
     return {s,ownerOk,riskOk,riskAbsent,riskExpired,oversightOk,complianceOk,policyOk,interventionOk,verdict,verdictLabel,rationale,exposure,uniqueDecs};
