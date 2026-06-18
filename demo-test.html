@@ -1,0 +1,2054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PolicyProof — Meridian Insurance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* SCHEMA MAPPING */
+.mapping-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;align-items:center;justify-content:center;}
+.mapping-modal.open{display:flex;}
+.mapping-box{background:var(--paper);border:.5px solid var(--border);border-radius:var(--r8);padding:2rem;max-width:640px;width:90%;max-height:80vh;overflow-y:auto;}
+.mapping-title{font-family:var(--serif);font-size:17px;font-weight:600;margin-bottom:.5rem;}
+.mapping-sub{font-size:12px;color:var(--mid);margin-bottom:1.5rem;}
+.mapping-row{display:grid;grid-template-columns:1fr 24px 1fr;gap:8px;align-items:center;margin-bottom:8px;}
+.mapping-field{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--ink);padding:6px 10px;background:var(--cream);border-radius:var(--r4);border:.5px solid var(--border);}
+.mapping-arrow{text-align:center;color:var(--faint);font-size:12px;}
+.mapping-select{font-size:12px;padding:6px 8px;border:.5px solid var(--border);border-radius:var(--r4);background:var(--paper);color:var(--ink);font-family:var(--sans);width:100%;}
+.mapping-select:focus{outline:none;border-color:var(--ink);}
+.mapping-section{font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;margin:1rem 0 .5rem;}
+.mapping-note{font-size:11px;color:var(--amber);background:var(--amber-bg);border:.5px solid var(--amber-border);padding:8px 12px;border-radius:var(--r4);margin-bottom:1rem;}
+</style>
+:root{
+  --ink:#0c0c0c;--paper:#f7f4ef;--cream:#edeae3;--mist:#e2ddd5;
+  --mid:#6b6560;--faint:#9e9890;
+  --red:#b83228;--red-bg:#faeae8;--red-border:#dba09a;
+  --amber:#8a5c0a;--amber-bg:#fdf3e0;--amber-border:#e0a83a;
+  --green:#0d6648;--green-bg:#e4f5ee;--green-border:#5bbf9a;
+  --blue:#1a4f8a;--blue-bg:#e8f0fa;--blue-border:#6da0e0;
+  --discovery:#3b1f6e;--discovery-bg:#f0ebfc;--discovery-border:#9b7dd4;
+  --border:rgba(12,12,12,0.10);
+  --mono:'DM Mono',monospace;
+  --serif:'Fraunces',Georgia,serif;
+  --sans:'Instrument Sans',sans-serif;
+  --r4:4px;--r6:6px;--r8:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-padding-top:180px;}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh;}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 1.75rem;background:rgba(247,244,239,0.96);backdrop-filter:blur(12px);border-bottom:.5px solid var(--border);}
+.logo{font-family:var(--serif);font-size:17px;font-weight:600;color:var(--ink);text-decoration:none;}
+.logo em{font-style:italic;color:var(--red);}
+.topbar-meta{display:flex;align-items:center;gap:10px;}
+.badge{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:99px;background:var(--ink);color:var(--paper);}
+.badge-o{background:transparent;border:.5px solid var(--border);color:var(--mid);}
+.back{font-size:12px;color:var(--mid);text-decoration:none;padding:4px 10px;border:.5px solid var(--border);border-radius:var(--r4);}
+.back:hover{background:var(--cream);}
+
+/* CONTEXT STRIP */
+.ctx{background:#111827;color:#d1d9e8;padding:8px 1.75rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;position:sticky;top:52px;z-index:95;}
+.ctx-org{font-family:var(--mono);font-size:11px;display:flex;align-items:center;gap:14px;}
+.ctx-org span{opacity:.55;}.ctx-org strong{color:#93b8f5;opacity:1;}
+.naic-tag{font-family:var(--mono);font-size:10px;padding:3px 10px;background:rgba(147,184,245,0.12);border:.5px solid rgba(147,184,245,0.25);color:#93b8f5;border-radius:99px;}
+
+/* LAYOUT */
+.shell{max-width:1080px;margin:0 auto;padding:1.5rem 1.75rem 4rem;}
+
+/* STEPPER — sticky below topbar(52px) + context strip(36px) = 88px */
+.stepper{display:flex;border:.5px solid var(--border);border-radius:var(--r8);overflow:hidden;margin-bottom:1.5rem;background:var(--cream);position:sticky;top:88px;z-index:90;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.stp{flex:1;display:flex;align-items:center;gap:7px;padding:11px 12px;font-size:12px;font-weight:500;color:var(--faint);border-right:.5px solid var(--border);cursor:pointer;transition:all .18s;}
+.stp:last-child{border-right:none;}
+.stp.active{background:var(--ink);color:var(--paper);}
+.stp.done{background:var(--green-bg);color:var(--green);}
+.stp-n{width:18px;height:18px;border-radius:50%;border:.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;flex-shrink:0;}
+.stp.active .stp-n{background:var(--paper);color:var(--ink);}
+.stp.done .stp-n{background:var(--green);color:#fff;border-color:var(--green);}
+
+/* PANELS */
+.panel{display:none;}.panel.active{display:block;}
+
+/* CARDS */
+.card{background:var(--paper);border:.5px solid var(--border);border-radius:var(--r8);padding:1.25rem;margin-bottom:.875rem;}
+.card-hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:1rem;}
+.card-title{font-family:var(--serif);font-size:15px;font-weight:600;}
+.card-sub{font-family:var(--mono);font-size:10px;color:var(--faint);}
+
+/* ALERTS */
+.alert{display:flex;gap:10px;align-items:flex-start;padding:10px 13px;border-radius:var(--r6);border:.5px solid;font-size:13px;margin-bottom:.75rem;}
+.a-blue{background:var(--blue-bg);border-color:var(--blue-border);color:var(--blue);}
+.a-green{background:var(--green-bg);border-color:var(--green-border);color:var(--green);}
+.a-amber{background:var(--amber-bg);border-color:var(--amber-border);color:var(--amber);}
+.a-red{background:var(--red-bg);border-color:var(--red-border);color:var(--red);}
+
+/* UPLOAD */
+.upload-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;}
+.upload-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1rem;}
+.slot{position:relative;border:1.5px dashed var(--border);border-radius:var(--r8);padding:1.1rem;text-align:center;cursor:pointer;transition:all .18s;}
+.slot:hover{border-color:var(--ink);background:var(--cream);}
+.slot.loaded{border-style:solid;border-color:var(--green-border);background:var(--green-bg);}
+.slot-ico{font-size:20px;margin-bottom:5px;}
+.slot-name{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--ink);margin-bottom:2px;}
+.slot-src{font-size:10px;color:var(--faint);}
+.slot-ok{font-family:var(--mono);font-size:10px;color:var(--green);margin-top:4px;font-weight:500;}
+.slot input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+
+/* OR */
+.or{text-align:center;position:relative;margin:.875rem 0;font-size:11px;color:var(--faint);}
+.or::before,.or::after{content:'';position:absolute;top:50%;width:47%;height:.5px;background:var(--border);}
+.or::before{left:0;}.or::after{right:0;}
+
+/* BUTTONS */
+.btn{padding:8px 16px;font-size:13px;font-weight:500;border:.5px solid var(--border);border-radius:var(--r4);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s;font-family:var(--sans);}
+.btn:hover{background:var(--cream);}
+.btn-p{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.btn-p:hover{opacity:.85;background:var(--ink);}
+.btn-lg{padding:11px 24px;font-size:14px;}
+.btn-red{background:var(--red);color:#fff;border-color:var(--red);}
+.btn-red:hover{opacity:.9;background:var(--red);}
+.row-end{display:flex;justify-content:flex-end;gap:8px;margin-top:.875rem;}
+.row-ctr{display:flex;justify-content:center;gap:8px;margin-top:.875rem;}
+
+/* PROGRESS */
+.prog-label{font-family:var(--mono);font-size:11px;color:var(--mid);margin-bottom:6px;}
+.prog-track{height:5px;background:var(--mist);border-radius:99px;overflow:hidden;margin-bottom:8px;}
+.prog-fill{height:100%;background:var(--ink);border-radius:99px;transition:width .4s ease;width:0;}
+.prog-chips{display:flex;flex-wrap:wrap;gap:5px;}
+.chip{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;background:var(--mist);color:var(--mid);}
+.chip.done{background:var(--green-bg);color:var(--green);}
+.chip.run{background:var(--blue-bg);color:var(--blue);animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.45;}}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:.875rem;}
+.met{padding:.875rem;border-radius:var(--r6);border:.5px solid var(--border);background:var(--cream);}
+.met.r{background:var(--red-bg);border-color:var(--red-border);}
+.met.a{background:var(--amber-bg);border-color:var(--amber-border);}
+.met.g{background:var(--green-bg);border-color:var(--green-border);}
+.met-val{font-family:var(--serif);font-size:28px;font-weight:600;line-height:1;}
+.met.r .met-val{color:var(--red);}
+.met.a .met-val{color:var(--amber);}
+.met.g .met-val{color:var(--green);}
+.met-lbl{font-size:11px;color:var(--mid);margin-top:3px;}
+
+/* SYSTEM TABLE */
+.sys-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+.sys-tbl th{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--faint);text-align:left;padding:7px 10px;border-bottom:.5px solid var(--border);letter-spacing:.03em;}
+.sys-tbl td{padding:9px 10px;border-bottom:.5px solid var(--border);vertical-align:top;}
+.sys-tbl tr:last-child td{border-bottom:none;}
+.sys-tbl tr:hover td{background:var(--cream);}
+.tl{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;font-weight:500;padding:3px 8px;border-radius:99px;border:.5px solid;}
+.tl-r{background:var(--red-bg);border-color:var(--red-border);color:var(--red);}
+.tl-a{background:var(--amber-bg);border-color:var(--amber-border);color:var(--amber);}
+.tl-g{background:var(--green-bg);border-color:var(--green-border);color:var(--green);}
+.tl-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+.mono-sm{font-family:var(--mono);font-size:10px;}
+
+/* ── FINDING TYPE BADGE (Missing / Drift / Trust Failure) */
+.ftype{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.06em;padding:2px 7px;border-radius:99px;text-transform:uppercase;}
+.ftype-missing{background:var(--red-bg);color:var(--red);border:.5px solid var(--red-border);}
+.ftype-drift{background:var(--amber-bg);color:var(--amber);border:.5px solid var(--amber-border);}
+.ftype-trust{background:var(--discovery-bg);color:var(--discovery);border:.5px solid var(--discovery-border);}
+
+/* ── PROVENANCE LEVELS */
+/* Level 1: no badge — just source line */
+.prov-src{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:5px;}
+
+/* Level 2: Cross-reference */
+.prov-xref{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.05em;padding:3px 9px;border-radius:99px;background:var(--blue-bg);color:var(--blue);border:.5px solid var(--blue-border);margin-top:6px;}
+
+/* Level 3: Governance Discovery */
+.gov-discovery{margin-top:10px;border:.5px solid var(--discovery-border);border-radius:var(--r6);overflow:hidden;}
+.gov-discovery-hd{background:var(--discovery);padding:7px 12px;display:flex;align-items:center;gap:8px;}
+.gov-discovery-label{font-family:var(--mono);font-size:10px;font-weight:500;color:#fff;letter-spacing:.06em;}
+.gov-discovery-body{background:var(--discovery-bg);padding:10px 12px;}
+.gov-discovery-stmt{font-size:12px;color:var(--discovery);font-weight:500;margin-bottom:8px;line-height:1.5;}
+.gov-discovery-sources{display:flex;flex-wrap:wrap;gap:6px;}
+.gov-source{font-family:var(--mono);font-size:10px;padding:3px 8px;background:#fff;border:.5px solid var(--discovery-border);color:var(--discovery);border-radius:var(--r4);}
+
+/* ── GAP CARDS */
+.gap-card{border:.5px solid var(--border);border-radius:var(--r8);margin-bottom:.75rem;overflow:hidden;}
+.gap-card.critical{border-color:var(--red-border);}
+.gap-card.high{border-color:var(--amber-border);}
+.gap-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 14px 8px;}
+.gap-hd-left{flex:1;}
+.gap-type-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap;}
+.gap-sev{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.05em;padding:2px 7px;border-radius:99px;}
+.gap-sev.critical{background:var(--red);color:#fff;}
+.gap-sev.high{background:var(--amber);color:#fff;}
+.gap-system{font-family:var(--mono);font-size:10px;color:var(--faint);}
+.gap-title{font-family:var(--serif);font-size:14px;font-weight:600;color:var(--ink);line-height:1.3;}
+.gap-pts{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--red);white-space:nowrap;}
+.gap-body{padding:0 14px 14px;}
+.gap-consequence{font-size:13px;line-height:1.65;color:var(--ink);margin-bottom:10px;}
+
+/* ── DRIFT BOX */
+.drift-box{background:var(--amber-bg);border:.5px solid var(--amber-border);border-radius:var(--r6);padding:10px 12px;margin-bottom:10px;}
+.drift-box-title{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.06em;color:var(--amber);margin-bottom:8px;}
+.drift-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.drift-cell{}
+.drift-cell-label{font-family:var(--mono);font-size:9px;color:var(--amber);opacity:.7;margin-bottom:2px;}
+.drift-cell-val{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--amber);}
+.drift-cell-val.highlight{font-size:13px;color:var(--red);}
+
+/* ── EXAMINER IMPACT */
+.exam-impact{background:var(--cream);border-radius:var(--r6);padding:10px 12px;margin-bottom:10px;}
+.exam-impact-title{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.06em;color:var(--faint);margin-bottom:8px;}
+.exam-rows{display:flex;flex-direction:column;gap:5px;}
+.exam-row{display:flex;align-items:baseline;gap:8px;font-size:12px;}
+.exam-row-label{font-family:var(--mono);font-size:9px;color:var(--faint);width:100px;flex-shrink:0;}
+.exam-row-val{color:var(--ink);}
+.exam-row-val.bad{color:var(--red);font-weight:600;}
+.exam-verdict{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;font-weight:600;margin-top:6px;}
+.exam-verdict.no{color:var(--red);}
+.exam-verdict.partial{color:var(--amber);}
+.exam-naic{font-family:var(--mono);font-size:10px;color:var(--blue);margin-top:6px;}
+
+/* ── ACCOUNTABILITY CHAIN */
+.chain{display:flex;flex-direction:column;margin:8px 0;}
+.chain-node{display:flex;align-items:flex-start;gap:10px;}
+.chain-left{display:flex;flex-direction:column;align-items:center;width:20px;}
+.chain-dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--green);background:var(--green-bg);flex-shrink:0;margin-top:3px;}
+.chain-dot.gap{border-color:var(--red);background:var(--red);}
+.chain-line{width:1.5px;flex:1;background:var(--border);min-height:14px;}
+.chain-content{padding-bottom:10px;flex:1;}
+.chain-label{font-size:12px;font-weight:600;}
+.chain-detail{font-size:11px;color:var(--mid);}
+.chain-date{font-family:var(--mono);font-size:10px;color:var(--faint);}
+
+/* SCORE HERO */
+.score-hero{display:flex;align-items:center;gap:1.5rem;padding:1.5rem;background:var(--cream);border-radius:var(--r8);margin-bottom:.875rem;border:.5px solid var(--border);}
+.score-ring{width:100px;height:100px;border-radius:50%;border:3px solid var(--red);display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--paper);flex-shrink:0;}
+.score-num{font-family:var(--serif);font-size:34px;font-weight:600;color:var(--red);line-height:1;}
+.score-den{font-family:var(--mono);font-size:11px;color:var(--faint);}
+.score-right{flex:1;}
+.score-heading{font-family:var(--serif);font-size:17px;font-weight:600;margin-bottom:3px;}
+.score-caption{font-size:12px;color:var(--mid);margin-bottom:10px;}
+.score-bar-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--faint);margin-bottom:3px;}
+.score-bar-track{height:7px;background:var(--mist);border-radius:99px;overflow:hidden;position:relative;}
+.score-bar-fill{height:100%;border-radius:99px;background:var(--red);transition:width 1.2s cubic-bezier(.4,0,.2,1);}
+.score-threshold{position:absolute;top:0;height:100%;width:1.5px;background:var(--ink);opacity:.25;}
+.score-warn{font-family:var(--mono);font-size:10px;color:var(--red);margin-top:5px;}
+
+/* FINDINGS SUMMARY GRID */
+.findings-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.875rem;}
+.fs-item{padding:10px 12px;border-radius:var(--r6);border:.5px solid var(--border);background:var(--cream);}
+.fs-item.r{background:var(--red-bg);border-color:var(--red-border);}
+.fs-item.a{background:var(--amber-bg);border-color:var(--amber-border);}
+.fs-item.g{background:var(--green-bg);border-color:var(--green-border);}
+.fs-item.d{background:var(--discovery-bg);border-color:var(--discovery-border);}
+.fs-val{font-family:var(--serif);font-size:22px;font-weight:600;line-height:1;}
+.fs-item.r .fs-val{color:var(--red);}
+.fs-item.a .fs-val{color:var(--amber);}
+.fs-item.g .fs-val{color:var(--green);}
+.fs-item.d .fs-val{color:var(--discovery);}
+.fs-lbl{font-size:11px;color:var(--mid);margin-top:2px;}
+
+/* DEFENSIBILITY TABLE */
+.def-table{width:100%;border-collapse:collapse;font-size:13px;}
+.def-table th{font-family:var(--mono);font-size:10px;color:var(--faint);text-align:left;padding:7px 12px;border-bottom:.5px solid var(--border);letter-spacing:.03em;}
+.def-table td{padding:0;border-bottom:.5px solid var(--border);}
+.def-table tr:last-child td{border-bottom:none;}
+.def-row-main{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer;transition:background .15s;}
+.def-row-main:hover{background:var(--cream);}
+.def-sys-name{font-weight:600;font-size:13px;}
+.def-sys-id{font-family:var(--mono);font-size:10px;color:var(--faint);margin-left:6px;}
+.def-verdict{font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 10px;border-radius:99px;border:.5px solid;}
+.def-verdict.defensible{background:var(--green-bg);border-color:var(--green-border);color:var(--green);}
+.def-verdict.gaps{background:var(--amber-bg);border-color:var(--amber-border);color:var(--amber);}
+.def-verdict.risk{background:var(--red-bg);border-color:var(--red-border);color:var(--red);}
+.def-verdict.notdef{background:var(--red);color:#fff;border-color:var(--red);}
+.def-expand{display:none;border-top:.5px solid var(--border);background:var(--cream);padding:12px;}
+.def-expand.open{display:block;}
+.def-chain{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;}
+.def-chain-item{padding:8px 10px;border-radius:var(--r4);border:.5px solid var(--border);background:var(--paper);}
+.def-chain-item.pass{background:var(--green-bg);border-color:var(--green-border);}
+.def-chain-item.fail{background:var(--red-bg);border-color:var(--red-border);}
+.def-chain-label{font-family:var(--mono);font-size:9px;color:var(--faint);margin-bottom:3px;letter-spacing:.03em;}
+.def-chain-item.pass .def-chain-label{color:var(--green);}
+.def-chain-item.fail .def-chain-label{color:var(--red);}
+.def-chain-val{font-family:var(--mono);font-size:11px;font-weight:600;}
+.def-chain-item.pass .def-chain-val{color:var(--green);}
+.def-chain-item.fail .def-chain-val{color:var(--red);}
+.def-exposure{font-family:var(--mono);font-size:11px;color:var(--red);margin-top:4px;}
+.def-overall{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:.5px solid var(--border);}
+.def-overall-label{font-size:12px;font-weight:600;color:var(--mid);}
+.def-overall-verdict{font-family:var(--mono);font-size:12px;font-weight:700;}
+
+/* BREAKDOWN TABLE */
+.bk-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.bk-tbl th{font-family:var(--mono);font-size:10px;color:var(--faint);text-align:left;padding:6px 8px;border-bottom:.5px solid var(--border);}
+.bk-tbl td{padding:7px 8px;border-bottom:.5px solid var(--border);}
+.bk-tbl tr:last-child td{border-bottom:none;font-weight:600;}
+.ded{color:var(--red);font-family:var(--mono);font-weight:600;}
+.neutral{color:var(--faint);font-family:var(--mono);}
+
+/* PRIORITY */
+.pri-item{display:flex;gap:10px;padding:10px;border:.5px solid var(--border);border-radius:var(--r6);margin-bottom:6px;}
+.pri-n{width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pri-n.urgent{background:var(--red);}
+.pri-title{font-size:13px;font-weight:600;margin-bottom:2px;}
+.pri-sub{font-size:11px;color:var(--mid);}
+.pri-impact{font-family:var(--mono);font-size:10px;color:var(--green);margin-top:2px;}
+
+/* EXAMINER PANEL */
+.eq-item{border:.5px solid var(--border);border-radius:var(--r6);margin-bottom:6px;overflow:hidden;}
+.eq-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--cream);gap:10px;}
+.eq-system{font-family:var(--mono);font-size:10px;color:var(--faint);flex-shrink:0;}
+.eq-q{font-size:13px;font-style:italic;flex:1;}
+.eq-verdict{font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 8px;border-radius:99px;flex-shrink:0;}
+.eq-verdict.no{background:var(--red);color:#fff;}
+.eq-verdict.partial{background:var(--amber);color:#fff;}
+.eq-verdict.yes{background:var(--green);color:#fff;}
+.eq-body{padding:8px 12px;font-size:12px;color:var(--mid);border-top:.5px solid var(--border);}
+
+/* FINDINGS TABS */
+.tab-row{display:flex;gap:0;border-bottom:.5px solid var(--border);margin-bottom:.875rem;}
+.tab{padding:7px 14px;font-size:12px;font-weight:500;color:var(--faint);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+.tab.active{color:var(--ink);border-bottom-color:var(--ink);}
+.tab-panel{display:none;}.tab-panel.active{display:block;}
+
+/* DQ / VG items */
+.dq-item{display:flex;gap:10px;padding:10px 12px;border:.5px solid var(--amber-border);background:var(--amber-bg);border-radius:var(--r6);margin-bottom:5px;font-size:12px;}
+.dq-title{font-weight:600;color:var(--amber);margin-bottom:2px;}
+.dq-detail{color:var(--mid);}
+.dq-src{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:3px;}
+.vg-item{padding:10px 12px;border:.5px solid var(--discovery-border);background:var(--discovery-bg);border-radius:var(--r6);margin-bottom:5px;font-size:12px;}
+.vg-title{font-weight:600;color:var(--discovery);margin-bottom:2px;}
+.vg-detail{color:var(--ink);}
+.vg-action{font-family:var(--mono);font-size:10px;color:var(--discovery);margin-top:4px;}
+
+/* EVIDENCE */
+.ev-section{border:.5px solid var(--border);border-radius:var(--r6);margin-bottom:6px;overflow:hidden;}
+.ev-hd{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--cream);font-size:12px;font-weight:600;}
+.ev-body{padding:10px 12px;font-family:var(--mono);font-size:11px;line-height:1.85;white-space:pre-wrap;}
+.report-box{background:var(--cream);border:.5px solid var(--border);border-radius:var(--r6);padding:1rem;font-family:var(--mono);font-size:11px;line-height:1.9;max-height:480px;overflow-y:auto;white-space:pre-wrap;}
+
+/* MISC */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:.875rem;}
+.sep{height:.5px;background:var(--border);margin:.875rem 0;}
+.mb{margin-bottom:.875rem;}
+.quote{border-left:2.5px solid var(--red);padding:8px 12px;background:var(--cream);border-radius:0 var(--r4) var(--r4) 0;font-size:12px;font-style:italic;margin:.75rem 0;line-height:1.6;}
+.quote-src{font-size:10px;font-style:normal;font-family:var(--mono);color:var(--faint);margin-top:3px;}
+.tag{display:inline-block;font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:3px;background:var(--mist);color:var(--faint);}
+input[type=file]{display:none;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/" class="logo">Policy<em>Proof</em></a>
+  <div class="topbar-meta">
+    <span class="badge">v4 · Meridian Demo</span>
+    <span class="badge badge-o">v4-meridian-demo</span>
+    <a href="/app.html" class="back">← v3 app</a>
+  </div>
+</div>
+
+<div class="ctx">
+  <div class="ctx-org">
+    <span>Organisation:</span><strong>Meridian Insurance</strong>
+    <span>·</span><span>Premiums:</span><strong>$2.1B</strong>
+    <span>·</span><span>State:</span><strong>Ohio</strong>
+    <span>·</span><span>AI Systems:</span><strong>5 in production</strong>
+  </div>
+  <span class="naic-tag">NAIC Evaluation Tool Pilot — Ohio Active</span>
+</div>
+
+<div class="shell">
+
+  <div class="stepper">
+    <div class="stp active" id="stp1" onclick="goStep(1)"><div class="stp-n">1</div>Import</div>
+    <div class="stp" id="stp2" onclick="goStep(2)"><div class="stp-n">2</div>Analyse</div>
+    <div class="stp" id="stp3" onclick="goStep(3)"><div class="stp-n">3</div>System Defensibility</div>
+    <div class="stp" id="stp4" onclick="goStep(4)"><div class="stp-n">4</div>Examiner Questions</div>
+    <div class="stp" id="stp5" onclick="goStep(5)"><div class="stp-n">5</div>Evidence Package</div>
+  </div>
+
+  <!-- PANEL 1: IMPORT -->
+  <div class="panel active" id="panel-1">
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">Import your existing governance exports</span>
+        <span class="card-sub">CSV · JSON · XLSX — Jira · SharePoint · Excel · ServiceNow</span>
+      </div>
+      <div class="alert a-blue">
+        <span>ℹ</span>
+        <span>PolicyProof reads exports your team already has. Nothing new to maintain. All processing runs in your browser — no data leaves your device.</span>
+      </div>
+      <div class="upload-grid">
+        <div class="slot" id="slot-inv" onclick="trig('f-inv')"><input type="file" id="f-inv" accept=".csv,.xlsx,.json" onchange="onFile('inv',this)"/><div class="slot-ico">📋</div><div class="slot-name">AI System Inventory</div><div class="slot-src">CSV · XLSX · JSON — Jira, ServiceNow, spreadsheet</div><div class="slot-ok" id="ok-inv"></div></div>
+        <div class="slot" id="slot-pol" onclick="trig('f-pol')"><input type="file" id="f-pol" accept=".json,.csv,.xlsx" onchange="onFile('pol',this)"/><div class="slot-ico">📄</div><div class="slot-name">Policy Version Library</div><div class="slot-src">JSON · CSV · XLSX — SharePoint, policy management system</div><div class="slot-ok" id="ok-pol"></div></div>
+        <div class="slot" id="slot-dec" onclick="trig('f-dec')"><input type="file" id="f-dec" accept=".csv,.xlsx" onchange="onFile('dec',this)"/><div class="slot-ico">⚖️</div><div class="slot-name">AI Decision Log</div><div class="slot-src">CSV · XLSX — claims system, decision audit log</div><div class="slot-ok" id="ok-dec"></div></div>
+      </div>
+      <div class="upload-grid-2">
+        <div class="slot" id="slot-risk" onclick="trig('f-risk')"><input type="file" id="f-risk" accept=".xlsx,.csv,.json" onchange="onFile('risk',this)"/><div class="slot-ico">🛡️</div><div class="slot-name">Risk Assessments</div><div class="slot-src">XLSX · CSV · JSON — risk register, GRC platform export</div><div class="slot-ok" id="ok-risk"></div></div>
+        <div class="slot" id="slot-ovr" onclick="trig('f-ovr')"><input type="file" id="f-ovr" accept=".csv,.xlsx,.json" onchange="onFile('ovr',this)"/><div class="slot-ico">👁️</div><div class="slot-name">Oversight & Review Log</div><div class="slot-src">CSV · XLSX · JSON — ServiceNow, committee records</div><div class="slot-ok" id="ok-ovr"></div></div>
+      </div>
+      <div class="or">or</div>
+      <div class="row-ctr">
+        <button class="btn btn-p btn-lg" onclick="loadDemo()">▶ Load Meridian Insurance demo data</button>
+      </div>
+      <p style="font-family:var(--mono);font-size:10px;color:var(--faint);text-align:center;margin-top:6px;">Loads all five pre-built files automatically · No uploads needed</p>
+    </div>
+    <div class="card" id="import-summary" style="display:none;">
+      <div class="card-hd"><span class="card-title">Import summary</span></div>
+      <div id="import-summary-body"></div>
+      <div class="row-end"><button class="btn btn-p" onclick="runAnalysis()">Run analysis →</button></div>
+    </div>
+  </div>
+
+  <!-- PANEL 2: ANALYSIS -->
+  <div class="panel" id="panel-2">
+    <div class="card" id="prog-card">
+      <div class="card-hd"><span class="card-title">Running gap detection engine</span></div>
+      <div class="prog-label" id="prog-lbl">Initialising...</div>
+      <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+      <div class="prog-chips">
+        <span class="chip" id="pc1">1. Ingest files</span>
+        <span class="chip" id="pc2">2. Normalise fields</span>
+        <span class="chip" id="pc3">3. Build policy index</span>
+        <span class="chip" id="pc4">4. Date-aware version match</span>
+        <span class="chip" id="pc5">5. Scan risk acceptances</span>
+        <span class="chip" id="pc6">6. Audit reviewer logs</span>
+        <span class="chip" id="pc7">7. Check relationship chains</span>
+        <span class="chip" id="pc8">8. Detect trust failures</span>
+        <span class="chip" id="pc9">9. Calculate NAIC score</span>
+      </div>
+    </div>
+    <div id="analysis-out" style="display:none;">
+      <div class="metrics" id="metrics-grid"></div>
+      <div class="card">
+        <div class="card-hd"><span class="card-title">AI system status</span><span class="card-sub">Traffic light · NAIC Exhibit A</span></div>
+        <table class="sys-tbl"><thead><tr><th>System</th><th>Function</th><th>Owner</th><th>Policy version</th><th>Risk acceptance</th><th>Oversight</th><th>Status</th></tr></thead><tbody id="sys-tbody"></tbody></table>
+      </div>
+      <div class="card">
+        <div class="card-hd"><span class="card-title">Findings</span></div>
+        <div class="tab-row">
+          <div class="tab active" onclick="switchTab('gaps')">Governance Gaps <span id="gap-ct"></span></div>
+          <div class="tab" onclick="switchTab('dq')">Governance Drift <span id="dq-ct"></span></div>
+          <div class="tab" onclick="switchTab('verif')">Trust Failures <span id="vg-ct"></span></div>
+        </div>
+        <div class="tab-panel active" id="tab-gaps"><div id="gaps-list"></div></div>
+        <div class="tab-panel" id="tab-dq"><div id="dq-list"></div></div>
+        <div class="tab-panel" id="tab-verif"><div id="vg-list"></div></div>
+      </div>
+      <div class="row-end"><button class="btn btn-p" onclick="goStep(3)">View system defensibility →</button></div>
+    </div>
+  </div>
+
+  <!-- PANEL 3: SYSTEM DEFENSIBILITY -->
+  <div class="panel" id="panel-3">
+    <div class="card" style="margin-bottom:.75rem;">
+      <p style="font-family:var(--serif);font-size:15px;font-weight:300;font-style:italic;color:var(--mid);line-height:1.6;">PolicyProof does not start with findings. It determines whether each AI system can be defended in an examination.</p>
+    </div>
+    <div id="score-hero-wrap"></div>
+    <div class="g2 mb">
+      <div class="card" style="margin:0;"><div class="card-hd"><span class="card-title">Priority remediation</span></div><div id="pri-list"></div></div>
+      <div class="card" style="margin:0;"><div class="card-hd"><span class="card-title">Examination Risk Factors</span><span class="card-sub">Reference only</span></div><table class="bk-tbl" id="bk-tbl"></table></div>
+    </div>
+    <div class="row-end"><button class="btn btn-p" onclick="goStep(4)">See examiner questions →</button></div>
+  </div>
+
+  <!-- PANEL 4: EXAMINER QUESTIONS -->
+  <div class="panel" id="panel-4">
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Examiner questions Meridian cannot answer today</span><span class="card-sub">NAIC examination simulation</span></div>
+      <div class="alert a-red"><span>⚠</span><span>These are the exact questions an NAIC examiner will ask. Each <strong>NO</strong> is a potential Material Finding. Meridian cannot answer <span id="no-count">—</span> of these questions today.</span></div>
+      <div id="eq-list"></div>
+    </div>
+    <div class="row-end"><button class="btn btn-p" onclick="goStep(5)">Generate evidence package →</button></div>
+  </div>
+
+  <!-- PANEL 5: EVIDENCE -->
+  <div class="panel" id="panel-5">
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Examination evidence package</span><span class="card-sub">NAIC Exhibit B · auto-generated</span></div>
+      <div class="alert a-green"><span>✓</span><span>Generated automatically from Meridian's imported files. No manual assembly. Every finding references its source record.</span></div>
+      <div id="ev-sections"></div>
+      <div class="sep"></div>
+      <div class="row-end">
+        <button class="btn" onclick="copyReport()">Copy report</button>
+        <button class="btn btn-red" onclick="dlReport()">⬇ Export as PDF</button>
+      </div>
+    </div>
+    <div class="card"><div class="card-hd"><span class="card-title">Full audit report</span></div><div class="report-box" id="full-report"></div></div>
+    <div class="card">
+      <div class="card-hd"><span class="card-title">The question to ask now</span></div>
+      <p style="font-size:14px;line-height:1.8;">If we ran this against <strong>your organisation's data</strong> — your Jira exports, your SharePoint policies, your decision logs — what would we find?</p>
+      <div class="sep"></div>
+      <p style="font-size:13px;color:var(--mid);">PolicyProof ingests your existing exports. No integration project. No new system. 20 minutes from import to readiness score.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- SCHEMA MAPPING MODAL -->
+<div class="mapping-modal" id="mapping-modal">
+  <div class="mapping-box">
+    <div class="mapping-title" id="mapping-title">Map your columns</div>
+    <div class="mapping-sub" id="mapping-sub">We detected these columns in your file. Tell us which PP field each one maps to.</div>
+    <div class="mapping-note" id="mapping-note"></div>
+    <div id="mapping-rows"></div>
+    <div class="row-end" style="margin-top:1.5rem;">
+      <button class="btn" onclick="closeMappingModal()">Cancel</button>
+      <button class="btn btn-p" onclick="confirmMapping()">Apply mapping →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// DATA MODEL
+// ════════════════════════════════════════════════════════════════
+const RAW = {
+  systems:[
+    {id:'SYS-001',name:'ClaimScore AI',fn:'Claims Processing',vendor:'Verisk / GPT-4',tier:'Tier 2',owner:'Sarah Chen',ownerEmail:'sarah.chen@meridianins.com',policyId:'POL-CLAIMS-001',oversight:true,complianceSignoff:true,riskExpiry:'2025-01-10',riskStatus:'EXPIRED',jiraKey:'AIOPS-1001'},
+    {id:'SYS-002',name:'FraudGuard ML',fn:'Fraud Detection',vendor:'Internal / XGBoost',tier:'Tier 1',owner:'UNASSIGNED',ownerEmail:'',ownerDepartedNote:'Marcus Webb — VP Fraud Operations — departed December 2023. No replacement assigned.',policyId:'POL-FRAUD-002',oversight:false,complianceSignoff:false,riskExpiry:null,riskStatus:'NOT ON FILE',jiraKey:'AIOPS-1002'},
+    {id:'SYS-003',name:'UnderwriteAssist',fn:'Underwriting',vendor:'Gradient AI',tier:'Tier 2',owner:'James Okafor',ownerEmail:'james.okafor@meridianins.com',policyId:'POL-UW-003',oversight:true,complianceSignoff:true,riskExpiry:'2024-02-10',riskStatus:'EXPIRED',jiraKey:'AIOPS-1003'},
+    {id:'SYS-004',name:'CustomerIQ',fn:'Customer Marketing',vendor:'Salesforce Einstein',tier:'Tier 3',owner:'Lisa Tran',ownerEmail:'lisa.tran@meridianins.com',policyId:'POL-OVERSIGHT-004',oversight:false,complianceSignoff:true,riskExpiry:'2025-06-10',riskStatus:'EXPIRED',jiraKey:'AIOPS-1004'},
+    {id:'SYS-005',name:'DocExtract Pro',fn:'Document Processing',vendor:'AWS Textract / Claude',tier:'Tier 2',owner:'Mark Singh',ownerEmail:'mark.singh@meridianins.com',policyId:'POL-VENDOR-005',oversight:false,complianceSignoff:false,riskExpiry:'2025-04-08',riskStatus:'EXPIRED',jiraKey:'AIOPS-1005'},
+  ],
+  policyVersions:[
+    {systemId:'SYS-001',version:'v1.8',effectiveFrom:'2024-07-01',effectiveTo:'2025-01-14',policyId:'POL-CLAIMS-001',approvedBy:'David Park',approverActive:true},
+    {systemId:'SYS-001',version:'v2.1',effectiveFrom:'2025-01-15',effectiveTo:null,policyId:'POL-CLAIMS-001',approvedBy:'David Park',approverActive:true},
+    {systemId:'SYS-002',version:'v1.2',effectiveFrom:'2022-09-01',effectiveTo:'2024-02-28',policyId:'POL-FRAUD-002',approvedBy:'David Park',approverActive:true},
+    {systemId:'SYS-002',version:'v1.3',effectiveFrom:'2024-03-01',effectiveTo:null,policyId:'POL-FRAUD-002',approvedBy:'David Park',approverActive:true},
+    {systemId:'SYS-003',version:'v2.1',effectiveFrom:'2021-02-10',effectiveTo:'2023-02-09',policyId:'POL-UW-003',approvedBy:'Robert Haines',approverActive:null},
+    {systemId:'SYS-003',version:'v3.0',effectiveFrom:'2023-02-10',effectiveTo:null,policyId:'POL-UW-003',approvedBy:'Robert Haines',approverActive:null},
+    {systemId:'SYS-004',version:'v1.0',effectiveFrom:'2024-06-01',effectiveTo:null,policyId:'POL-OVERSIGHT-004',approvedBy:'Rachel Wong',approverActive:true},
+    {systemId:'SYS-005',version:'v2.0',effectiveFrom:'2024-04-08',effectiveTo:'2025-03-31',policyId:'POL-VENDOR-005',approvedBy:'Mark Singh',approverActive:true},
+    {systemId:'SYS-005',version:'v2.2',effectiveFrom:'2025-04-01',effectiveTo:null,policyId:'POL-VENDOR-005',approvedBy:'David Park',approverActive:true},
+  ],
+  decisions:[
+    {id:'DEC-2025-0081',date:'2025-02-10',systemId:'SYS-001',versionUsed:'v1.8',reviewer:'Jennifer Nakamura',outcome:'FAST_TRACK',claimRef:'CLM-2025-8821',src:'meridian_decisions.csv:row 2'},
+    {id:'DEC-2025-0082',date:'2025-02-18',systemId:'SYS-001',versionUsed:'v1.8',reviewer:'Brian Hollis',outcome:'MANUAL_REVIEW',claimRef:'CLM-2025-8834',src:'meridian_decisions.csv:row 3'},
+    {id:'DEC-2025-0083',date:'2025-03-05',systemId:'SYS-001',versionUsed:'v1.8',reviewer:'Jennifer Nakamura',outcome:'DENY',claimRef:'CLM-2025-8901',src:'meridian_decisions.csv:row 4'},
+    {id:'DEC-2025-0084',date:'2025-03-22',systemId:'SYS-001',versionUsed:'v1.8',reviewer:'',outcome:'DENY',claimRef:'CLM-2025-9103',src:'meridian_decisions.csv:row 5'},
+    {id:'DEC-2025-0085',date:'2025-04-03',systemId:'SYS-002',versionUsed:'v1.2',reviewer:'',outcome:'FLAG',claimRef:'FRD-2025-0044',src:'meridian_decisions.csv:row 6'},
+    {id:'DEC-2025-0086',date:'2025-04-11',systemId:'SYS-002',versionUsed:'v1.2',reviewer:'',outcome:'CLEAR',claimRef:'FRD-2025-0061',src:'meridian_decisions.csv:row 7'},
+    {id:'DEC-2025-0087',date:'2025-04-15',systemId:'SYS-003',versionUsed:'v3.0',reviewer:'James Okafor',outcome:'TIER_3',claimRef:'UW-2025-1122',src:'meridian_decisions.csv:row 8'},
+    {id:'DEC-2025-0088',date:'2025-04-28',systemId:'SYS-003',versionUsed:'v3.0',reviewer:'Karen Bell',outcome:'TIER_2',claimRef:'UW-2025-1198',src:'meridian_decisions.csv:row 9'},
+    {id:'DEC-2025-0089',date:'2025-05-02',systemId:'SYS-004',versionUsed:'v1.0',reviewer:'',outcome:'OFFER',claimRef:'CRM-2025-3301',src:'meridian_decisions.csv:row 10'},
+    {id:'DEC-2025-0090',date:'2025-05-08',systemId:'SYS-004',versionUsed:'v1.0',reviewer:'',outcome:'OFFER',claimRef:'CRM-2025-3344',src:'meridian_decisions.csv:row 11'},
+    {id:'DEC-2025-0091',date:'2025-05-12',systemId:'SYS-001',versionUsed:'v2.1',reviewer:'Jennifer Nakamura',outcome:'FAST_TRACK',claimRef:'CLM-2025-9510',src:'meridian_decisions.csv:row 12'},
+    {id:'DEC-2025-0092',date:'2025-05-20',systemId:'SYS-001',versionUsed:'v2.1',reviewer:'Brian Hollis',outcome:'MANUAL_REVIEW',claimRef:'CLM-2025-9588',src:'meridian_decisions.csv:row 13'},
+    {id:'DEC-2025-0093',date:'2025-05-25',systemId:'SYS-003',versionUsed:'v3.0',reviewer:'James Okafor',outcome:'TIER_1',claimRef:'UW-2025-1344',src:'meridian_decisions.csv:row 14'},
+    {id:'DEC-2025-0094',date:'2025-06-01',systemId:'SYS-005',versionUsed:'v2.0',reviewer:'Mark Singh',outcome:'EXTRACT',claimRef:'CLM-2025-9801',src:'meridian_decisions.csv:row 15'},
+    {id:'DEC-2025-0095',date:'2025-06-05',systemId:'SYS-002',versionUsed:'v1.3',reviewer:'',outcome:'FLAG',claimRef:'FRD-2025-0092',src:'meridian_decisions.csv:row 16'},
+  ]
+};
+
+// ════════════════════════════════════════════════════════════════
+// PROCESSING ENGINE
+// ════════════════════════════════════════════════════════════════
+function buildPolicyVersionIndex(versions){
+  const idx={};
+  versions.forEach(v=>{
+    if(!idx[v.systemId]) idx[v.systemId]=[];
+    idx[v.systemId].push({version:v.version,from:new Date(v.effectiveFrom).getTime(),to:v.effectiveTo?new Date(v.effectiveTo).getTime():Infinity,approvedBy:v.approvedBy,approverActive:v.approverActive,policyId:v.policyId});
+  });
+  Object.values(idx).forEach(arr=>arr.sort((a,b)=>a.from-b.from));
+  return idx;
+}
+
+function getCorrectVersion(idx,systemId,dateStr){
+  const ts=new Date(dateStr).getTime();
+  const tl=idx[systemId];
+  if(!tl||!tl.length) return {version:null,status:'NO_INDEX'};
+  let lo=0,hi=tl.length-1,result=null;
+  while(lo<=hi){const mid=Math.floor((lo+hi)/2),v=tl[mid];if(ts>=v.from&&ts<=v.to){result=v;break;}else if(ts<v.from)hi=mid-1;else lo=mid+1;}
+  if(!result) return {version:null,status:ts<tl[0].from?'BEFORE_ANY':'GAP_BETWEEN'};
+  return {version:result.version,status:'FOUND',approvedBy:result.approvedBy,approverActive:result.approverActive,policyId:result.policyId};
+}
+
+function processDecisions(decisions,policyIdx){
+  const res={mismatches:[],noGoverningPolicy:[],noReviewer:[],clean:[],dqIssues:[]};
+  const BATCH=500;let i=0;
+  while(i<decisions.length){
+    const end=Math.min(i+BATCH,decisions.length);
+    while(i<end){
+      const d=decisions[i++];
+      if(!d.date||isNaN(new Date(d.date))){res.dqIssues.push({type:'INVALID_DATE',decId:d.id,src:d.src});continue;}
+      const correct=getCorrectVersion(policyIdx,d.systemId,d.date);
+      const vMatch=correct.status==='FOUND'&&correct.version===d.versionUsed;
+      const hasRev=!!(d.reviewer&&d.reviewer.trim());
+      if(correct.status!=='FOUND') res.noGoverningPolicy.push({...d,correctInfo:correct});
+      else if(!vMatch) res.mismatches.push({...d,correctVersion:correct.version,approvedBy:correct.approvedBy,approverActive:correct.approverActive,policyId:correct.policyId});
+      if(!hasRev) res.noReviewer.push({...d});
+      if(vMatch&&hasRev) res.clean.push({...d});
+    }
+  }
+  return res;
+}
+
+// ── DRIFT DATE HELPERS ────────────────────────────────────────
+function daysBetween(d1,d2){return Math.floor((new Date(d2)-new Date(d1))/86400000);}
+function fmt(d){return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+
+// ════════════════════════════════════════════════════════════════
+// ── GLOBAL DATE ──────────────────────────────────────────────
+const TODAY=new Date();
+const TODAY_STR=TODAY.toISOString().split('T')[0];
+
+// GAP DETECTION
+// ════════════════════════════════════════════════════════════════
+function detectGaps(decRes,policyIdx){
+  const gaps=[],dqIssues=[...decRes.dqIssues],vgIssues=[];
+  let score=100,breakdown=[];
+
+  // ── GAP 1: No owner — Missing — Level 3 Governance Discovery ──
+  ACTIVE_DATA.systems.filter(s=>!s.owner||s.owner==='UNASSIGNED').forEach(s=>{
+    const decsDuringGap=decRes.mismatches.concat(decRes.noReviewer,decRes.clean,decRes.noGoverningPolicy).filter(d=>d.systemId===s.id);
+    const uniqueDecs=[...new Set(decsDuringGap.map(d=>d.id))].length;
+    score-=15; breakdown.push({gap:'No accountable owner',system:s.name,ded:-15,naic:'Exhibit B §2.1'});
+    gaps.push({
+      type:'critical',findingType:'missing',provLevel:3,
+      id:'GAP-OWN-'+s.id,
+      title:`No named human is accountable for ${s.name}`,
+      system:s.name,systemId:s.id,
+      consequence:`${s.name} has processed live ${s.fn.toLowerCase()} decisions for 18 months with no named accountable owner. ${s.ownerDepartedNote||''} No individual can be held responsible for any decision this system has made. If an examiner asks who is accountable — there is no answer.`,
+      drift:null,
+      chain:[
+        {label:'Marcus Webb — named owner',detail:'VP Fraud Operations · FraudGuard ML accountability holder on record',date:'Pre Dec 2023',ok:true},
+        {label:'Jira comment records departure',detail:'AIOPS-1002 comment (Michelle Torres, 18 Mar 2024): "IT sponsor Marcus Webb departed December 2023" · Source: free-text comment field, not HR system',date:'Dec 2023',ok:false},
+        {label:'Owner field set to UNASSIGNED',detail:'Jira ticket AIOPS-1002 · Reassignment request sent to VP Operations · No response received',date:'Dec 2023',ok:false},
+        {label:'System continues processing live decisions',detail:'Fraud flags and clearances continue · No named human accountable for any decision made during this period',date:'Dec 2023 → Jun 2025',ok:false},
+        {label:'No accountable owner on record today',detail:'18 months of decisions with no named accountable human · Cannot be defended in examination',date:'Jun 2025',ok:false},
+      ],
+      examinerQ:'Who is accountable for FraudGuard ML\'s decisions?',
+      examinerVerdict:'NO',
+      examinerCannotDemonstrate:'No named owner on record for 18 months.',
+      examinerLikelyOutcome:'Material Finding — examiner will require immediate owner assignment and governance chain reapproval.',
+      examinerRemediation:'Assign named owner, document accountability chain, resubmit for compliance sign-off.',
+      naic:'NAIC Exhibit B §2.1',
+      provenanceSources:['AI Inventory (Jira)','Decision Logs','Risk Registry','Oversight Records'],
+      defImpact:'This system cannot be defended if an examiner asks who is accountable for its decisions.',
+      pts:'-15 pts'
+    });
+  });
+
+  // ── GAP 2: Policy version mismatch — Drift — Level 2 Cross-Reference ──
+  const mBySys={};
+  decRes.mismatches.forEach(d=>{
+    if(!mBySys[d.systemId]) mBySys[d.systemId]={systemId:d.systemId,decisions:[],correctVersion:d.correctVersion,versionUsed:d.versionUsed};
+    mBySys[d.systemId].decisions.push(d);
+  });
+  Object.values(mBySys).forEach(m=>{
+    const sys=ACTIVE_DATA.systems.find(s=>s.id===m.systemId);
+    const dates=m.decisions.map(d=>d.date).sort();
+    const driftStart=dates[0];
+    const driftDays=daysBetween(driftStart,TODAY_STR);
+    score-=10; breakdown.push({gap:'Policy version mismatch',system:sys?.name,ded:-10,naic:'Exhibit B §3.3'});
+    gaps.push({
+      type:'critical',findingType:'drift',provLevel:2,
+      id:'GAP-VER-'+m.systemId,
+      title:`${m.decisions.length} decisions made after governing policy changed — ${driftDays} days of policy execution drift`,
+      system:sys?.name,systemId:m.systemId,
+      consequence:`${m.decisions.length} decisions were made using ${m.versionUsed} after ${m.correctVersion} became the governing policy. Each of these decisions cannot be tied to the policy that was in force at the time they were made. If an examiner selects any one of these decisions and asks which policy governed it, Meridian cannot produce a valid answer.`,
+      drift:{currentPolicy:m.correctVersion,systemUsing:m.versionUsed,driftStarted:driftStart,driftDays,affectedDecisions:m.decisions.length},
+      chain:null,
+      examinerQ:`Which policy governed Decision ${m.decisions[0]?.id} on ${m.decisions[0]?.date}?`,
+      examinerVerdict:'NO',
+      examinerCannotDemonstrate:`${m.versionUsed} was not active on that date. ${m.correctVersion} was the governing policy.`,
+      examinerLikelyOutcome:'Material Finding — decisions cannot be tied to an active governance framework.',
+      examinerRemediation:`Update system to ${m.correctVersion} immediately. Document transition date. Review all ${m.decisions.length} affected decisions.`,
+      naic:'NAIC Exhibit B §3.3(c)',
+      provenanceSources:['Policy Library (SharePoint)','Decision Logs'],
+      govDiscoveryStmt:null,
+      defImpact:`${m.decisions.length} decisions made by this system cannot be tied to an active governing policy. An examiner asking to see the policy will find a version that was not in force at decision time.`,
+      pts:'-10 pts'
+    });
+  });
+
+  // ── GAP 3: Expired / missing risk acceptance — Missing/Drift ──
+  ACTIVE_DATA.systems.forEach(s=>{
+    const expired=s.riskStatus==='EXPIRED',missing=s.riskStatus==='NOT ON FILE';
+    if(!expired&&!missing) return;
+    const days=expired&&s.riskExpiry?daysBetween(s.riskExpiry,TODAY_STR):null;
+    const ft=missing?'missing':'drift';
+    const pl=missing?3:2;
+    score-=12; breakdown.push({gap:missing?'No risk acceptance on file':'Expired risk acceptance',system:s.name,ded:-12,naic:'Exhibit D'});
+    gaps.push({
+      type:'critical',findingType:ft,provLevel:pl,
+      id:'GAP-RISK-'+s.id,
+      title:missing?`${s.name} has never had a risk acceptance document`:`${s.name} risk acceptance expired ${days} days ago — system still in production`,
+      system:s.name,systemId:s.id,
+      consequence:missing
+        ?`${s.name} has been in production since 2021 with no formal risk acceptance ever completed. There is no documented authorisation to operate this system. No one has ever formally accepted the risk of deploying it.`
+        :`${s.name}'s risk acceptance expired on ${fmt(s.riskExpiry)} — ${days} days ago. The system has continued making ${s.fn.toLowerCase()} decisions ever since. The organisation cannot demonstrate it was authorised to operate this system after that date.`,
+      drift:expired?{currentPolicy:'Valid acceptance required',systemUsing:'Expired acceptance',driftStarted:s.riskExpiry,driftDays:days,affectedDecisions:'All decisions post-'+fmt(s.riskExpiry)}:null,
+      chain:null,
+      examinerQ:missing?`Where is the risk acceptance document for ${s.name}?`:`Who authorised ${s.name} to continue operating after its risk acceptance expired on ${fmt(s.riskExpiry)}?`,
+      examinerVerdict:'NO',
+      examinerCannotDemonstrate:missing?'No risk acceptance document has ever been filed.':'No renewal was initiated. No emergency authorisation was documented.',
+      examinerLikelyOutcome:'Material Finding — examiner may require system suspension pending valid risk acceptance.',
+      examinerRemediation:missing?'Complete initial risk assessment and obtain CRO sign-off immediately.':'Complete renewal risk assessment. Obtain sign-off. Document rationale for continued operation during lapse.',
+      naic:'NAIC Exhibit D · Model Bulletin §1.7',
+      provenanceSources:missing?['AI Inventory (Jira)','Risk Registry','Decision Logs','Oversight Records']:['Risk Registry','Decision Logs'],
+      govDiscoveryStmt:missing?'This finding required evidence from 4 independent governance records. No individual source identified this issue.':null,
+      defImpact:missing?'This system cannot be defended — the organisation has no documented authorisation to operate it.':'This system may be suspended — it has operated without valid authorisation for '+days+' days.',
+      pts:'-12 pts'
+    });
+  });
+
+  // ── GAP 4: No human reviewer — Missing — Level 1 ──────────────
+  if(decRes.noReviewer.length>0){
+    const bySys={};
+    decRes.noReviewer.forEach(d=>{bySys[d.systemId]=(bySys[d.systemId]||0)+1;});
+    const summary=Object.entries(bySys).map(([id,n])=>{const s=ACTIVE_DATA.systems.find(x=>x.id===id);return `${s?.name||id} (${n})`;}).join(', ');
+    score-=8; breakdown.push({gap:'Decisions with no human reviewer',system:`${decRes.noReviewer.length} decisions`,ded:-8,naic:'Exhibit B §2.3'});
+    gaps.push({
+      type:'high',findingType:'missing',provLevel:1,
+      id:'GAP-REV',
+      title:`${decRes.noReviewer.length} AI decisions have no human reviewer on record`,
+      system:summary,systemId:'',
+      consequence:`${decRes.noReviewer.length} AI-assisted decisions were made with no human reviewer logged. Including ${decRes.noReviewer.filter(d=>d.outcome==='DENY').length} AI-generated denials with no adjuster sign-off — a direct violation of Policy v2.1 §4.2. If an examiner asks who was accountable for any of these decisions, there is no answer in the record.`,
+      drift:null,chain:null,
+      examinerQ:`Who reviewed the AI decision on ${decRes.noReviewer[0]?.claimRef}?`,
+      examinerVerdict:'NO',
+      examinerCannotDemonstrate:'Reviewer field is blank. No sign-off exists.',
+      examinerLikelyOutcome:'Control failure finding for each unreviewed decision.',
+      examinerRemediation:'Implement mandatory reviewer logging. Retroactively identify reviewers for affected decisions where possible.',
+      naic:'NAIC Exhibit B §2.3',
+      provenanceSources:['Decision Logs'],
+      govDiscoveryStmt:null,
+      defImpact:`${decRes.noReviewer.length} decisions cannot be defended — there is no human reviewer on record to demonstrate governance oversight was applied.`,
+      pts:'-8 pts'
+    });
+  }
+
+  // ── GAP 5: No oversight mechanism — Missing — Level 1 ─────────
+  ACTIVE_DATA.systems.filter(s=>!s.oversight&&s.tier!=='Tier 3').forEach(s=>{
+    score-=8; breakdown.push({gap:'No oversight mechanism',system:s.name,ded:-8,naic:'Exhibit B §2.3(d)'});
+    gaps.push({
+      type:'high',findingType:'missing',provLevel:1,
+      id:'GAP-OVS-'+s.id,
+      title:`${s.name} has no human override or escalation path`,
+      system:s.name,systemId:s.id,
+      consequence:`${s.name} operates without any mechanism for a human to stop, override, or escalate an AI decision. The system cannot be intervened upon. If it produces a harmful or incorrect output, there is no documented path to stop it.`,
+      drift:null,chain:null,
+      examinerQ:`How does Meridian intervene if ${s.name} produces an incorrect decision?`,
+      examinerVerdict:'PARTIAL',
+      examinerCannotDemonstrate:'No documented intervention capability exists.',
+      examinerLikelyOutcome:'Required remediation before next examination cycle.',
+      examinerRemediation:'Document override procedure. Implement escalation path. Test and evidence the mechanism.',
+      naic:'NAIC Exhibit B §2.3(d)',
+      provenanceSources:['AI Inventory (Jira)'],
+      govDiscoveryStmt:null,
+      defImpact:`This system cannot be defended if an examiner asks how Meridian would stop ${s.name} from producing a harmful decision.`,
+      pts:'-8 pts'
+    });
+  });
+
+  // ── GAP 6: No compliance sign-off — Missing — Level 1 ─────────
+  ACTIVE_DATA.systems.filter(s=>!s.complianceSignoff).forEach(s=>{
+    score-=5; breakdown.push({gap:'No compliance sign-off',system:s.name,ded:-5,naic:'Exhibit C'});
+    gaps.push({
+      type:'high',findingType:'missing',provLevel:1,
+      id:'GAP-SIG-'+s.id,
+      title:`${s.name} deployed without compliance department sign-off`,
+      system:s.name,systemId:s.id,
+      consequence:`${s.name} was approved by IT Operations only. No compliance department sign-off was obtained at deployment. The system has been making ${s.fn.toLowerCase()} decisions without compliance authorisation.`,
+      drift:null,chain:null,
+      examinerQ:`Where is the compliance sign-off for ${s.name}?`,
+      examinerVerdict:'NO',
+      examinerCannotDemonstrate:'Compliance department was not involved in deployment approval.',
+      examinerLikelyOutcome:'Material Finding — compliance approval documentation required.',
+      examinerRemediation:'Obtain retrospective compliance sign-off. Document approval rationale.',
+      naic:'NAIC Exhibit C',
+      provenanceSources:['AI Inventory (Jira)'],
+      govDiscoveryStmt:null,
+      defImpact:`This system cannot be defended — it was deployed and has operated without compliance department authorisation.`,
+      pts:'-5 pts'
+    });
+  });
+
+  // ── GOVERNANCE DRIFT items ─────────────────────────────────────
+  dqIssues.push({
+    title:'DocExtract Pro — Governance Drift: system using v2.0, vendor policy updated to v2.2',
+    detail:'Decision DEC-2025-0094 (2025-06-01) uses v2.0. Policy v2.2 became effective 2025-04-01. System has not been updated to the current governing version. Drift started: 1 April 2025. Duration: 73 days.',
+    src:'meridian_decisions.csv:row 15 · meridian_policies.json:POL-VENDOR-005',
+    type:'drift'
+  });
+  dqIssues.push({
+    title:'Fraud Detection Policy — annual review overdue, no owner to initiate renewal',
+    detail:'Policy POL-FRAUD-002 next review due 2025-03-01. No updated version exists. Owner field is UNASSIGNED. A Tier 1 system\'s governing policy is operating past its review date with no accountable person to initiate renewal.',
+    src:'meridian_policies.json:ID 2 · SharePoint: /sites/Compliance/PolicyLibrary/',
+    type:'drift'
+  });
+
+  // ── TRUST FAILURE items ────────────────────────────────────────
+  ACTIVE_DATA.systems.forEach(s=>{
+    const pv=ACTIVE_DATA.policyVersions.filter(v=>v.systemId===s.id&&v.approverActive===null);
+    if(pv.length>0){
+      vgIssues.push({
+        id:'VG-APPR-'+s.id,
+        title:`${s.name} — approval chain cannot be verified`,
+        system:s.name,
+        detail:`The policy governing ${s.name} was approved by ${pv[0].approvedBy}. This individual's current employment status does not appear in any imported file. If they have left the organisation, the approval is broken and cannot be relied upon as evidence in an examination.`,
+        action:'Manually confirm current employment status of '+pv[0].approvedBy+'. If departed: reapprove under current authorised signatory before examination.',
+        src:'meridian_policies.json · meridian_ai_inventory.csv'
+      });
+    }
+  });
+
+  score=Math.max(score,0);
+  return {gaps,dqIssues,vgIssues,score,breakdown};
+}
+
+// ════════════════════════════════════════════════════════════════
+// EXAMINER QUESTIONS
+// ════════════════════════════════════════════════════════════════
+function buildEQs(){
+  return [
+    {system:'FraudGuard ML',q:'Who is accountable for FraudGuard ML — who do I contact if there is a problem?',verdict:'NO',why:'Owner field UNASSIGNED since December 2023. No named individual on record.'},
+    {system:'FraudGuard ML',q:'Show me the risk acceptance document for FraudGuard ML.',verdict:'NO',why:'No risk acceptance document has ever been filed. System in production since 2021 without one.'},
+    {system:'ClaimScore AI',q:'Which policy governed ClaimScore AI\'s decisions in February and March 2025?',verdict:'NO',why:'Decisions made under v1.8 but v2.1 was active from January 15 2025. 3 decisions cannot be tied to the correct governing policy.'},
+    {system:'ClaimScore AI',q:'Show me the human reviewer sign-off for denial DEC-2025-0084.',verdict:'NO',why:'No reviewer logged. Policy v2.1 §4.2 requires adjuster sign-off on all AI-generated denials.'},
+    {system:'UnderwriteAssist',q:'Who authorised UnderwriteAssist to operate after its risk acceptance expired February 10 2024?',verdict:'NO',why:'No renewal initiated. No emergency authorisation documented. System operated for 16+ months past expiry.'},
+    {system:'FraudGuard ML',q:'Show me the oversight and review records for FraudGuard ML.',verdict:'PARTIAL',why:'Oversight log shows compliance analyst reviews but no business owner sign-off. Three escalations to CCO level — none resolved.'},
+    {system:'DocExtract Pro',q:'Where is the compliance department sign-off for DocExtract Pro?',verdict:'NO',why:'Approved by IT Operations only. Compliance department not involved. No compliance sign-off exists.'},
+    {system:'UnderwriteAssist',q:'Who approved the risk acceptance for UnderwriteAssist and are they still at Meridian?',verdict:'PARTIAL',why:'Signed by Robert Haines, CRO. Current employment status not confirmed from available data. If departed, approval chain is broken.'},
+    {system:'ClaimScore AI',q:'Can you demonstrate ClaimScore AI operated under an active governance framework throughout 2025?',verdict:'PARTIAL',why:'Policy v2.1 active from January 15. But February and March decisions used v1.8. Gap period exists.'},
+    {system:'CustomerIQ',q:'How does Meridian intervene if CustomerIQ produces a harmful personalisation decision?',verdict:'PARTIAL',why:'No documented override capability. CMO classified as acceptable risk — no remediation implemented.'},
+  ];
+}
+
+// ════════════════════════════════════════════════════════════════
+// STATE & UI
+// ════════════════════════════════════════════════════════════════
+let loaded={inv:false,pol:false,dec:false,risk:false,ovr:false};
+let AR=null,analysisComplete=false;
+// Initialize ACTIVE_DATA with demo data — replaced with real data after upload + analysis
+window.ACTIVE_DATA = RAW;
+
+function trig(id){document.getElementById(id).click();}
+// ═══════════════════════════════════════════════════════════════
+// FILE UPLOAD + PARSING ENGINE
+// ═══════════════════════════════════════════════════════════════
+
+// Stores raw parsed data per slot before mapping
+const rawFileData = {inv:null, pol:null, dec:null, risk:null, ovr:null};
+// Stores confirmed mapped data per slot
+const mappedData = {inv:null, pol:null, dec:null, risk:null, ovr:null};
+// Current mapping state
+let currentMappingType = null;
+let currentMappingRows = null;
+
+// PP field definitions per file type
+const PP_FIELDS = {
+  inv: [
+    {key:'id', label:'System ID', required:true, hint:'Unique identifier e.g. SYS-001, AIOPS-1001'},
+    {key:'name', label:'System Name', required:true, hint:'e.g. ClaimScore AI, FraudGuard'},
+    {key:'fn', label:'Function / Use Case', required:false, hint:'e.g. Claims Processing, Fraud Detection'},
+    {key:'vendor', label:'Vendor / Technology', required:false, hint:'e.g. Verisk, Internal / XGBoost'},
+    {key:'tier', label:'Risk Tier', required:false, hint:'e.g. Tier 1, Tier 2, High Risk'},
+    {key:'owner', label:'Owner / Accountable Person', required:true, hint:'Name or email of system owner'},
+    {key:'ownerEmail', label:'Owner Email', required:false, hint:'Owner email address'},
+    {key:'policyId', label:'Governing Policy ID', required:false, hint:'e.g. POL-CLAIMS-001'},
+    {key:'oversight', label:'Oversight Mechanism (Y/N)', required:false, hint:'Does an oversight mechanism exist?'},
+    {key:'complianceSignoff', label:'Compliance Sign-off (Y/N)', required:false, hint:'Has compliance signed off?'},
+    {key:'riskExpiry', label:'Risk Acceptance Expiry Date', required:false, hint:'Date when risk acceptance expires'},
+    {key:'riskStatus', label:'Risk Status', required:false, hint:'e.g. ACTIVE, EXPIRED, NOT ON FILE'},
+  ],
+  pol: [
+    {key:'systemId', label:'System ID', required:true, hint:'Must match System ID from inventory'},
+    {key:'version', label:'Policy Version', required:true, hint:'e.g. v1.8, v2.1, 2024-Q3'},
+    {key:'effectiveFrom', label:'Effective From Date', required:true, hint:'When this version became active'},
+    {key:'effectiveTo', label:'Effective To Date', required:false, hint:'When this version expired (blank = still active)'},
+    {key:'policyId', label:'Policy Document ID', required:false, hint:'e.g. POL-CLAIMS-001'},
+    {key:'approvedBy', label:'Approved By', required:false, hint:'Name of approver'},
+    {key:'approverActive', label:'Approver Still Active (Y/N)', required:false, hint:'Is approver still employed?'},
+  ],
+  dec: [
+    {key:'id', label:'Decision ID', required:false, hint:'Unique decision reference'},
+    {key:'date', label:'Decision Date', required:true, hint:'Date decision was made'},
+    {key:'systemId', label:'System ID', required:true, hint:'Which AI system made this decision'},
+    {key:'versionUsed', label:'Policy Version Used', required:false, hint:'Which policy version was active'},
+    {key:'reviewer', label:'Human Reviewer', required:false, hint:'Name of human who reviewed'},
+    {key:'outcome', label:'Decision Outcome', required:false, hint:'e.g. APPROVE, DENY, FLAG, MANUAL_REVIEW'},
+    {key:'claimRef', label:'Claim / Case Reference', required:false, hint:'Reference number for the claim or case'},
+  ],
+  risk: [
+    {key:'systemId', label:'System ID', required:true, hint:'Must match System ID from inventory'},
+    {key:'riskExpiry', label:'Risk Acceptance Expiry', required:true, hint:'When does risk acceptance expire'},
+    {key:'riskStatus', label:'Risk Status', required:false, hint:'ACTIVE, EXPIRED, NOT ON FILE'},
+    {key:'riskOwner', label:'Risk Owner', required:false, hint:'Who accepted the risk'},
+    {key:'riskLevel', label:'Risk Level', required:false, hint:'High, Medium, Low'},
+    {key:'approvedDate', label:'Approval Date', required:false, hint:'When was risk formally accepted'},
+  ],
+  ovr: [
+    {key:'systemId', label:'System ID', required:true, hint:'Must match System ID from inventory'},
+    {key:'reviewDate', label:'Review Date', required:true, hint:'Date of oversight review'},
+    {key:'reviewer', label:'Reviewer Name', required:false, hint:'Who conducted the review'},
+    {key:'reviewType', label:'Review Type', required:false, hint:'e.g. Monthly audit, Spot check, Committee review'},
+    {key:'outcome', label:'Review Outcome', required:false, hint:'e.g. PASS, ISSUES_FOUND, PENDING'},
+    {key:'notes', label:'Notes', required:false, hint:'Any additional notes'},
+  ]
+};
+
+// ── FILE READING ──────────────────────────────────────────────
+function onFile(type, input) {
+  if (!input.files.length) return;
+  const file = input.files[0];
+  const ext = file.name.split('.').pop().toLowerCase();
+  const slotEl = document.getElementById('slot-' + type);
+  slotEl.querySelector('.slot-ico').textContent = '⏳';
+
+  if (ext === 'csv') {
+    Papa.parse(file, {
+      header: true, skipEmptyLines: true,
+      complete: (results) => {
+        if (results.errors.length && !results.data.length) {
+          showSlotError(type, 'CSV parse error: ' + results.errors[0].message); return;
+        }
+        rawFileData[type] = {rows: results.data, cols: results.meta.fields || [], fileName: file.name, ext};
+        openMappingModal(type);
+      }
+    });
+  } else if (ext === 'json') {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        let data = JSON.parse(e.target.result);
+        // Handle arrays or {data:[...]} or {systems:[...]} etc
+        if (Array.isArray(data)) {
+          // good
+        } else if (data.data && Array.isArray(data.data)) {
+          data = data.data;
+        } else {
+          // try to find first array value
+          const arrKey = Object.keys(data).find(k => Array.isArray(data[k]));
+          if (arrKey) data = data[arrKey];
+          else data = [data]; // single object
+        }
+        const cols = data.length > 0 ? Object.keys(data[0]) : [];
+        rawFileData[type] = {rows: data, cols, fileName: file.name, ext};
+        openMappingModal(type);
+      } catch(err) {
+        showSlotError(type, 'JSON parse error: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  } else if (ext === 'xlsx' || ext === 'xls') {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, {type: 'binary', cellDates: true});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, {defval: ''});
+        const cols = rows.length > 0 ? Object.keys(rows[0]) : [];
+        rawFileData[type] = {rows, cols, fileName: file.name, ext};
+        openMappingModal(type);
+      } catch(err) {
+        showSlotError(type, 'XLSX parse error: ' + err.message);
+      }
+    };
+    reader.readAsBinaryString(file);
+  } else {
+    showSlotError(type, 'Unsupported file type. Use CSV, JSON, or XLSX.');
+  }
+}
+
+function showSlotError(type, msg) {
+  const sl = document.getElementById('slot-' + type);
+  sl.querySelector('.slot-ico').textContent = '⚠';
+  document.getElementById('ok-' + type).textContent = msg;
+  document.getElementById('ok-' + type).style.color = 'var(--red)';
+}
+
+// ── SCHEMA MAPPING MODAL ──────────────────────────────────────
+function openMappingModal(type) {
+  currentMappingType = type;
+  const {rows, cols, fileName} = rawFileData[type];
+  const fields = PP_FIELDS[type];
+  const typeLabels = {inv:'AI System Inventory', pol:'Policy Version Library', dec:'AI Decision Log', risk:'Risk Assessments', ovr:'Oversight & Review Log'};
+
+  document.getElementById('mapping-title').textContent = 'Map columns — ' + typeLabels[type];
+  document.getElementById('mapping-sub').textContent = `File: ${fileName} · ${rows.length} rows · ${cols.length} columns detected`;
+
+  // Auto-detect note
+  const noteEl = document.getElementById('mapping-note');
+  noteEl.style.display = 'none';
+  if (cols.length === 0) {
+    noteEl.style.display = 'block';
+    noteEl.textContent = '⚠ No columns detected. Check the file has a header row.';
+  }
+
+  // Build mapping rows
+  const container = document.getElementById('mapping-rows');
+  container.innerHTML = '';
+  currentMappingRows = fields;
+
+  fields.forEach(field => {
+    const section = document.createElement('div');
+
+    // Auto-match: find column that closely matches field key or label
+    const autoMatch = autoMatchColumn(field.key, field.label, cols);
+
+    section.innerHTML = `
+      <div class="mapping-row">
+        <div class="mapping-field">${field.label}${field.required?' <span style="color:var(--red)">*</span>':''}<br><span style="font-weight:300;color:var(--faint);font-size:9px;">${field.hint}</span></div>
+        <div class="mapping-arrow">←</div>
+        <select class="mapping-select" id="map-${type}-${field.key}">
+          <option value="">— skip this field —</option>
+          ${cols.map(c => `<option value="${c}" ${c === autoMatch ? 'selected' : ''}>${c}</option>`).join('')}
+        </select>
+      </div>`;
+    container.appendChild(section);
+  });
+
+  document.getElementById('mapping-modal').classList.add('open');
+}
+
+function autoMatchColumn(key, label, cols) {
+  // Normalize for comparison
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g,'');
+  const normKey = norm(key);
+  const normLabel = norm(label);
+
+  // Exact match first
+  let match = cols.find(c => norm(c) === normKey);
+  if (match) return match;
+
+  // Label match
+  match = cols.find(c => norm(c) === normLabel);
+  if (match) return match;
+
+  // Partial match — key contained in column or vice versa
+  match = cols.find(c => norm(c).includes(normKey) || normKey.includes(norm(c)));
+  if (match) return match;
+
+  // Common aliases
+  const aliases = {
+    id: ['system_id','sys_id','systemid','ai_system_id','sysid','jira_key','issue_key'],
+    name: ['system_name','ai_system','tool_name','model_name','application'],
+    owner: ['system_owner','accountable','responsible','owner_name','assigned_to'],
+    ownerEmail: ['owner_email','contact_email','email'],
+    riskExpiry: ['expiry','expiry_date','expires','valid_until','renewal_date','risk_expiry'],
+    riskStatus: ['status','risk_status','acceptance_status'],
+    effectiveFrom: ['effective_from','start_date','from_date','valid_from','date_effective'],
+    effectiveTo: ['effective_to','end_date','to_date','valid_to','expiry_date'],
+    version: ['policy_version','version_number','ver','policy_ver'],
+    approvedBy: ['approved_by','approver','sign_off','signoff','authorized_by'],
+    date: ['decision_date','date','created','timestamp','action_date'],
+    systemId: ['system_id','sys_id','ai_system','tool_id','model_id'],
+    reviewer: ['reviewer','reviewed_by','adjuster','human_reviewer','assigned_reviewer'],
+  };
+
+  const aliasList = aliases[key] || [];
+  match = cols.find(c => aliasList.includes(norm(c)));
+  return match || '';
+}
+
+function closeMappingModal() {
+  document.getElementById('mapping-modal').classList.remove('open');
+  currentMappingType = null;
+}
+
+function confirmMapping() {
+  const type = currentMappingType;
+  const fields = PP_FIELDS[type];
+  const {rows, fileName} = rawFileData[type];
+
+  // Build mapping config
+  const mapping = {};
+  let missingRequired = [];
+  fields.forEach(field => {
+    const sel = document.getElementById(`map-${type}-${field.key}`);
+    mapping[field.key] = sel ? sel.value : '';
+    if (field.required && !sel.value) missingRequired.push(field.label);
+  });
+
+  if (missingRequired.length > 0) {
+    const noteEl = document.getElementById('mapping-note');
+    noteEl.style.display = 'block';
+    noteEl.textContent = '⚠ Required fields not mapped: ' + missingRequired.join(', ');
+    return;
+  }
+
+  // Apply mapping + normalize
+  const normalized = normalizeRows(rows, mapping, type);
+  mappedData[type] = {rows: normalized, fileName, mapping};
+
+  // Update slot UI
+  closeMappingModal();
+  loaded[type] = true;
+  const sl = document.getElementById('slot-' + type);
+  sl.classList.add('loaded');
+  sl.querySelector('.slot-ico').textContent = '✓';
+  document.getElementById('ok-' + type).textContent = `${fileName} · ${normalized.length} rows mapped`;
+  document.getElementById('ok-' + type).style.color = '';
+  checkLoaded();
+}
+
+// ── NORMALIZATION ─────────────────────────────────────────────
+function normalizeRows(rows, mapping, type) {
+  return rows.map((row, idx) => {
+    const out = {_src: `row ${idx + 2}`};
+    Object.entries(mapping).forEach(([ppKey, srcCol]) => {
+      if (!srcCol) { out[ppKey] = null; return; }
+      let val = row[srcCol];
+      // Normalize string
+      if (typeof val === 'string') val = val.trim();
+      // Normalize booleans
+      if (['oversight','complianceSignoff','approverActive'].includes(ppKey)) {
+        out[ppKey] = normalizeBool(val);
+      }
+      // Normalize dates
+      else if (['riskExpiry','effectiveFrom','effectiveTo','date','reviewDate','approvedDate'].includes(ppKey)) {
+        out[ppKey] = normalizeDate(val);
+      }
+      // Normalize risk status
+      else if (ppKey === 'riskStatus') {
+        out[ppKey] = normalizeRiskStatus(val);
+      }
+      // Normalize owner — blank/TBD/unassigned = UNASSIGNED
+      else if (ppKey === 'owner') {
+        const v = (val || '').toString().trim().toLowerCase();
+        out[ppKey] = (!v || v === 'tbd' || v === 'n/a' || v === 'unassigned' || v === '-') ? 'UNASSIGNED' : val;
+      }
+      else {
+        out[ppKey] = val !== undefined && val !== null && val !== '' ? val : null;
+      }
+    });
+    return out;
+  }).filter(row => {
+    // Filter rows that have at least one non-null value (skip blank rows)
+    return Object.values(row).some(v => v !== null && v !== undefined && v !== '' && v !== '_src');
+  });
+}
+
+function normalizeBool(val) {
+  if (val === true || val === 1) return true;
+  if (val === false || val === 0) return false;
+  const v = (val || '').toString().trim().toLowerCase();
+  if (['yes','y','true','1','x','✓'].includes(v)) return true;
+  if (['no','n','false','0',''].includes(v)) return false;
+  return null;
+}
+
+function normalizeDate(val) {
+  if (!val) return null;
+  // Already a JS Date (from XLSX)
+  if (val instanceof Date) return val.toISOString().split('T')[0];
+  const s = val.toString().trim();
+  if (!s) return null;
+  // Try common formats
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // MM/DD/YYYY
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [m,d,y] = s.split('/');
+    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  // DD/MM/YYYY
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [d,m,y] = s.split('/');
+    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  // Try native Date parse as fallback
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+  return null; // unparseable
+}
+
+function normalizeRiskStatus(val) {
+  const v = (val || '').toString().trim().toUpperCase();
+  if (!v || v === 'N/A' || v === 'NONE' || v === 'NOT ON FILE' || v === 'MISSING') return 'NOT ON FILE';
+  if (v === 'EXPIRED' || v === 'LAPSED' || v === 'OVERDUE') return 'EXPIRED';
+  if (v === 'ACTIVE' || v === 'CURRENT' || v === 'VALID') return 'ACTIVE';
+  return v || 'UNKNOWN';
+}
+
+// ── BUILD RAW FROM MAPPED DATA ────────────────────────────────
+function buildRAWFromMappedData() {
+  // Build systems from inventory
+  const systems = (mappedData.inv ? mappedData.inv.rows : RAW.systems).map(r => ({
+    id: r.id || ('SYS-' + Math.random().toString(36).substr(2,4).toUpperCase()),
+    name: r.name || 'Unknown System',
+    fn: r.fn || 'Unknown Function',
+    vendor: r.vendor || 'Unknown',
+    tier: r.tier || 'Tier 2',
+    owner: r.owner || 'UNASSIGNED',
+    ownerEmail: r.ownerEmail || '',
+    policyId: r.policyId || null,
+    oversight: r.oversight === true,
+    complianceSignoff: r.complianceSignoff === true,
+    riskExpiry: r.riskExpiry || null,
+    riskStatus: r.riskStatus || (r.riskExpiry ? computeRiskStatus(r.riskExpiry) : 'NOT ON FILE'),
+    jiraKey: r.id || null,
+    _src: r._src
+  }));
+
+  // Build policy versions
+  const policyVersions = (mappedData.pol ? mappedData.pol.rows : RAW.policyVersions).map(r => ({
+    systemId: r.systemId,
+    version: r.version || 'v1.0',
+    effectiveFrom: r.effectiveFrom || null,
+    effectiveTo: r.effectiveTo || null,
+    policyId: r.policyId || null,
+    approvedBy: r.approvedBy || null,
+    approverActive: r.approverActive,
+    _src: r._src
+  })).filter(r => r.systemId && r.effectiveFrom);
+
+  // Build decisions
+  const decisions = (mappedData.dec ? mappedData.dec.rows : RAW.decisions).map((r,i) => ({
+    id: r.id || ('DEC-' + i),
+    date: r.date || null,
+    systemId: r.systemId,
+    versionUsed: r.versionUsed || null,
+    reviewer: r.reviewer || '',
+    outcome: r.outcome || 'UNKNOWN',
+    claimRef: r.claimRef || null,
+    src: r._src
+  })).filter(r => r.systemId && r.date);
+
+  // Merge risk data into systems if risk file uploaded
+  if (mappedData.risk) {
+    const riskMap = {};
+    mappedData.risk.rows.forEach(r => { if(r.systemId) riskMap[r.systemId] = r; });
+    systems.forEach(s => {
+      const r = riskMap[s.id];
+      if (r) {
+        if (r.riskExpiry) s.riskExpiry = r.riskExpiry;
+        if (r.riskStatus) s.riskStatus = r.riskStatus;
+        else if (r.riskExpiry) s.riskStatus = computeRiskStatus(r.riskExpiry);
+      }
+    });
+  }
+
+  // Merge oversight into systems if oversight file uploaded
+  if (mappedData.ovr) {
+    const ovrMap = {};
+    mappedData.ovr.rows.forEach(r => { if(r.systemId) ovrMap[r.systemId] = true; });
+    systems.forEach(s => { if (ovrMap[s.id]) s.oversight = true; });
+  }
+
+  return {systems, policyVersions, decisions};
+}
+
+function computeRiskStatus(expiryDateStr) {
+  if (!expiryDateStr) return 'NOT ON FILE';
+  const expiry = new Date(expiryDateStr);
+  if (isNaN(expiry.getTime())) return 'UNKNOWN';
+  return expiry < new Date() ? 'EXPIRED' : 'ACTIVE';
+}
+
+function checkLoaded(){if(Object.values(loaded).filter(Boolean).length>0) showImportSummary();}
+function showImportSummary(){
+  const n=Object.values(loaded).filter(Boolean).length;
+  document.getElementById('import-summary').style.display='block';
+  const fileDetails = Object.entries(mappedData)
+    .map(([k,v]) => v ? `<span style="margin-right:10px;color:var(--green)">✓ ${k}: ${v.rows.length} rows</span>` : `<span style="margin-right:10px;color:var(--faint)">○ ${k}</span>`)
+    .join('');
+  document.getElementById('import-summary-body').innerHTML=`<div class="alert a-green"><span>✓</span><span><strong>${n} of 5 files loaded.</strong> ${n===5?'All files ready — run analysis.':'Add remaining files or proceed with available data.'}</span></div><div style="font-family:var(--mono);font-size:10px;margin-top:8px;">${fileDetails}</div>`;
+}
+function loadDemo(){
+  ['inv','pol','dec','risk','ovr'].forEach((k,i)=>{
+    setTimeout(()=>{
+      loaded[k]=true;
+      mappedData[k]=null; // use hardcoded RAW for demo
+      const sl=document.getElementById('slot-'+k);
+      sl.classList.add('loaded');sl.querySelector('.slot-ico').textContent='✓';
+      document.getElementById('ok-'+k).textContent='Meridian demo data · loaded';
+      checkLoaded();
+    },i*160);
+  });
+}
+function goStep(n){
+  if(n>2&&!analysisComplete) return;
+  [1,2,3,4,5].forEach(i=>{
+    document.getElementById('panel-'+i).classList.toggle('active',i===n);
+    const s=document.getElementById('stp'+i);
+    s.classList.remove('active','done');
+    if(i<n)s.classList.add('done');
+    if(i===n)s.classList.add('active');
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function switchTab(name){
+  ['gaps','dq','verif'].forEach((t,i)=>{
+    document.getElementById('tab-'+t).classList.toggle('active',t===name);
+    document.querySelectorAll('.tab-row .tab')[i].classList.toggle('active',['gaps','dq','verif'][i]===name);
+  });
+}
+
+function runAnalysis(){
+  goStep(2);
+  const steps=[
+    {id:'pc1',label:'Ingesting 5 files...',pct:11},
+    {id:'pc2',label:'Normalising — lowercase, trim, parse dates...',pct:22},
+    {id:'pc3',label:'Building PolicyVersionIndex — one pass...',pct:33},
+    {id:'pc4',label:'Date-aware version matching — binary search per decision...',pct:44},
+    {id:'pc5',label:'Scanning risk acceptance expiry dates...',pct:55},
+    {id:'pc6',label:'Auditing human reviewer logs...',pct:66},
+    {id:'pc7',label:'Checking governance relationship chains...',pct:77},
+    {id:'pc8',label:'Detecting trust failures across sources...',pct:88},
+    {id:'pc9',label:'Calculating NAIC Readiness Score...',pct:100},
+  ];
+  let i=0;
+  function next(){
+    if(i>0){document.getElementById(steps[i-1].id).classList.remove('run');document.getElementById(steps[i-1].id).classList.add('done');}
+    if(i>=steps.length){finish();return;}
+    const s=steps[i];
+    document.getElementById('prog-lbl').textContent=s.label;
+    document.getElementById('prog-fill').style.width=s.pct+'%';
+    document.getElementById(s.id).classList.add('run');
+    i++;setTimeout(next,420);
+  }
+  next();
+}
+
+function finish(){
+  document.getElementById('prog-card').style.display='none';
+  // Use real uploaded data if available, otherwise fall back to demo RAW
+  const hasRealData = Object.values(mappedData).some(v => v !== null);
+  window.ACTIVE_DATA = hasRealData ? buildRAWFromMappedData() : RAW;
+  const pIdx=buildPolicyVersionIndex(ACTIVE_DATA.policyVersions);
+  const dRes=processDecisions(ACTIVE_DATA.decisions,pIdx);
+  AR=detectGaps(dRes,pIdx);
+  AR.dRes=dRes;
+  analysisComplete=true;
+  renderAnalysis();renderScore();renderEQs();renderEvidence();
+}
+
+// ── RENDER: ANALYSIS ─────────────────────────────────────────
+function renderAnalysis(){
+  const dr=AR.dRes;
+  const rc=ACTIVE_DATA.systems.filter(s=>!s.owner||s.owner==='UNASSIGNED').length;
+  const ec=ACTIVE_DATA.systems.filter(s=>s.riskStatus==='EXPIRED'||s.riskStatus==='NOT ON FILE').length;
+  document.getElementById('metrics-grid').innerHTML=`
+    <div class="met r"><div class="met-val">${rc}</div><div class="met-lbl">No accountable owner</div></div>
+    <div class="met r"><div class="met-val">${dr.mismatches.length}</div><div class="met-lbl">Policy version mismatches</div></div>
+    <div class="met r"><div class="met-val">${ec}</div><div class="met-lbl">Expired / missing risk acceptances</div></div>
+    <div class="met a"><div class="met-val">${dr.noReviewer.length}</div><div class="met-lbl">Decisions — no reviewer</div></div>
+    <div class="met a"><div class="met-val">${AR.vgIssues.length}</div><div class="met-lbl">Trust failures</div></div>
+    <div class="met a"><div class="met-val">${AR.dqIssues.length}</div><div class="met-lbl">Governance drift items</div></div>
+    <div class="met g"><div class="met-val">${dr.clean.length}</div><div class="met-lbl">Fully defensible decisions</div></div>
+    <div class="met r"><div class="met-val">${AR.score}/100</div><div class="met-lbl">NAIC Readiness Score</div></div>`;
+
+  document.getElementById('sys-tbody').innerHTML=ACTIVE_DATA.systems.map(s=>{
+    const og=!s.owner||s.owner==='UNASSIGNED',vg=AR.dRes.mismatches.some(d=>d.systemId===s.id),rg=s.riskStatus==='EXPIRED'||s.riskStatus==='NOT ON FILE',ovg=!s.oversight&&s.tier!=='Tier 3';
+    const st=(og||rg)?'r':(vg||ovg)?'a':'g';
+    const tl=st==='r'?`<span class="tl tl-r"><span class="tl-dot"></span>Critical</span>`:st==='a'?`<span class="tl tl-a"><span class="tl-dot"></span>Gaps</span>`:`<span class="tl tl-g"><span class="tl-dot"></span>Compliant</span>`;
+    const vm=AR.dRes.mismatches.filter(d=>d.systemId===s.id);
+    const vb=vm.length?`<span style="color:var(--red);font-size:10px;">${vm[0].versionUsed} ≠ ${vm[0].correctVersion}</span>`:`<span style="color:var(--green);font-size:10px);">✓ Current</span>`;
+    const rb=rg?`<span style="color:var(--red);font-size:10px;">${s.riskStatus}</span>`:`<span style="color:var(--green);font-size:10px);">✓ ${s.riskStatus}</span>`;
+    const ob=ovg?`<span style="color:var(--amber);font-size:10px;">Not documented</span>`:`<span style="color:var(--green);font-size:10px);">✓ OK</span>`;
+    return `<tr><td><strong>${s.name}</strong><br><span class="mono-sm">${s.id} · ${s.tier}</span></td><td>${s.fn}</td><td>${og?'<span style="color:var(--red);font-weight:600;">UNASSIGNED</span>':s.owner}</td><td>${vb}</td><td>${rb}</td><td>${ob}</td><td>${tl}</td></tr>`;
+  }).join('');
+
+  document.getElementById('gap-ct').textContent=`(${AR.gaps.length})`;
+  document.getElementById('gaps-list').innerHTML=AR.gaps.map(g=>gapCard(g)).join('');
+
+  document.getElementById('dq-ct').textContent=`(${AR.dqIssues.length})`;
+  document.getElementById('dq-list').innerHTML=AR.dqIssues.length
+    ?AR.dqIssues.map(d=>`<div class="dq-item"><div><div class="dq-title">${d.title}</div><div class="dq-detail">${d.detail}</div><div class="dq-src">Source: ${d.src}</div></div></div>`).join('')
+    :'<p style="font-size:13px;color:var(--faint);padding:1rem 0;">No governance drift detected.</p>';
+
+  document.getElementById('vg-ct').textContent=`(${AR.vgIssues.length})`;
+  document.getElementById('vg-list').innerHTML=AR.vgIssues.length
+    ?AR.vgIssues.map(v=>`<div class="vg-item"><div class="vg-title">${v.title}</div><div class="vg-detail">${v.detail}</div><div class="vg-action">→ Required action: ${v.action}</div><div class="dq-src" style="font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:4px;">Source: ${v.src}</div></div>`).join('')
+    :'<p style="font-size:13px;color:var(--faint);padding:1rem 0;">No trust failures detected.</p>';
+
+  document.getElementById('analysis-out').style.display='block';
+}
+
+function gapCard(g){
+  const ftLabel={missing:'Missing',drift:'Drift',trust:'Trust Failure'}[g.findingType]||g.findingType;
+  const ftClass={missing:'ftype-missing',drift:'ftype-drift',trust:'ftype-trust'}[g.findingType]||'ftype-missing';
+
+  // Defensibility impact sentence
+  const defImpact=`<div style="font-family:var(--mono);font-size:10px;font-weight:500;color:var(--red);background:var(--red-bg);border:.5px solid var(--red-border);border-radius:var(--r4);padding:5px 9px;margin-bottom:10px;"><span style="letter-spacing:.04em;opacity:.7;">DEFENSIBILITY IMPACT · </span>${g.defImpact||'This finding reduces the defensibility of '+g.system+' in an NAIC examination.'}</div>`;
+
+  // Drift box
+  const driftHtml=g.drift?`<div class="drift-box">
+    <div class="drift-box-title">GOVERNANCE DRIFT DETECTED</div>
+    <div class="drift-grid">
+      <div class="drift-cell"><div class="drift-cell-label">CURRENT POLICY</div><div class="drift-cell-val">${g.drift.currentPolicy}</div></div>
+      <div class="drift-cell"><div class="drift-cell-label">SYSTEM USING</div><div class="drift-cell-val highlight">${g.drift.systemUsing}</div></div>
+      <div class="drift-cell"><div class="drift-cell-label">DRIFT STARTED</div><div class="drift-cell-val">${fmt(g.drift.driftStarted)}</div></div>
+      <div class="drift-cell"><div class="drift-cell-label">DURATION</div><div class="drift-cell-val highlight">${g.drift.driftDays} days</div></div>
+    </div>
+    <div style="margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--amber);">Affected decisions: ${g.drift.affectedDecisions}</div>
+  </div>`:'' ;
+
+  // Chain
+  const chainHtml=g.chain?`<div class="chain">${g.chain.map((n,i)=>`
+    <div class="chain-node">
+      <div class="chain-left"><div class="chain-dot ${n.ok?'':'gap'}"></div>${i<g.chain.length-1?'<div class="chain-line"></div>':''}</div>
+      <div class="chain-content"><div class="chain-label">${n.label}</div><div class="chain-detail">${n.detail}</div><div class="chain-date">${n.date}</div></div>
+    </div>`).join('')}</div>`:'';
+
+  // Examiner impact
+  const evClass=g.examinerVerdict==='NO'?'no':'partial';
+  const examHtml=`<div class="exam-impact">
+    <div class="exam-impact-title">EXAMINER IMPACT</div>
+    <div class="exam-rows">
+      <div class="exam-row"><span class="exam-row-label">Question:</span><span class="exam-row-val">"${g.examinerQ}"</span></div>
+      <div class="exam-row"><span class="exam-row-label">Cannot demonstrate:</span><span class="exam-row-val bad">${g.examinerCannotDemonstrate}</span></div>
+      <div class="exam-row"><span class="exam-row-label">Likely outcome:</span><span class="exam-row-val">${g.examinerLikelyOutcome}</span></div>
+      <div class="exam-row"><span class="exam-row-label">Remediation:</span><span class="exam-row-val">${g.examinerRemediation}</span></div>
+    </div>
+    <div class="exam-verdict ${evClass}">● Meridian can answer today: ${g.examinerVerdict}</div>
+    <div class="exam-naic">📋 ${g.naic}</div>
+  </div>`;
+
+  // Provenance — level-based
+  let provHtml='';
+  if(g.provLevel===3&&g.govDiscoveryStmt){
+    provHtml=`<div class="gov-discovery">
+      <div class="gov-discovery-hd"><span class="gov-discovery-label">● GOVERNANCE DISCOVERY</span></div>
+      <div class="gov-discovery-body">
+        <div class="gov-discovery-stmt">${g.govDiscoveryStmt}</div>
+        <div class="gov-discovery-sources">${g.provenanceSources.map(s=>`<span class="gov-source">${s}</span>`).join('')}</div>
+      </div>
+    </div>`;
+  } else if(g.provLevel===2){
+    provHtml=`<div style="margin-top:8px;"><span class="prov-xref">⊕ CROSS-REFERENCE · ${g.provenanceSources.join(' + ')}</span></div>`;
+  } else {
+    provHtml=`<div class="prov-src">Source: ${g.provenanceSources[0]||''}</div>`;
+  }
+
+  return `<div class="gap-card ${g.type}">
+    <div class="gap-hd">
+      <div class="gap-hd-left">
+        <div class="gap-type-row">
+          <span class="gap-sev ${g.type}">${g.type.toUpperCase()}</span>
+          <span class="ftype ${ftClass}">${ftLabel}</span>
+          <span class="gap-system">${g.system}${g.systemId?' · '+g.systemId:''}</span>
+        </div>
+        <div class="gap-title">${g.title}</div>
+      </div>
+      <span class="gap-pts">${g.pts}</span>
+    </div>
+    <div class="gap-body">
+      ${defImpact}
+      <div class="gap-consequence">${g.consequence}</div>
+      ${driftHtml}${chainHtml}${examHtml}${provHtml}
+    </div>
+  </div>`;
+}
+
+// ── RENDER: SCORE + DEFENSIBILITY ────────────────────────────
+function renderScore(){
+  const safeScore=Math.max(AR.score,0);
+  const dr=AR.dRes;
+
+  const critCount=AR.gaps.filter(g=>g.type==='critical').length;
+  const highCount=AR.gaps.filter(g=>g.type==='high').length;
+  const trustCount=AR.vgIssues.length;
+  const driftCount=AR.dqIssues.length;
+  const defensibleDecs=dr.clean.length;
+  const totalDecs=ACTIVE_DATA.decisions.length;
+
+  // Consequence language for each chain dimension
+  function chainConsequence(dim, ok, s){
+    const fails={
+      owner:'No named human accountable for decisions',
+      risk: s.riskStatus==='NOT ON FILE'?'No documented authorisation to operate this system':'Authorisation to operate has expired — governance chain degraded',
+      policy:'Policy execution drift detected — system running after governing policy changed',
+      oversight:'No mechanism to stop or override AI decisions',
+      intervention:'Cannot intervene if system produces harmful output',
+      compliance:'Deployed without compliance authorisation',
+    };
+    const passes={
+      owner:s.owner,
+      risk:'Active — expires '+s.riskExpiry,
+      policy:'Current governing version',
+      oversight:'Documented',
+      intervention:'Documented',
+      compliance:'Obtained',
+    };
+    return ok ? passes[dim] : fails[dim];
+  }
+
+  const defData=ACTIVE_DATA.systems.map(s=>{
+    const ownerOk=!!(s.owner&&s.owner!=='UNASSIGNED');
+    // Risk: Active = ok, Expired = degraded (AT RISK), NOT ON FILE = absent (NOT DEFENSIBLE)
+    const riskAbsent=s.riskStatus==='NOT ON FILE';
+    const riskExpired=s.riskStatus==='EXPIRED';
+    const riskOk=s.riskStatus==='Active'||s.riskStatus==='Active — Incomplete';
+    const oversightOk=s.oversight;
+    const complianceOk=s.complianceSignoff;
+    const policyOk=!dr.mismatches.some(d=>d.systemId===s.id);
+    const interventionOk=s.oversight;
+
+    // Governance-chain-aware verdict — not arithmetic
+    // NOT DEFENSIBLE: accountability or authorisation chain is absent (not just degraded)
+    //   - No owner (cannot answer "who is accountable?")
+    //   - Risk acceptance never existed (no documented authorisation)
+    //   - Auth chain broken across multiple dimensions (DocExtract: no risk + no compliance + no intervention)
+    const authChainBroken=(!riskOk&&!complianceOk&&!interventionOk); // multiple auth failures
+    const notDef=!ownerOk||riskAbsent||authChainBroken;
+
+    // AT RISK: chain exists but examination defense is weakened
+    //   - Risk acceptance expired (chain degraded, not absent)
+    //   - Missing intervention or oversight on a system with otherwise intact chain
+    const atRisk=!notDef&&(riskExpired||(!oversightOk&&!interventionOk));
+
+    // DEFENSIBLE WITH GAPS: owner and auth chain intact, minor gaps
+    //   - Policy drift only, or compliance sign-off missing, or single operational gap
+    const withGaps=!notDef&&!atRisk&&(!policyOk||!complianceOk||!oversightOk||!interventionOk);
+
+    const verdict=notDef?'notdef':atRisk?'risk':withGaps?'gaps':'defensible';
+    const verdictLabel={defensible:'Defensible',gaps:'Defensible with Gaps',risk:'At Risk',notdef:'Not Defensible'}[verdict];
+
+    // Defensibility rationale — the "why" sentence
+    const failures=[];
+    if(!ownerOk) failures.push('no accountable owner');
+    if(riskAbsent) failures.push('no risk acceptance document');
+    if(riskExpired) failures.push('risk acceptance expired '+daysBetween(s.riskExpiry,TODAY_STR)+' days ago');
+    if(!policyOk) failures.push('policy execution drift');
+    if(!oversightOk) failures.push('no oversight mechanism');
+    if(!interventionOk) failures.push('no intervention capability');
+    if(!complianceOk) failures.push('no compliance sign-off');
+    const rationale=failures.length===0
+      ? `${s.name} passes all six governance chain dimensions and can be defended in examination.`
+      : `${s.name} is ${verdictLabel.toUpperCase()} because: ${failures.join(' · ')}.`;
+
+    let exposure=null;
+    if(!ownerOk&&s.ownerDepartedNote) exposure='18 months without accountable owner';
+    else if(riskExpired&&s.riskExpiry) exposure=`${daysBetween(s.riskExpiry,TODAY_STR)} days past risk acceptance expiry — governance chain degraded`;
+    const decsDuring=dr.mismatches.concat(dr.noReviewer).filter(d=>d.systemId===s.id);
+    const uniqueDecs=[...new Set(decsDuring.map(d=>d.id))].length;
+    return {s,ownerOk,riskOk,riskAbsent,riskExpired,oversightOk,complianceOk,policyOk,interventionOk,verdict,verdictLabel,rationale,exposure,uniqueDecs};
+  });
+
+  // Defensibility counts — computed from defData, must sum to total systems
+  const defCounts={defensible:0,gaps:0,risk:0,notdef:0};
+  defData.forEach(d=>defCounts[d.verdict]++);
+  const highestRisk=defData.find(d=>d.verdict==='notdef')||defData.find(d=>d.verdict==='risk');
+
+  document.getElementById('score-hero-wrap').innerHTML=`
+    <!-- SYSTEM DEFENSIBILITY SUMMARY HEADER -->
+    <div class="card" style="margin-bottom:.875rem;border-color:var(--red-border);">
+      <div class="card-hd" style="margin-bottom:.75rem;">
+        <span class="card-title">System Defensibility Summary</span>
+        <span class="card-sub">5 systems analysed · ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem;">
+        <div style="text-align:center;padding:10px;background:var(--green-bg);border:.5px solid var(--green-border);border-radius:var(--r6);">
+          <div style="font-family:var(--serif);font-size:22px;font-weight:600;color:var(--green);">${defCounts.defensible}</div>
+          <div style="font-size:11px;color:var(--green);font-weight:500;">Defensible</div>
+        </div>
+        <div style="text-align:center;padding:10px;background:var(--amber-bg);border:.5px solid var(--amber-border);border-radius:var(--r6);">
+          <div style="font-family:var(--serif);font-size:22px;font-weight:600;color:var(--amber);">${defCounts.gaps}</div>
+          <div style="font-size:11px;color:var(--amber);font-weight:500;">With Gaps</div>
+        </div>
+        <div style="text-align:center;padding:10px;background:var(--red-bg);border:.5px solid var(--red-border);border-radius:var(--r6);">
+          <div style="font-family:var(--serif);font-size:22px;font-weight:600;color:var(--red);">${defCounts.risk}</div>
+          <div style="font-size:11px;color:var(--red);font-weight:500;">At Risk</div>
+        </div>
+        <div style="text-align:center;padding:10px;background:var(--red);border-radius:var(--r6);">
+          <div style="font-family:var(--serif);font-size:22px;font-weight:600;color:#fff;">${defCounts.notdef}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.8);font-weight:500;">Not Defensible</div>
+        </div>
+      </div>
+      ${highestRisk?`<div style="padding:10px 12px;background:var(--red-bg);border:.5px solid var(--red-border);border-radius:var(--r6);">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--red);letter-spacing:.05em;margin-bottom:4px;">HIGHEST RISK SYSTEM</div>
+        <div style="font-weight:600;font-size:13px;margin-bottom:5px;">${highestRisk.s.name} <span style="font-family:var(--mono);font-size:10px;color:var(--faint);">${highestRisk.s.id}</span></div>
+        <div style="font-size:11px;color:var(--mid);">${[
+          !highestRisk.ownerOk?'No accountable owner':'',
+          !highestRisk.riskOk?'No valid risk acceptance':'',
+          !highestRisk.complianceOk?'No compliance sign-off':'',
+          !highestRisk.oversightOk?'No oversight mechanism':'',
+        ].filter(Boolean).join(' · ')}</div>
+      </div>`:''}
+    </div>
+
+    <!-- PER-SYSTEM DEFENSIBILITY TABLE -->
+    <div class="card" style="margin-bottom:.875rem;">
+      <div class="card-hd"><span class="card-title">Per-system governance chain</span><span class="card-sub">Click any system to expand</span></div>
+      <table class="def-table">
+        <thead><tr><th>System</th><th>Tier</th><th>Verdict</th><th style="width:20px;"></th></tr></thead>
+        <tbody>
+          ${defData.map(d=>`
+            <tr>
+              <td>
+                <div class="def-row-main" onclick="toggleDef('def-${d.s.id}')">
+                  <div style="display:flex;align-items:center;gap:8px;flex:1;">
+                    <span class="def-sys-name">${d.s.name}</span>
+                    <span class="def-sys-id">${d.s.id}</span>
+                    <span style="font-size:11px;color:var(--mid);">${d.s.fn}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-family:var(--mono);font-size:10px;color:var(--faint);">${d.s.tier}</span>
+                    <span class="def-verdict ${d.verdict}">${d.verdictLabel}</span>
+                    <span style="font-size:11px;color:var(--faint);">▾</span>
+                  </div>
+                </div>
+                <div class="def-expand" id="def-${d.s.id}">
+                  <div style="font-size:12px;font-weight:500;color:${d.verdict==='defensible'?'var(--green)':d.verdict==='gaps'?'var(--amber)':'var(--red)'};background:${d.verdict==='defensible'?'var(--green-bg)':d.verdict==='gaps'?'var(--amber-bg)':'var(--red-bg)'};border:.5px solid ${d.verdict==='defensible'?'var(--green-border)':d.verdict==='gaps'?'var(--amber-border)':'var(--red-border)'};border-radius:var(--r4);padding:8px 10px;margin-bottom:10px;line-height:1.5;">${d.rationale}</div>
+                  <div class="def-chain">
+                    ${[
+                      {dim:'owner',label:'OWNER',ok:d.ownerOk},
+                      {dim:'risk',label:'RISK ACCEPTANCE',ok:d.riskOk},
+                      {dim:'policy',label:'POLICY CURRENCY',ok:d.policyOk},
+                      {dim:'oversight',label:'OVERSIGHT',ok:d.oversightOk},
+                      {dim:'intervention',label:'INTERVENTION CAPABILITY',ok:d.interventionOk},
+                      {dim:'compliance',label:'COMPLIANCE SIGN-OFF',ok:d.complianceOk},
+                    ].map(c=>`<div class="def-chain-item ${c.ok?'pass':'fail'}">
+                      <div class="def-chain-label">${c.label}</div>
+                      <div class="def-chain-val">${c.ok?'✓ PASS':'✕ FAIL'}</div>
+                      <div style="font-size:10px;margin-top:2px;color:var(--mid);line-height:1.3;">${chainConsequence(c.dim,c.ok,d.s)}</div>
+                    </div>`).join('')}
+                  </div>
+                  ${d.exposure?`<div class="def-exposure">⚠ Duration of exposure: ${d.exposure}</div>`:''}
+                  ${d.uniqueDecs>0?`<div style="font-family:var(--mono);font-size:10px;color:var(--red);margin-top:3px;">Decisions made during governance gap: ${d.uniqueDecs}</div>`:''}
+                  <div class="def-overall">
+                    <span class="def-overall-label">Overall governance chain:</span>
+                    <span class="def-overall-verdict" style="color:${d.verdict==='defensible'?'var(--green)':d.verdict==='gaps'?'var(--amber)':'var(--red)'};">${d.verdictLabel.toUpperCase()}</span>
+                  </div>
+                </div>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- FINDINGS SUMMARY -->
+    <div class="findings-summary">
+      <div class="fs-item r"><div class="fs-val">${critCount}</div><div class="fs-lbl">Critical governance gaps</div></div>
+      <div class="fs-item a"><div class="fs-val">${highCount}</div><div class="fs-lbl">High severity gaps</div></div>
+      <div class="fs-item d"><div class="fs-val">${trustCount}</div><div class="fs-lbl">Trust failures</div></div>
+      <div class="fs-item a"><div class="fs-val">${driftCount}</div><div class="fs-lbl">Governance drift events</div></div>
+      <div class="fs-item g"><div class="fs-val">${defensibleDecs}/${totalDecs}</div><div class="fs-lbl">Fully defensible decisions</div></div>
+      <div class="fs-item r"><div class="fs-val">${defData.filter(d=>d.verdict==='notdef').length}</div><div class="fs-lbl">Systems not defensible</div></div>
+    </div>`;
+
+  // Score breakdown — reference only, demoted
+  document.getElementById('bk-tbl').innerHTML=`
+    <thead><tr><th>Gap</th><th>System</th><th>NAIC ref</th><th>Pts</th></tr></thead>
+    <tbody>
+      <tr><td colspan="3" style="color:var(--faint);font-style:italic;font-size:10px;">Starting score</td><td class="neutral">100</td></tr>
+      ${AR.breakdown.map(b=>`<tr><td style="font-size:11px;">${b.gap}</td><td class="mono-sm">${b.system}</td><td class="mono-sm" style="color:var(--blue);">${b.naic}</td><td class="ded">${b.ded}</td></tr>`).join('')}
+      <tr style="background:var(--cream);"><td colspan="2" style="font-size:11px;"><strong>NAIC Readiness Index</strong></td><td></td><td class="ded">${safeScore}/100</td></tr>
+    </tbody>`;
+
+  // Priority list
+  document.getElementById('pri-list').innerHTML=[
+    {n:1,u:true,sys:'FraudGuard ML',sysId:'SYS-002',t:'Assign accountable owner',s:'18 months without a named owner. First question any examiner will ask.',i:'+15 pts'},
+    {n:2,u:true,sys:'UnderwriteAssist',sysId:'SYS-003',t:'Renew expired risk acceptance',s:'16+ months past expiry. System operating without valid authorisation.',i:'+12 pts'},
+    {n:3,u:true,sys:'FraudGuard ML',sysId:'SYS-002',t:'File initial risk acceptance',s:'No risk acceptance has ever existed. Cannot be deferred.',i:'+12 pts'},
+    {n:4,u:false,sys:'ClaimScore AI',sysId:'SYS-001',t:'Update to current governing policy',s:'3 decisions made after governing policy changed. 149 days of policy execution drift.',i:'+10 pts'},
+    {n:5,u:false,sys:'DocExtract Pro',sysId:'SYS-005',t:'Obtain compliance sign-off',s:'Deployed without compliance authorisation.',i:'+5 pts'},
+  ].map(p=>`<div class="pri-item">
+    <div class="pri-n${p.u?' urgent':''}">${p.n}</div>
+    <div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+        <span style="font-family:var(--mono);font-size:9px;padding:2px 7px;background:var(--ink);color:var(--paper);border-radius:99px;">${p.sys}</span>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--faint);">${p.sysId}</span>
+      </div>
+      <div class="pri-title">${p.t}</div>
+      <div class="pri-sub">${p.s}</div>
+      <div class="pri-impact">${p.i} if resolved</div>
+    </div>
+  </div>`).join('');
+}
+
+function toggleDef(id){
+  const el=document.getElementById(id);
+  el.classList.toggle('open');
+}
+
+// ── RENDER: EXAMINER QUESTIONS ────────────────────────────────
+function renderEQs(){
+  const eqs=buildEQs();
+  document.getElementById('no-count').textContent=eqs.filter(q=>q.verdict==='NO').length;
+  document.getElementById('eq-list').innerHTML=eqs.map(q=>`
+    <div class="eq-item">
+      <div class="eq-hd"><span class="eq-sys">${q.system}</span><span class="eq-q">"${q.q}"</span><span class="eq-verdict ${q.verdict.toLowerCase()}">${q.verdict}</span></div>
+      <div class="eq-body">${q.why}</div>
+    </div>`).join('');
+}
+
+// ── RENDER: EVIDENCE ──────────────────────────────────────────
+function renderEvidence(){
+  const eqs=buildEQs();
+  const dr=AR.dRes;
+  const totalDecs=ACTIVE_DATA.decisions.length;
+  const cleanDecs=dr.clean.length;
+  const cleanPct=Math.round(cleanDecs/totalDecs*100);
+
+  // Governance controls verified
+  const verifiedControls=[];
+  ACTIVE_DATA.systems.filter(s=>s.owner&&s.owner!=='UNASSIGNED').forEach(s=>{
+    verifiedControls.push(`✓ ${s.name} has a named accountable owner (${s.owner})`);
+  });
+  ACTIVE_DATA.systems.filter(s=>s.complianceSignoff).forEach(s=>{
+    verifiedControls.push(`✓ ${s.name} has compliance department sign-off on record`);
+  });
+  ACTIVE_DATA.systems.filter(s=>s.riskStatus==='Active').forEach(s=>{
+    verifiedControls.push(`✓ ${s.name} has an active risk acceptance document (expires ${s.riskExpiry})`);
+  });
+  verifiedControls.push(`✓ ${cleanDecs} of ${totalDecs} decisions (${cleanPct}%) have a named human reviewer on record`);
+  verifiedControls.push(`✓ ${cleanDecs} of ${totalDecs} decisions (${cleanPct}%) used the correct active policy version`);
+  ACTIVE_DATA.systems.filter(s=>s.oversight).forEach(s=>{
+    verifiedControls.push(`✓ ${s.name} has a documented oversight and intervention mechanism`);
+  });
+  const sections=[
+    {t:'Governance Controls Verified',b:verifiedControls.join('\n'),verified:true},
+    {t:'Exhibit A — AI System Inventory',b:ACTIVE_DATA.systems.map(s=>`${s.id} | ${s.name} | ${s.fn} | ${s.vendor} | ${s.tier} | Owner: ${s.owner}`).join('\n')},
+    {t:'Exhibit B — Governance Gaps',b:AR.gaps.map(g=>`[${g.findingType.toUpperCase()}] ${g.title}\nSystem: ${g.system}\n${g.consequence}\nNAIC: ${g.naic}\nProvenance Level: ${g.provLevel===3?'Governance Discovery':g.provLevel===2?'Cross-Reference':'Single Source'}`).join('\n\n')},
+    {t:'Exhibit B — Policy Version Drift',b:AR.dRes.mismatches.map(d=>`${d.id} | ${d.date} | Used: ${d.versionUsed} | Correct: ${d.correctVersion} | MISMATCH | ${d.src}`).join('\n')||'None.'},
+    {t:'Exhibit D — Risk Acceptance Status',b:ACTIVE_DATA.systems.map(s=>`${s.name} | Expiry: ${s.riskExpiry||'NONE ON FILE'} | ${s.riskStatus}`).join('\n')},
+    {t:'Examiner Questions — NO Answers',b:eqs.filter(q=>q.verdict==='NO').map(q=>`[NO] ${q.system}: "${q.q}"\n     ${q.why}`).join('\n\n')},
+    {t:'Trust Failures — Manual Verification Required',b:AR.vgIssues.length?AR.vgIssues.map(v=>`${v.title}\n${v.detail}\nAction: ${v.action}`).join('\n\n'):'None detected.'},
+  ];
+  document.getElementById('ev-sections').innerHTML=sections.map(s=>`
+    <div class="ev-section" style="${s.verified?'border-color:var(--green-border);':''}">
+      <div class="ev-hd" style="${s.verified?'background:var(--green-bg);color:var(--green);':''}">
+        <span>${s.t}</span><span class="tag">${s.verified?'✓ VERIFIED':'NAIC'}</span>
+      </div>
+      <div class="ev-body">${s.b}</div>
+    </div>`).join('');
+  document.getElementById('full-report').textContent=buildReport();
+}
+
+function buildReport(){
+  const eqs=buildEQs();const now=new Date().toISOString().split('T')[0];
+  return `POLICYPROOF — NAIC EXAMINATION EVIDENCE PACKAGE
+Generated: ${now} | Meridian Insurance | Score: ${AR.score}/100
+Report ID: PP-${Date.now().toString(36).toUpperCase()}
+${'━'.repeat(60)}
+NAIC READINESS SCORE: ${AR.score}/100 — ${AR.score<70?'BELOW THRESHOLD':'ABOVE THRESHOLD'}
+State: Ohio — Active NAIC Evaluation Tool pilot state
+
+${'━'.repeat(60)}
+GOVERNANCE GAPS (${AR.gaps.length})
+${AR.gaps.map((g,i)=>`\n[${i+1}] [${g.findingType.toUpperCase()}] ${g.title}\nSystem: ${g.system} | Provenance: ${g.provLevel===3?'Governance Discovery (4 sources)':g.provLevel===2?'Cross-Reference':'Single Source'}\nConsequence: ${g.consequence}\nExaminer Q: "${g.examinerQ}"\nMeridian can answer: ${g.examinerVerdict}\nLikely outcome: ${g.examinerLikelyOutcome}\nNAIC: ${g.naic}`).join('\n')}
+
+${'━'.repeat(60)}
+EXAMINER QUESTIONS — CANNOT ANSWER (${eqs.filter(q=>q.verdict==='NO').length})
+${eqs.filter(q=>q.verdict==='NO').map(q=>`\n[NO] "${q.q}"\n     ${q.why}`).join('\n')}
+
+${'━'.repeat(60)}
+GOVERNANCE DRIFT (${AR.dqIssues.length})
+${AR.dqIssues.map(d=>`\n${d.title}\n${d.detail}\nSource: ${d.src}`).join('\n')}
+
+${'━'.repeat(60)}
+TRUST FAILURES (${AR.vgIssues.length}) — MANUAL VERIFICATION REQUIRED
+${AR.vgIssues.length?AR.vgIssues.map(v=>`\n${v.title}\n${v.detail}\nAction: ${v.action}`).join('\n'):'None detected.'}
+
+${'━'.repeat(60)}
+SCORE BREAKDOWN
+${AR.breakdown.map(b=>`${b.gap.padEnd(38)} ${b.system.padEnd(20)} ${String(b.ded).padStart(5)}`).join('\n')}
+${'─'.repeat(60)}
+NAIC READINESS SCORE${' '.repeat(38)}${AR.score}/100
+
+PolicyProof v4 · v4-meridian-demo · ${now}`;
+}
+
+async function computeHash(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function copyReport(){navigator.clipboard.writeText(document.getElementById('full-report').textContent);alert('Copied.');}
+
+async function dlReport(){
+  const eqs=buildEQs();
+  const reportData=buildReport();
+  const hash=await computeHash(reportData);
+  const now=new Date();
+  const nowStr=now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const reportId='PP-'+Date.now().toString(36).toUpperCase();
+
+  const html=`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<title>PolicyProof Evidence Package — Meridian Insurance</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,300&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Instrument Sans',sans-serif;font-size:11pt;color:#0c0c0c;background:#fff;padding:0;}
+@page{size:letter;margin:1in 1in 1in 1in;}
+@media print{.no-print{display:none!important;}body{padding:0;}}
+.cover{padding:48pt 0 36pt;border-bottom:3px solid #0c0c0c;margin-bottom:24pt;}
+.cover-logo{font-family:'Fraunces',serif;font-size:28pt;font-weight:600;color:#0c0c0c;margin-bottom:4pt;}
+.cover-logo em{font-style:italic;color:#b83228;}
+.cover-title{font-family:'Fraunces',serif;font-size:18pt;font-weight:300;color:#333;margin-bottom:16pt;}
+.cover-meta{display:grid;grid-template-columns:1fr 1fr;gap:8pt;font-size:9pt;}
+.cover-meta-item{padding:8pt;background:#f7f4ef;border-radius:4pt;}
+.cover-meta-label{font-family:'DM Mono',monospace;font-size:8pt;color:#6b6560;margin-bottom:2pt;letter-spacing:.04em;}
+.cover-meta-value{font-weight:600;}
+.score-banner{margin:24pt 0;padding:16pt;background:#faeae8;border:1pt solid #dba09a;border-radius:6pt;display:flex;align-items:center;gap:16pt;}
+.score-circle{width:72pt;height:72pt;border-radius:50%;border:3pt solid #b83228;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;flex-shrink:0;}
+.score-num{font-family:'Fraunces',serif;font-size:26pt;font-weight:600;color:#b83228;line-height:1;}
+.score-den{font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;}
+.score-right{flex:1;}
+.score-title{font-family:'Fraunces',serif;font-size:14pt;font-weight:600;margin-bottom:4pt;}
+.score-sub{font-size:10pt;color:#6b6560;margin-bottom:6pt;}
+.score-warn{font-family:'DM Mono',monospace;font-size:9pt;color:#b83228;}
+h1{font-family:'Fraunces',serif;font-size:16pt;font-weight:600;color:#0c0c0c;margin:24pt 0 8pt;padding-bottom:6pt;border-bottom:1.5pt solid #0c0c0c;page-break-after:avoid;}
+h2{font-family:'Fraunces',serif;font-size:12pt;font-weight:600;color:#1a4f8a;margin:16pt 0 6pt;page-break-after:avoid;}
+h3{font-family:'DM Mono',monospace;font-size:9pt;font-weight:500;color:#6b6560;letter-spacing:.04em;margin:12pt 0 4pt;text-transform:uppercase;}
+p{margin-bottom:8pt;line-height:1.6;}
+.finding{border:1pt solid #e2ddd5;border-radius:6pt;padding:12pt;margin-bottom:10pt;page-break-inside:avoid;}
+.finding.critical{border-color:#dba09a;background:#faeae8;}
+.finding.high{border-color:#e0a83a;background:#fdf3e0;}
+.finding-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6pt;gap:8pt;}
+.finding-badges{display:flex;gap:5pt;align-items:center;margin-bottom:4pt;}
+.badge-sev{font-family:'DM Mono',monospace;font-size:7.5pt;font-weight:600;padding:2pt 6pt;border-radius:99pt;letter-spacing:.04em;}
+.badge-sev.critical{background:#b83228;color:#fff;}
+.badge-sev.high{background:#8a5c0a;color:#fff;}
+.badge-type{font-family:'DM Mono',monospace;font-size:7.5pt;padding:2pt 6pt;border-radius:99pt;border:0.5pt solid;}
+.badge-type.missing{background:#faeae8;color:#b83228;border-color:#dba09a;}
+.badge-type.drift{background:#fdf3e0;color:#8a5c0a;border-color:#e0a83a;}
+.badge-type.trust{background:#f0ebfc;color:#3b1f6e;border-color:#9b7dd4;}
+.finding-title{font-family:'Fraunces',serif;font-size:11pt;font-weight:600;color:#0c0c0c;line-height:1.3;}
+.finding-pts{font-family:'DM Mono',monospace;font-size:10pt;font-weight:600;color:#b83228;white-space:nowrap;}
+.finding-consequence{font-size:10pt;line-height:1.6;margin-bottom:8pt;}
+.drift-box{background:#fff;border:0.5pt solid #e0a83a;border-radius:4pt;padding:8pt;margin-bottom:8pt;}
+.drift-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6pt;margin-top:5pt;}
+.drift-label{font-family:'DM Mono',monospace;font-size:7.5pt;color:#8a5c0a;margin-bottom:1pt;}
+.drift-val{font-family:'DM Mono',monospace;font-size:9pt;font-weight:500;color:#8a5c0a;}
+.drift-val.red{color:#b83228;font-weight:700;}
+.exam-box{background:#f7f4ef;border-radius:4pt;padding:8pt;margin-bottom:8pt;}
+.exam-row{display:flex;gap:6pt;margin-bottom:4pt;font-size:9.5pt;}
+.exam-label{font-family:'DM Mono',monospace;font-size:8pt;color:#6b6560;width:90pt;flex-shrink:0;}
+.exam-val{flex:1;color:#0c0c0c;}
+.exam-val.bad{color:#b83228;font-weight:600;}
+.verdict{font-family:'DM Mono',monospace;font-size:9pt;font-weight:600;margin-top:4pt;}
+.verdict.no{color:#b83228;}.verdict.partial{color:#8a5c0a;}
+.naic-ref{font-family:'DM Mono',monospace;font-size:8pt;color:#1a4f8a;margin-top:4pt;}
+.gov-disc{border:0.5pt solid #9b7dd4;border-radius:4pt;overflow:hidden;margin-top:8pt;}
+.gov-disc-hd{background:#3b1f6e;padding:5pt 8pt;font-family:'DM Mono',monospace;font-size:8pt;font-weight:500;color:#fff;letter-spacing:.05em;}
+.gov-disc-body{background:#f0ebfc;padding:8pt;}
+.gov-disc-stmt{font-size:9.5pt;color:#3b1f6e;font-weight:600;margin-bottom:5pt;}
+.gov-disc-sources{display:flex;gap:4pt;flex-wrap:wrap;}
+.gov-source{font-family:'DM Mono',monospace;font-size:8pt;padding:2pt 6pt;background:#fff;border:0.5pt solid #9b7dd4;color:#3b1f6e;border-radius:3pt;}
+.xref{font-family:'DM Mono',monospace;font-size:8pt;padding:2pt 8pt;background:#e8f0fa;color:#1a4f8a;border:0.5pt solid #6da0e0;border-radius:99pt;display:inline-block;margin-top:5pt;}
+.src-line{font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;margin-top:4pt;}
+.eq-item{border:.5pt solid #e2ddd5;border-radius:4pt;margin-bottom:6pt;overflow:hidden;page-break-inside:avoid;}
+.eq-hd{display:flex;align-items:center;padding:7pt 10pt;background:#f7f4ef;gap:8pt;}
+.eq-sys{font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;flex-shrink:0;}
+.eq-q{font-size:9.5pt;font-style:italic;flex:1;}
+.eq-v{font-family:'DM Mono',monospace;font-size:8pt;font-weight:600;padding:2pt 7pt;border-radius:99pt;}
+.eq-v.no{background:#b83228;color:#fff;}.eq-v.partial{background:#8a5c0a;color:#fff;}
+.eq-body{padding:6pt 10pt;font-size:9pt;color:#6b6560;border-top:.5pt solid #e2ddd5;}
+.drift-item{border:.5pt solid #e0a83a;background:#fdf3e0;border-radius:4pt;padding:8pt;margin-bottom:6pt;}
+.drift-item-title{font-weight:600;color:#8a5c0a;font-size:10pt;margin-bottom:3pt;}
+.drift-item-detail{font-size:9pt;color:#0c0c0c;}
+.drift-item-src{font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;margin-top:3pt;}
+.trust-item{border:.5pt solid #9b7dd4;background:#f0ebfc;border-radius:4pt;padding:8pt;margin-bottom:6pt;}
+.trust-item-title{font-weight:600;color:#3b1f6e;font-size:10pt;margin-bottom:3pt;}
+.trust-item-action{font-family:'DM Mono',monospace;font-size:8pt;color:#3b1f6e;margin-top:4pt;}
+.hash-box{background:#f7f4ef;border:1pt solid #e2ddd5;border-radius:4pt;padding:10pt;margin-top:16pt;font-family:'DM Mono',monospace;font-size:8pt;color:#6b6560;page-break-inside:avoid;}
+.hash-title{font-weight:600;color:#0c0c0c;margin-bottom:4pt;}
+.hash-val{word-break:break-all;color:#1a4f8a;margin-bottom:3pt;}
+.hash-note{font-size:7.5pt;color:#9e9890;}
+.chain-table{width:100%;border-collapse:collapse;margin:8pt 0;}
+.chain-table td{padding:5pt 8pt;border:.5pt solid #e2ddd5;font-size:9pt;vertical-align:top;}
+.chain-table tr:first-child td{background:#f7f4ef;font-weight:600;}
+.chain-dot-ok{color:#0d6648;font-weight:700;}
+.chain-dot-gap{color:#b83228;font-weight:700;}
+.bk-tbl{width:100%;border-collapse:collapse;font-size:9.5pt;margin-top:8pt;}
+.bk-tbl th{font-family:'DM Mono',monospace;font-size:8pt;color:#6b6560;text-align:left;padding:5pt 8pt;border-bottom:1pt solid #e2ddd5;background:#f7f4ef;}
+.bk-tbl td{padding:5pt 8pt;border-bottom:.5pt solid #e2ddd5;}
+.bk-tbl tr:last-child td{font-weight:700;background:#f7f4ef;}
+.ded{color:#b83228;font-family:'DM Mono',monospace;font-weight:700;}
+.print-btn{position:fixed;bottom:20px;right:20px;padding:10px 22px;background:#0c0c0c;color:#fff;border:none;border-radius:6px;font-size:14px;font-family:'Instrument Sans',sans-serif;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.2);}
+.print-btn:hover{background:#333;}
+</style>
+</head>
+<body>
+<button class="print-btn no-print" onclick="window.print()">Print / Save as PDF</button>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-logo">Policy<em>Proof</em></div>
+  <div class="cover-title">NAIC Examination Evidence Package</div>
+  <div class="cover-meta">
+    <div class="cover-meta-item"><div class="cover-meta-label">ORGANISATION</div><div class="cover-meta-value">Meridian Insurance</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">GENERATED</div><div class="cover-meta-value">${nowStr}</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">REPORT ID</div><div class="cover-meta-value">${reportId}</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">STATE</div><div class="cover-meta-value">Ohio — NAIC Pilot Active</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">SYSTEMS ANALYSED</div><div class="cover-meta-value">${ACTIVE_DATA.systems.length}</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">CRITICAL FINDINGS</div><div class="cover-meta-value">${AR.gaps.filter(g=>g.type==='critical').length}</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">TRUST FAILURES</div><div class="cover-meta-value">${AR.vgIssues.length}</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">READINESS INDEX</div><div class="cover-meta-value">${Math.max(AR.score,0)}/100</div></div>
+  </div>
+</div>
+
+<!-- SYSTEM DEFENSIBILITY SUMMARY — PAGE 1 HERO -->
+<h1>System Defensibility Summary</h1>
+<p style="margin-bottom:12pt;font-size:10pt;color:#6b6560;">PolicyProof determines whether each AI system can be defended in an NAIC examination — not merely whether governance artifacts exist.</p>
+${(()=>{
+  // Compute verdicts using same logic as app — single source of truth
+  const dr2=AR.dRes;
+  const pdfDefData=ACTIVE_DATA.systems.map(s=>{
+    const ownerOk=!!(s.owner&&s.owner!=='UNASSIGNED');
+    const riskAbsent=s.riskStatus==='NOT ON FILE';
+    const riskExpired=s.riskStatus==='EXPIRED';
+    const riskOk=s.riskStatus==='Active'||s.riskStatus==='Active — Incomplete';
+    const policyOk=!dr2.mismatches.some(d=>d.systemId===s.id);
+    const oversightOk=s.oversight;
+    const interventionOk=s.oversight;
+    const complianceOk=s.complianceSignoff;
+    const authChainBroken=(!riskOk&&!complianceOk&&!interventionOk);
+    const notDef=!ownerOk||riskAbsent||authChainBroken;
+    const atRisk=!notDef&&(riskExpired||(!oversightOk&&!interventionOk));
+    const withGaps=!notDef&&!atRisk&&(!policyOk||!complianceOk||!oversightOk||!interventionOk);
+    return notDef?'notdef':atRisk?'risk':withGaps?'gaps':'defensible';
+  });
+  const counts={defensible:0,gaps:0,risk:0,notdef:0};
+  pdfDefData.forEach(v=>counts[v]++);
+  const highestRiskSys=ACTIVE_DATA.systems.find((s,i)=>pdfDefData[i]==='notdef')||ACTIVE_DATA.systems.find((s,i)=>pdfDefData[i]==='risk');
+  const tiles=[
+    {label:'Defensible',count:counts.defensible,color:'#0d6648',bg:'#e4f5ee',border:'#5bbf9a'},
+    {label:'With Gaps',count:counts.gaps,color:'#8a5c0a',bg:'#fdf3e0',border:'#e0a83a'},
+    {label:'At Risk',count:counts.risk,color:'#b83228',bg:'#faeae8',border:'#dba09a'},
+    {label:'Not Defensible',count:counts.notdef,color:'#fff',bg:'#b83228',border:'#b83228'},
+  ];
+  const highestRiskFailures=highestRiskSys?[
+    !(highestRiskSys.owner&&highestRiskSys.owner!=='UNASSIGNED')?'No accountable owner':'',
+    highestRiskSys.riskStatus==='NOT ON FILE'?'No risk acceptance document':'',
+    highestRiskSys.riskStatus==='EXPIRED'?'Risk acceptance expired':'',
+    !highestRiskSys.complianceSignoff?'No compliance sign-off':'',
+    !highestRiskSys.oversight?'No oversight mechanism':'',
+  ].filter(Boolean):[];
+  return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8pt;margin-bottom:16pt;">
+    ${tiles.map(d=>`<div style="text-align:center;padding:10pt;background:${d.bg};border:1pt solid ${d.border};border-radius:4pt;">
+      <div style="font-family:'Fraunces',serif;font-size:22pt;font-weight:600;color:${d.color};">${d.count}</div>
+      <div style="font-size:9pt;font-weight:600;color:${d.color};">${d.label}</div>
+    </div>`).join('')}
+  </div>
+  ${highestRiskSys?`<div style="border:1pt solid #dba09a;background:#faeae8;border-radius:4pt;padding:12pt;margin-bottom:16pt;">
+    <div style="font-family:'DM Mono',monospace;font-size:8pt;color:#b83228;letter-spacing:.05em;margin-bottom:6pt;">HIGHEST RISK SYSTEM</div>
+    <div style="font-family:'Fraunces',serif;font-size:14pt;font-weight:600;margin-bottom:5pt;">${highestRiskSys.name} <span style="font-family:'DM Mono',monospace;font-size:9pt;color:#9e9890;">${highestRiskSys.id}</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6pt;margin-top:8pt;">
+      ${highestRiskFailures.map(r=>`<div style="font-family:'DM Mono',monospace;font-size:8pt;color:#b83228;">✕ ${r}</div>`).join('')}
+    </div>
+  </div>`:''}`;
+})()}
+<!-- GOVERNANCE CHAIN ASSESSMENT -->
+<h1>Governance Chain Assessment</h1>
+<p style="margin-bottom:12pt;font-size:10pt;color:#6b6560;">For each AI system, PolicyProof evaluates six governance chain dimensions. Each FAIL represents a governance chain weakness that may limit the organisation's ability to defend the system during examination.</p>
+${ACTIVE_DATA.systems.map(s=>{
+  const dr2=AR.dRes;
+  const ownerOk=!!(s.owner&&s.owner!=='UNASSIGNED');
+  const riskAbsent=s.riskStatus==='NOT ON FILE';
+  const riskExpired=s.riskStatus==='EXPIRED';
+  const riskOk=s.riskStatus==='Active'||s.riskStatus==='Active — Incomplete';
+  const policyOk=!dr2.mismatches.some(d=>d.systemId===s.id);
+  const oversightOk=s.oversight;
+  const interventionOk=s.oversight;
+  const complianceOk=s.complianceSignoff;
+  const authChainBroken=(!riskOk&&!complianceOk&&!interventionOk);
+  const notDef=!ownerOk||riskAbsent||authChainBroken;
+  const atRisk=!notDef&&(riskExpired||(!oversightOk&&!interventionOk));
+  const withGaps=!notDef&&!atRisk&&(!policyOk||!complianceOk||!oversightOk||!interventionOk);
+  const verdict=notDef?'NOT DEFENSIBLE':atRisk?'AT RISK':withGaps?'DEFENSIBLE WITH GAPS':'DEFENSIBLE';
+  const vColor=notDef?'#b83228':atRisk?'#8a5c0a':withGaps?'#8a5c0a':'#0d6648';
+  const vBg=notDef?'#faeae8':atRisk?'#fdf3e0':withGaps?'#fdf3e0':'#e4f5ee';
+  const failures=[];
+  if(!ownerOk) failures.push('no accountable owner');
+  if(riskAbsent) failures.push('no risk acceptance document');
+  if(riskExpired) failures.push('risk acceptance expired');
+  if(!policyOk) failures.push('policy execution drift');
+  if(!oversightOk) failures.push('no oversight mechanism');
+  if(!interventionOk) failures.push('no intervention capability');
+  if(!complianceOk) failures.push('no compliance sign-off');
+  const rationale=failures.length===0
+    ?`${s.name} passes all six governance chain dimensions and can be defended in examination.`
+    :`${s.name} is ${verdict} because: ${failures.join(' · ')}.`;
+  return `<div style="border:1pt solid #e2ddd5;border-radius:4pt;margin-bottom:10pt;overflow:hidden;page-break-inside:avoid;">
+    <div style="background:#f7f4ef;padding:8pt 10pt;display:flex;justify-content:space-between;align-items:center;border-bottom:1pt solid #e2ddd5;">
+      <div><strong style="font-size:11pt;">${s.name}</strong> <span style="font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">${s.id} · ${s.tier}</span></div>
+      <span style="font-family:'DM Mono',monospace;font-size:9pt;font-weight:700;color:${vColor};background:${vBg};padding:3pt 8pt;border-radius:99pt;">${verdict}</span>
+    </div>
+    <div style="padding:8pt 10pt;font-size:9.5pt;font-weight:500;color:${vColor};background:${vBg};border-bottom:1pt solid #e2ddd5;">${rationale}</div>
+    <table style="width:100%;border-collapse:collapse;">
+      ${[
+        {label:'Owner',ok:ownerOk,consequence:ownerOk?s.owner:'No named human accountable for decisions'},
+        {label:'Risk Acceptance',ok:riskOk,consequence:riskOk?'Active — expires '+s.riskExpiry:(riskAbsent?'No documented authorisation to operate this system':'Authorisation to operate has expired — governance chain degraded')},
+        {label:'Policy Currency',ok:policyOk,consequence:policyOk?'Current governing version':'Policy execution drift — decisions made after governing policy changed'},
+        {label:'Oversight',ok:oversightOk,consequence:oversightOk?'Documented':'No mechanism to stop or override AI decisions'},
+        {label:'Intervention Capability',ok:interventionOk,consequence:interventionOk?'Documented':'Cannot intervene if system produces harmful output'},
+        {label:'Compliance Sign-Off',ok:complianceOk,consequence:complianceOk?'Obtained':'Deployed without compliance authorisation'},
+      ].map((c,i)=>`<tr style="background:${i%2===0?'#fff':'#fafaf9'};">
+        <td style="padding:5pt 10pt;width:130pt;font-family:'DM Mono',monospace;font-size:8pt;color:#6b6560;">${c.label}</td>
+        <td style="padding:5pt 8pt;width:60pt;font-family:'DM Mono',monospace;font-size:8.5pt;font-weight:700;color:${c.ok?'#0d6648':'#b83228'};">${c.ok?'✓ PASS':'✕ FAIL'}</td>
+        <td style="padding:5pt 8pt;font-size:9pt;color:${c.ok?'#0c0c0c':'#b83228'};">${c.consequence}</td>
+      </tr>`).join('')}
+    </table>
+  </div>`;
+}).join('')}
+
+<!-- EXAMINATION RISK FACTORS -->
+<h1>Examination Risk Factors <span style="font-size:12pt;font-weight:400;color:#6b6560;">(Reference only)</span></h1>
+<table class="bk-tbl">
+  <thead><tr><th>Gap Type</th><th>System</th><th>NAIC Reference</th><th>Deduction</th></tr></thead>
+  <tbody>
+    <tr><td colspan="3" style="color:#9e9890;font-style:italic;font-size:8.5pt;">Starting score</td><td style="font-family:'DM Mono',monospace;">100</td></tr>
+    ${AR.breakdown.map(b=>`<tr><td>${b.gap}</td><td style="font-family:'DM Mono',monospace;font-size:8.5pt;">${b.system}</td><td style="font-family:'DM Mono',monospace;font-size:8.5pt;color:#1a4f8a;">${b.naic}</td><td class="ded">${b.ded}</td></tr>`).join('')}
+    <tr><td colspan="2"><strong>NAIC Readiness Index</strong></td><td></td><td class="ded" style="font-size:13pt;">${Math.max(AR.score,0)}/100</td></tr>
+  </tbody>
+</table>
+
+<!-- GOVERNANCE GAPS -->
+<h1>Governance Gaps (${AR.gaps.length} detected)</h1>
+${AR.gaps.map(g=>{
+  const ftLabel={missing:'Missing',drift:'Drift',trust:'Trust Failure'}[g.findingType]||g.findingType;
+  const driftHtml=g.drift?`<div class="drift-box"><strong style="font-size:8.5pt;font-family:'DM Mono',monospace;color:#8a5c0a;">GOVERNANCE DRIFT DETECTED</strong><div class="drift-grid"><div><div class="drift-label">CURRENT POLICY</div><div class="drift-val">${g.drift.currentPolicy}</div></div><div><div class="drift-label">SYSTEM USING</div><div class="drift-val red">${g.drift.systemUsing}</div></div><div><div class="drift-label">DRIFT STARTED</div><div class="drift-val">${fmt(g.drift.driftStarted)}</div></div><div><div class="drift-label">DURATION</div><div class="drift-val red">${g.drift.driftDays} days</div></div></div><div style="margin-top:5pt;font-family:'DM Mono',monospace;font-size:8pt;color:#8a5c0a;">Affected decisions: ${g.drift.affectedDecisions}</div></div>`:'';
+  const chainHtml=g.chain?`<table class="chain-table">${g.chain.map(n=>`<tr><td style="width:140pt;"><span class="${n.ok?'chain-dot-ok':'chain-dot-gap'}">${n.ok?'●':'✕'}</span> <strong>${n.label}</strong></td><td>${n.detail}</td><td style="width:90pt;font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">${n.date}</td></tr>`).join('')}</table>`:'';
+  const evClass=g.examinerVerdict==='NO'?'no':'partial';
+  const examHtml=`<div class="exam-box"><h3 style="margin-top:0;">EXAMINER IMPACT</h3><div class="exam-row"><span class="exam-label">Question:</span><span class="exam-val">"${g.examinerQ}"</span></div><div class="exam-row"><span class="exam-label">Cannot demonstrate:</span><span class="exam-val bad">${g.examinerCannotDemonstrate}</span></div><div class="exam-row"><span class="exam-label">Likely outcome:</span><span class="exam-val">${g.examinerLikelyOutcome}</span></div><div class="exam-row"><span class="exam-label">Remediation:</span><span class="exam-val">${g.examinerRemediation}</span></div><div class="verdict ${evClass}">● Meridian can answer today: ${g.examinerVerdict}</div><div class="naic-ref">📋 ${g.naic}</div></div>`;
+  const provHtml=g.provLevel===3&&g.govDiscoveryStmt?`<div class="gov-disc"><div class="gov-disc-hd">● GOVERNANCE DISCOVERY</div><div class="gov-disc-body"><div class="gov-disc-stmt">${g.govDiscoveryStmt}</div><div class="gov-disc-sources">${g.provenanceSources.map(s=>`<span class="gov-source">${s}</span>`).join('')}</div></div></div>`:g.provLevel===2?`<span class="xref">⊕ CROSS-REFERENCE · ${g.provenanceSources.join(' + ')}</span>`:`<div class="src-line">Source: ${g.provenanceSources[0]||''}</div>`;
+  return `<div class="finding ${g.type}">
+    <div class="finding-header">
+      <div>
+        <div class="finding-badges"><span class="badge-sev ${g.type}">${g.type.toUpperCase()}</span><span class="badge-type ${g.findingType}">${ftLabel}</span><span style="font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">${g.system}${g.systemId?' · '+g.systemId:''}</span></div>
+        <div class="finding-title">${g.title}</div>
+      </div>
+      <span class="finding-pts">${g.pts}</span>
+    </div>
+    <div class="finding-consequence">${g.consequence}</div>
+    ${driftHtml}${chainHtml}${examHtml}${provHtml}
+  </div>`;
+}).join('')}
+
+<!-- EXAMINER QUESTIONS -->
+<h1>Examiner Questions Meridian Cannot Answer (${eqs.filter(q=>q.verdict==='NO').length} unanswerable)</h1>
+${eqs.map(q=>`<div class="eq-item"><div class="eq-hd"><span class="eq-sys">${q.system}</span><span class="eq-q">"${q.q}"</span><span class="eq-v ${q.verdict.toLowerCase()}">${q.verdict}</span></div><div class="eq-body">${q.why}</div></div>`).join('')}
+
+<!-- GOVERNANCE DRIFT -->
+<h1>Governance Drift (${AR.dqIssues.length} items)</h1>
+${AR.dqIssues.map(d=>`<div class="drift-item"><div class="drift-item-title">${d.title}</div><div class="drift-item-detail">${d.detail}</div><div class="drift-item-src">Source: ${d.src}</div></div>`).join('')}
+
+<!-- TRUST FAILURES -->
+<h1>Trust Failures — Manual Verification Required (${AR.vgIssues.length})</h1>
+${AR.vgIssues.length?AR.vgIssues.map(v=>`<div class="trust-item"><div class="trust-item-title">${v.title}</div><p style="font-size:9.5pt;margin-top:3pt;">${v.detail}</p><div class="trust-item-action">→ Required action: ${v.action}</div><div class="drift-item-src" style="margin-top:4pt;font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">Source: ${v.src}</div></div>`).join(''):'<p>None detected.</p>'}
+
+<!-- TAMPER-PROOF HASH -->
+<div class="hash-box">
+  <div class="hash-title">Tamper-Evident Report Hash</div>
+  <div class="hash-val">SHA-256: ${hash}</div>
+  <div class="hash-note">This hash was computed from the findings data at time of export. Any modification to the evidence package will produce a different hash, confirming tampering has occurred. Generated: ${nowStr} · Report ID: ${reportId}</div>
+</div>
+
+<div style="margin-top:24pt;padding-top:12pt;border-top:1pt solid #e2ddd5;font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;display:flex;justify-content:space-between;">
+  <span>PolicyProof v4 · v4-meridian-demo</span>
+  <span>Generated: ${nowStr}</span>
+  <span>Report: ${reportId}</span>
+</div>
+</body></html>`;
+
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
+</script>
+</body>
+</html>
