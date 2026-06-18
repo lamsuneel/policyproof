@@ -381,13 +381,13 @@ input[type=file]{display:none;}
         <span>PolicyProof reads exports your team already has. Nothing new to maintain. All processing runs in your browser — no data leaves your device.</span>
       </div>
       <div class="upload-grid">
-        <div class="slot" id="slot-inv" onclick="trig('f-inv')"><input type="file" id="f-inv" accept=".csv,.xlsx,.json" onchange="onFile('inv',this)"/><div class="slot-ico">[ ]</div><div class="slot-name">AI System Inventory</div><div class="slot-src">CSV · XLSX · JSON — Jira, ServiceNow, spreadsheet</div><div class="slot-ok" id="ok-inv"></div></div>
-        <div class="slot" id="slot-pol" onclick="trig('f-pol')"><input type="file" id="f-pol" accept=".json,.csv,.xlsx" onchange="onFile('pol',this)"/><div class="slot-ico">[ ]</div><div class="slot-name">Policy Version Library</div><div class="slot-src">JSON · CSV · XLSX — SharePoint, policy management system</div><div class="slot-ok" id="ok-pol"></div></div>
-        <div class="slot" id="slot-dec" onclick="trig('f-dec')"><input type="file" id="f-dec" accept=".csv,.xlsx" onchange="onFile('dec',this)"/><div class="slot-ico">[ ]</div><div class="slot-name">AI Decision Log</div><div class="slot-src">CSV · XLSX — claims system, decision audit log</div><div class="slot-ok" id="ok-dec"></div></div>
+        <div class="slot" id="slot-inv" onclick="trig('f-inv')"><input type="file" id="f-inv" accept=".csv,.xlsx,.json" onchange="onFile('inv',this)"/><div class="slot-ico">📋</div><div class="slot-name">AI System Inventory</div><div class="slot-src">CSV · XLSX · JSON — Jira, ServiceNow, spreadsheet</div><div class="slot-ok" id="ok-inv"></div></div>
+        <div class="slot" id="slot-pol" onclick="trig('f-pol')"><input type="file" id="f-pol" accept=".json,.csv,.xlsx" onchange="onFile('pol',this)"/><div class="slot-ico">📄</div><div class="slot-name">Policy Version Library</div><div class="slot-src">JSON · CSV · XLSX — SharePoint, policy management system</div><div class="slot-ok" id="ok-pol"></div></div>
+        <div class="slot" id="slot-dec" onclick="trig('f-dec')"><input type="file" id="f-dec" accept=".csv,.xlsx" onchange="onFile('dec',this)"/><div class="slot-ico">⚖️</div><div class="slot-name">AI Decision Log</div><div class="slot-src">CSV · XLSX — claims system, decision audit log</div><div class="slot-ok" id="ok-dec"></div></div>
       </div>
       <div class="upload-grid-2">
-        <div class="slot" id="slot-risk" onclick="trig('f-risk')"><input type="file" id="f-risk" accept=".xlsx,.csv,.json" onchange="onFile('risk',this)"/><div class="slot-ico">[ ]</div><div class="slot-name">Risk Assessments</div><div class="slot-src">XLSX · CSV · JSON — risk register, GRC platform export</div><div class="slot-ok" id="ok-risk"></div></div>
-        <div class="slot" id="slot-ovr" onclick="trig('f-ovr')"><input type="file" id="f-ovr" accept=".csv,.xlsx,.json" onchange="onFile('ovr',this)"/><div class="slot-ico">[ ]</div><div class="slot-name">Oversight & Review Log</div><div class="slot-src">CSV · XLSX · JSON — ServiceNow, committee records</div><div class="slot-ok" id="ok-ovr"></div></div>
+        <div class="slot" id="slot-risk" onclick="trig('f-risk')"><input type="file" id="f-risk" accept=".xlsx,.csv,.json" onchange="onFile('risk',this)"/><div class="slot-ico">🛡️</div><div class="slot-name">Risk Assessments</div><div class="slot-src">XLSX · CSV · JSON — risk register, GRC platform export</div><div class="slot-ok" id="ok-risk"></div></div>
+        <div class="slot" id="slot-ovr" onclick="trig('f-ovr')"><input type="file" id="f-ovr" accept=".csv,.xlsx,.json" onchange="onFile('ovr',this)"/><div class="slot-ico">👁️</div><div class="slot-name">Oversight & Review Log</div><div class="slot-src">CSV · XLSX · JSON — ServiceNow, committee records</div><div class="slot-ok" id="ok-ovr"></div></div>
       </div>
       <div class="or">or</div>
       <div class="row-ctr">
@@ -494,12 +494,7 @@ input[type=file]{display:none;}
     <div class="mapping-sub" id="mapping-sub">We detected these columns in your file. Tell us which PP field each one maps to.</div>
     <div class="mapping-note" id="mapping-note"></div>
     <div id="mapping-rows"></div>
-    <div id="mapping-preview" style="display:none;margin-top:1rem;">
-      <div class="mapping-section">Preview — first 3 rows after mapping</div>
-      <div id="mapping-preview-body" style="font-family:var(--mono);font-size:10px;overflow-x:auto;"></div>
-    </div>
     <div class="row-end" style="margin-top:1.5rem;">
-      <button class="btn" onclick="previewMapping()">Preview rows</button>
       <button class="btn" onclick="closeMappingModal()">Cancel</button>
       <button class="btn btn-p" onclick="confirmMapping()">Apply mapping →</button>
     </div>
@@ -602,6 +597,47 @@ const TODAY_STR=TODAY.toISOString().split('T')[0];
 
 // GAP DETECTION
 // ════════════════════════════════════════════════════════════════
+
+// ── BUILD DYNAMIC OWNER CHAIN ────────────────────────────────
+function buildOwnerChain(system) {
+  const owner = system.owner || 'UNASSIGNED';
+  const isUnassigned = !owner || owner === 'UNASSIGNED' || owner === 'TBD';
+  
+  // Use ownerDepartedNote if available (from hardcoded demo data)
+  if (system.ownerDepartedNote) {
+    // Parse the existing departed note for FraudGuard ML style narrative
+    return [
+      {label:`Previous owner on record`,detail:`${system.ownerDepartedNote}`,date:'Historical',ok:true},
+      {label:'Owner field set to UNASSIGNED',detail:`${system.name} owner field shows UNASSIGNED. No replacement assigned.`,date:'Current',ok:false},
+      {label:'System continues processing live decisions',detail:`${system.name} continues operating with no named accountable human.`,date:'Ongoing',ok:false},
+      {label:'No accountable owner on record today',detail:`Cannot be defended in examination — no individual can be held responsible.`,date:'Today',ok:false},
+    ];
+  }
+  
+  // For uploaded data with TBD or blank owner
+  if (owner === 'TBD') {
+    return [
+      {label:'Owner marked as TBD',detail:`${system.name} owner field contains 'TBD' — no individual has been assigned accountability.`,date:'Current',ok:false},
+      {label:'No assignment made',detail:'Placeholder value suggests ownership was deferred and never resolved.',date:'Current',ok:false},
+      {label:'System operating without accountable owner',detail:`${system.name} decisions cannot be attributed to a named individual.`,date:'Ongoing',ok:false},
+    ];
+  }
+  
+  // Generic unassigned
+  return [
+    {label:'Owner field empty',detail:`${system.name} owner field is blank in the AI inventory.`,date:'Current',ok:false},
+    {label:'No accountable individual identified',detail:'No named human can be held responsible for decisions this system has made.',date:'Current',ok:false},
+  ];
+}
+
+
+// ── GET ORGANISATION NAME ─────────────────────────────────────
+function getOrgName() {
+  // Use uploaded org name if available, else default
+  if (window.ACTIVE_DATA && window.ACTIVE_DATA.orgName) return window.ACTIVE_DATA.orgName;
+  return 'this organisation';
+}
+
 function detectGaps(decRes,policyIdx){
   const gaps=[],dqIssues=[...decRes.dqIssues],vgIssues=[];
   let score=100,breakdown=[];
@@ -616,23 +652,17 @@ function detectGaps(decRes,policyIdx){
       id:'GAP-OWN-'+s.id,
       title:`No named human is accountable for ${s.name}`,
       system:s.name,systemId:s.id,
-      consequence:`${s.name} has processed live ${s.fn.toLowerCase()} decisions for 18 months with no named accountable owner. ${s.ownerDepartedNote||''} No individual can be held responsible for any decision this system has made. If an examiner asks who is accountable — there is no answer.`,
+      consequence:`${s.name} has processed live ${s.fn.toLowerCase()} decisions with no named accountable owner. ${s.ownerDepartedNote||''} No individual can be held responsible for any decision this system has made. If an examiner asks who is accountable — there is no answer.`,
       drift:null,
-      chain:[
-        {label:'Marcus Webb — named owner',detail:'VP Fraud Operations · FraudGuard ML accountability holder on record',date:'Pre Dec 2023',ok:true},
-        {label:'Jira comment records departure',detail:'AIOPS-1002 comment (Michelle Torres, 18 Mar 2024): "IT sponsor Marcus Webb departed December 2023" · Source: free-text comment field, not HR system',date:'Dec 2023',ok:false},
-        {label:'Owner field set to UNASSIGNED',detail:'Jira ticket AIOPS-1002 · Reassignment request sent to VP Operations · No response received',date:'Dec 2023',ok:false},
-        {label:'System continues processing live decisions',detail:'Fraud flags and clearances continue · No named human accountable for any decision made during this period',date:'Dec 2023 → Jun 2025',ok:false},
-        {label:'No accountable owner on record today',detail:'18 months of decisions with no named accountable human · Cannot be defended in examination',date:'Jun 2025',ok:false},
-      ],
-      examinerQ:'Who is accountable for FraudGuard ML\'s decisions?',
+      chain:buildOwnerChain(s),
+      examinerQ:`Who is accountable for ${s.name}'s decisions?`,
       examinerVerdict:'NO',
-      examinerCannotDemonstrate:'No named owner on record for 18 months.',
+      examinerCannotDemonstrate:`No named owner on record. Owner field shows: '${s.owner||'UNASSIGNED'}'.`,
       examinerLikelyOutcome:'Material Finding — examiner will require immediate owner assignment and governance chain reapproval.',
       examinerRemediation:'Assign named owner, document accountability chain, resubmit for compliance sign-off.',
       naic:'NAIC Exhibit B §2.1',
       provenanceSources:['AI Inventory (Jira)','Decision Logs','Risk Registry','Oversight Records'],
-      defImpact:'This system cannot be defended if an examiner asks who is accountable for its decisions.',
+      defImpact:`${s.name} cannot be defended if an examiner asks who is accountable for its decisions.`,
       pts:'-15 pts'
     });
   });
@@ -646,16 +676,21 @@ function detectGaps(decRes,policyIdx){
   Object.values(mBySys).forEach(m=>{
     const sys=ACTIVE_DATA.systems.find(s=>s.id===m.systemId);
     const dates=m.decisions.map(d=>d.date).sort();
-    const driftStart=dates[0];
+    // Drift started when the correct policy became active - not when first bad decision was made
+    const policyTimeline=policyIdx[m.systemId]||[];
+    const correctPolicyEntry=policyTimeline.find(p=>p.version===m.correctVersion);
+    const policyChangeDate=correctPolicyEntry ? new Date(correctPolicyEntry.from).toISOString().split('T')[0] : dates[0];
+    const driftStart=policyChangeDate;
     const driftDays=daysBetween(driftStart,TODAY_STR);
+    const firstBadDecision=dates[0];
     score-=10; breakdown.push({gap:'Policy version mismatch',system:sys?.name,ded:-10,naic:'Exhibit B §3.3'});
     gaps.push({
       type:'critical',findingType:'drift',provLevel:2,
       id:'GAP-VER-'+m.systemId,
       title:`${m.decisions.length} decisions made after governing policy changed — ${driftDays} days of policy execution drift`,
       system:sys?.name,systemId:m.systemId,
-      consequence:`${m.decisions.length} decisions were made using ${m.versionUsed} after ${m.correctVersion} became the governing policy. Each of these decisions cannot be tied to the policy that was in force at the time they were made. If an examiner selects any one of these decisions and asks which policy governed it, Meridian cannot produce a valid answer.`,
-      drift:{currentPolicy:m.correctVersion,systemUsing:m.versionUsed,driftStarted:driftStart,driftDays,affectedDecisions:m.decisions.length},
+      consequence:`${m.decisions.length} decisions were made using ${m.versionUsed} after ${m.correctVersion} became the governing policy. Each of these decisions cannot be tied to the policy that was in force at the time they were made. If an examiner selects any one of these decisions and asks which policy governed it, the organisation cannot produce a valid answer.`,
+      drift:{currentPolicy:m.correctVersion,systemUsing:m.versionUsed,driftStarted:driftStart,firstBadDecision:firstBadDecision,driftDays,affectedDecisions:m.decisions.length},
       chain:null,
       examinerQ:`Which policy governed Decision ${m.decisions[0]?.id} on ${m.decisions[0]?.date}?`,
       examinerVerdict:'NO',
@@ -684,7 +719,7 @@ function detectGaps(decRes,policyIdx){
       title:missing?`${s.name} has never had a risk acceptance document`:`${s.name} risk acceptance expired ${days} days ago — system still in production`,
       system:s.name,systemId:s.id,
       consequence:missing
-        ?`${s.name} has been in production since 2021 with no formal risk acceptance ever completed. There is no documented authorisation to operate this system. No one has ever formally accepted the risk of deploying it.`
+        ?`${s.name} has been in production with no formal risk acceptance ever completed. There is no documented authorisation to operate this system. No one has ever formally accepted the risk of deploying it.`
         :`${s.name}'s risk acceptance expired on ${fmt(s.riskExpiry)} — ${days} days ago. The system has continued making ${s.fn.toLowerCase()} decisions ever since. The organisation cannot demonstrate it was authorised to operate this system after that date.`,
       drift:expired?{currentPolicy:'Valid acceptance required',systemUsing:'Expired acceptance',driftStarted:s.riskExpiry,driftDays:days,affectedDecisions:'All decisions post-'+fmt(s.riskExpiry)}:null,
       chain:null,
@@ -810,18 +845,53 @@ function detectGaps(decRes,policyIdx){
 // EXAMINER QUESTIONS
 // ════════════════════════════════════════════════════════════════
 function buildEQs(){
-  return [
-    {system:'FraudGuard ML',q:'Who is accountable for FraudGuard ML — who do I contact if there is a problem?',verdict:'NO',why:'Owner field UNASSIGNED since December 2023. No named individual on record.'},
-    {system:'FraudGuard ML',q:'Show me the risk acceptance document for FraudGuard ML.',verdict:'NO',why:'No risk acceptance document has ever been filed. System in production since 2021 without one.'},
-    {system:'ClaimScore AI',q:'Which policy governed ClaimScore AI\'s decisions in February and March 2025?',verdict:'NO',why:'Decisions made under v1.8 but v2.1 was active from January 15 2025. 3 decisions cannot be tied to the correct governing policy.'},
-    {system:'ClaimScore AI',q:'Show me the human reviewer sign-off for denial DEC-2025-0084.',verdict:'NO',why:'No reviewer logged. Policy v2.1 §4.2 requires adjuster sign-off on all AI-generated denials.'},
-    {system:'UnderwriteAssist',q:'Who authorised UnderwriteAssist to operate after its risk acceptance expired February 10 2024?',verdict:'NO',why:'No renewal initiated. No emergency authorisation documented. System operated for 16+ months past expiry.'},
-    {system:'FraudGuard ML',q:'Show me the oversight and review records for FraudGuard ML.',verdict:'PARTIAL',why:'Oversight log shows compliance analyst reviews but no business owner sign-off. Three escalations to CCO level — none resolved.'},
-    {system:'DocExtract Pro',q:'Where is the compliance department sign-off for DocExtract Pro?',verdict:'NO',why:'Approved by IT Operations only. Compliance department not involved. No compliance sign-off exists.'},
-    {system:'UnderwriteAssist',q:'Who approved the risk acceptance for UnderwriteAssist and are they still at Meridian?',verdict:'PARTIAL',why:'Signed by Robert Haines, CRO. Current employment status not confirmed from available data. If departed, approval chain is broken.'},
-    {system:'ClaimScore AI',q:'Can you demonstrate ClaimScore AI operated under an active governance framework throughout 2025?',verdict:'PARTIAL',why:'Policy v2.1 active from January 15. But February and March decisions used v1.8. Gap period exists.'},
-    {system:'CustomerIQ',q:'How does Meridian intervene if CustomerIQ produces a harmful personalisation decision?',verdict:'PARTIAL',why:'No documented override capability. CMO classified as acceptable risk — no remediation implemented.'},
-  ];
+  // Generate examiner questions dynamically from detected gaps
+  if (!AR || !AR.gaps) return [];
+  
+  const eqs = [];
+  
+  AR.gaps.forEach(gap => {
+    if (!gap.examinerQ) return;
+    
+    // Build question from gap data
+    const eq = {
+      system: gap.system || 'Unknown System',
+      q: gap.examinerQ,
+      verdict: gap.examinerVerdict || 'NO',
+      why: gap.examinerCannotDemonstrate || 'Evidence not available in analysed sources.',
+      outcome: gap.examinerLikelyOutcome || '',
+      remediation: gap.examinerRemediation || '',
+    };
+    
+    // Add additional context based on gap type
+    if (gap.findingType === 'drift' && gap.drift) {
+      eq.why = `Decisions made under ${gap.drift.systemUsing} but ${gap.drift.currentPolicy} was active from ${gap.drift.driftStarted}. ${gap.drift.affectedDecisions} decision(s) cannot be tied to the correct governing policy.`;
+    }
+    
+    eqs.push(eq);
+  });
+
+  // Add DQ-based questions (no reviewer)
+  if (AR.dRes && AR.dRes.noReviewer && AR.dRes.noReviewer.length > 0) {
+    const noRevSystems = [...new Set(AR.dRes.noReviewer.map(d => {
+      const sys = ACTIVE_DATA.systems.find(s => s.id === d.systemId);
+      return sys ? sys.name : d.systemId;
+    }))];
+    const firstNoRev = AR.dRes.noReviewer[0];
+    const firstSys = ACTIVE_DATA.systems.find(s => s.id === firstNoRev.systemId);
+    if (firstNoRev) {
+      eqs.push({
+        system: firstSys ? firstSys.name : firstNoRev.systemId,
+        q: `Show me the human reviewer sign-off for decision ${firstNoRev.id}.`,
+        verdict: 'NO',
+        why: `Reviewer field is blank. No sign-off exists for this decision.`,
+        outcome: 'Control failure finding for each unreviewed decision.',
+        remediation: 'Implement mandatory reviewer logging.'
+      });
+    }
+  }
+
+  return eqs;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -976,33 +1046,6 @@ function openMappingModal(type) {
 
   document.getElementById('mapping-title').textContent = 'Map columns — ' + typeLabels[type];
   document.getElementById('mapping-sub').textContent = `File: ${fileName} · ${rows.length} rows · ${cols.length} columns detected`;
-  
-  // Load saved mapping if exists
-  const savedMappingKey = `pp_mapping_${type}_${cols.sort().join('|')}`;
-  let savedMapping = null;
-  let savedDateFormat = 'auto';
-  try {
-    const saved = localStorage.getItem(savedMappingKey);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      savedMapping = parsed.mapping;
-      savedDateFormat = parsed.dateFormat || 'auto';
-    }
-  } catch(e) {}
-
-  // Add date format selector
-  const dateFormatHtml = `
-    <div style="margin-bottom:1rem;padding:10px 12px;background:var(--cream);border-radius:var(--r4);border:.5px solid var(--border);">
-      <label style="font-family:var(--mono);font-size:11px;font-weight:500;display:block;margin-bottom:6px;">Date format in this file</label>
-      <select id="date-format-${type}" style="font-size:12px;padding:6px 8px;border:.5px solid var(--border);border-radius:var(--r4);background:var(--paper);font-family:var(--sans);">
-        <option value="auto" ${savedDateFormat==='auto'?'selected':''}>Auto-detect</option>
-        <option value="YYYY-MM-DD" ${savedDateFormat==='YYYY-MM-DD'?'selected':''}>YYYY-MM-DD (2025-01-15)</option>
-        <option value="MM/DD/YYYY" ${savedDateFormat==='MM/DD/YYYY'?'selected':''}>MM/DD/YYYY (01/15/2025)</option>
-        <option value="DD/MM/YYYY" ${savedDateFormat==='DD/MM/YYYY'?'selected':''}>DD/MM/YYYY (15/01/2025)</option>
-        <option value="MM-DD-YYYY" ${savedDateFormat==='MM-DD-YYYY'?'selected':''}>MM-DD-YYYY (01-15-2025)</option>
-      </select>
-    </div>`;
-  document.getElementById('mapping-rows').innerHTML = dateFormatHtml;
 
   // Auto-detect note
   const noteEl = document.getElementById('mapping-note');
@@ -1021,7 +1064,7 @@ function openMappingModal(type) {
     const section = document.createElement('div');
 
     // Auto-match: find column that closely matches field key or label
-    const autoMatch = (savedMapping && savedMapping[field.key]) ? savedMapping[field.key] : autoMatchColumn(field.key, field.label, cols);
+    const autoMatch = autoMatchColumn(field.key, field.label, cols);
 
     section.innerHTML = `
       <div class="mapping-row">
@@ -1083,104 +1126,10 @@ function closeMappingModal() {
   currentMappingType = null;
 }
 
-
-
-// ── PREVIEW MAPPING ───────────────────────────────────────────
-function previewMapping() {
-  const type = currentMappingType;
-  const fields = PP_FIELDS[type];
-  const {rows} = rawFileData[type];
-
-  // Build temp mapping from current dropdown values
-  const mapping = {};
-  fields.forEach(field => {
-    const sel = document.getElementById(`map-${type}-${field.key}`);
-    mapping[field.key] = sel ? sel.value : '';
-  });
-
-  const dateFormatEl = document.getElementById(`date-format-${type}`);
-  const dateFormat = dateFormatEl ? dateFormatEl.value : 'auto';
-
-  // Normalize first 3 rows
-  const preview = normalizeRows(rows.slice(0, 3), mapping, type, dateFormat);
-
-  if (!preview.length) {
-    document.getElementById('mapping-preview').style.display = 'block';
-    document.getElementById('mapping-preview-body').innerHTML = '<div style="color:var(--red);padding:8px;">No valid rows found with current mapping.</div>';
-    return;
-  }
-
-  // Build preview table
-  const mappedFields = fields.filter(f => mapping[f.key]);
-  let html = '<table style="border-collapse:collapse;width:100%;margin-top:6px;">';
-  html += '<tr>' + mappedFields.map(f => `<th style="padding:4px 8px;border:.5px solid var(--border);background:var(--cream);text-align:left;">${f.label}</th>`).join('') + '</tr>';
-  
-  preview.forEach(row => {
-    html += '<tr>' + mappedFields.map(f => {
-      const val = row[f.key];
-      const display = val === null ? '<span style="color:var(--faint)">—</span>' : String(val);
-      const isNull = val === null;
-      return `<td style="padding:4px 8px;border:.5px solid var(--border);${isNull?'color:var(--faint)':''}">${display}</td>`;
-    }).join('') + '</tr>';
-  });
-  html += '</table>';
-  html += `<div style="margin-top:6px;color:var(--mid);">Showing ${preview.length} of ${rows.length} rows</div>`;
-
-  document.getElementById('mapping-preview').style.display = 'block';
-  document.getElementById('mapping-preview-body').innerHTML = html;
-}
-
-// ── SANITY CHECK: wrong file in wrong slot ────────────────────
-function checkFileSanity(type, rows, cols) {
-  if (!rows.length) return null;
-  const sample = rows[0];
-
-  // Inventory: should have id and name fields with data
-  if (type === 'inv') {
-    if (!sample.id) return 'This may not be an AI inventory file. Expected a System ID column. Check you uploaded the right file.';
-    // Check if it looks like a policy file uploaded in inventory slot
-    if (sample.effectiveFrom || sample.version || cols.some(c => c.toLowerCase().includes('effective') || c.toLowerCase().includes('version'))) {
-      return 'This looks like a Policy Version file, not an AI Inventory. Check you uploaded the right file.';
-    }
-  }
-
-  // Policy: should have systemId and effectiveFrom
-  if (type === 'pol') {
-    if (!sample.systemId) return 'This may not be a policy version file. Expected a System ID column.';
-    if (!sample.effectiveFrom) return 'This may not be a policy version file. Expected an effective date column.';
-    // Check if inventory uploaded in policy slot
-    if (sample.fn || sample.owner || cols.some(c => c.toLowerCase().includes('owner') || c.toLowerCase().includes('function'))) {
-      return 'This looks like an AI Inventory file, not a Policy Version file. Check you uploaded the right file.';
-    }
-  }
-
-  // Decisions: should have date and systemId
-  if (type === 'dec') {
-    if (!sample.date) return 'This may not be a decision log. Expected a date column. Check date format selection.';
-    if (!sample.systemId) return 'This may not be a decision log. Expected a System ID column.';
-  }
-
-  // Risk: should have systemId and riskExpiry
-  if (type === 'risk') {
-    if (!sample.systemId) return 'This may not be a risk register. Expected a System ID column.';
-  }
-
-  // Oversight: should have systemId and reviewDate
-  if (type === 'ovr') {
-    if (!sample.systemId) return 'This may not be an oversight log. Expected a System ID column.';
-  }
-
-  return null; // looks fine
-}
-
 function confirmMapping() {
   const type = currentMappingType;
   const fields = PP_FIELDS[type];
   const {rows, fileName} = rawFileData[type];
-
-  // Get date format preference
-  const dateFormatEl = document.getElementById(`date-format-${type}`);
-  const dateFormat = dateFormatEl ? dateFormatEl.value : 'auto';
 
   // Build mapping config
   const mapping = {};
@@ -1198,32 +1147,9 @@ function confirmMapping() {
     return;
   }
 
-  // Save mapping to localStorage for next time
-  try {
-    const mappingKey = `pp_mapping_${type}_${rawFileData[type].cols.sort().join('|')}`;
-    localStorage.setItem(mappingKey, JSON.stringify({mapping, dateFormat}));
-  } catch(e) {}
-
   // Apply mapping + normalize
-  const normalized = normalizeRows(rows, mapping, type, dateFormat);
+  const normalized = normalizeRows(rows, mapping, type);
   mappedData[type] = {rows: normalized, fileName, mapping};
-
-  // Sanity check — detect obvious wrong file in wrong slot
-  const sanityWarning = checkFileSanity(type, normalized, rawFileData[type].cols);
-  if (sanityWarning) {
-    const noteEl = document.getElementById('mapping-note');
-    noteEl.style.display = 'block';
-    noteEl.textContent = '⚠ ' + sanityWarning;
-    // Don't block — warn only, let user proceed
-  }
-
-  // Check for empty result after normalization
-  if (normalized.length === 0) {
-    const noteEl = document.getElementById('mapping-note');
-    noteEl.style.display = 'block';
-    noteEl.textContent = '⚠ No valid rows found after mapping. Check your column mappings and try again.';
-    return;
-  }
 
   // Update slot UI
   closeMappingModal();
@@ -1237,7 +1163,7 @@ function confirmMapping() {
 }
 
 // ── NORMALIZATION ─────────────────────────────────────────────
-function normalizeRows(rows, mapping, type, dateFormat) {
+function normalizeRows(rows, mapping, type) {
   return rows.map((row, idx) => {
     const out = {_src: `row ${idx + 2}`};
     Object.entries(mapping).forEach(([ppKey, srcCol]) => {
@@ -1251,7 +1177,7 @@ function normalizeRows(rows, mapping, type, dateFormat) {
       }
       // Normalize dates
       else if (['riskExpiry','effectiveFrom','effectiveTo','date','reviewDate','approvedDate'].includes(ppKey)) {
-        out[ppKey] = normalizeDate(val, dateFormat);
+        out[ppKey] = normalizeDate(val);
       }
       // Normalize risk status
       else if (ppKey === 'riskStatus') {
@@ -1268,8 +1194,8 @@ function normalizeRows(rows, mapping, type, dateFormat) {
     });
     return out;
   }).filter(row => {
-    const hasValue = Object.entries(row).some(([k,v]) => k !== '_src' && v !== null && v !== undefined && v !== '');
-    return hasValue;
+    // Filter rows that have at least one non-null value (skip blank rows)
+    return Object.values(row).some(v => v !== null && v !== undefined && v !== '' && v !== '_src');
   });
 }
 
@@ -1282,34 +1208,29 @@ function normalizeBool(val) {
   return null;
 }
 
-function normalizeDate(val, fmt) {
+function normalizeDate(val) {
   if (!val) return null;
+  // Already a JS Date (from XLSX)
   if (val instanceof Date) return val.toISOString().split('T')[0];
   const s = val.toString().trim();
   if (!s) return null;
-  // YYYY-MM-DD always works regardless of format setting
+  // Try common formats
+  // YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  // Use explicit format if provided
-  if (fmt === 'DD/MM/YYYY' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
-    const [d,m,y] = s.split('/'); return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-  }
-  if (fmt === 'MM/DD/YYYY' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
-    const [m,d,y] = s.split('/'); return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-  }
-  if (fmt === 'MM-DD-YYYY' && /^\d{1,2}-\d{1,2}-\d{4}$/.test(s)) {
-    const [m,d,y] = s.split('-'); return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-  }
-  // Auto-detect: if day part > 12 it must be DD/MM
+  // MM/DD/YYYY
   if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
-    const parts = s.split('/');
-    if (parseInt(parts[0]) > 12) {
-      const [d,m,y] = parts; return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-    }
-    const [m,d,y] = parts; return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    const [m,d,y] = s.split('/');
+    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
   }
+  // DD/MM/YYYY
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [d,m,y] = s.split('/');
+    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  // Try native Date parse as fallback
   const d = new Date(s);
   if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-  return null;
+  return null; // unparseable
 }
 
 function normalizeRiskStatus(val) {
@@ -1323,12 +1244,12 @@ function normalizeRiskStatus(val) {
 // ── BUILD RAW FROM MAPPED DATA ────────────────────────────────
 function buildRAWFromMappedData() {
   // Build systems from inventory
-  const systems = (mappedData.inv ? mappedData.inv.rows : RAW.systems).filter(r => r.id && r.name).map(r => ({
+  const systems = (mappedData.inv ? mappedData.inv.rows : RAW.systems).map(r => ({
     id: r.id || ('SYS-' + Math.random().toString(36).substr(2,4).toUpperCase()),
     name: r.name || 'Unknown System',
-    fn: (r.fn && r.fn !== r.name) ? r.fn : (r.fn || ''),
+    fn: r.fn || 'Unknown Function',
     vendor: r.vendor || 'Unknown',
-    tier: r.tier || 'Tier 2',
+    tier: r.tier || 'Tier Unknown',
     owner: r.owner || 'UNASSIGNED',
     ownerEmail: r.ownerEmail || '',
     policyId: r.policyId || null,
