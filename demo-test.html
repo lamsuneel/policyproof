@@ -404,7 +404,7 @@ input[type=file]{display:none;}
       </div>
       <div class="or">or</div>
       <div class="row-ctr">
-        <button class="btn btn-p btn-lg" onclick="loadDemo()">▶ Load Meridian Insurance demo data</button>
+        <button class="btn btn-p btn-lg" onclick="loadDemo()">↺ Reset and load Meridian demo data</button>
       </div>
       <p style="font-family:var(--mono);font-size:10px;color:var(--faint);text-align:center;margin-top:6px;">Loads all five pre-built files automatically · No uploads needed</p>
     </div>
@@ -1263,10 +1263,13 @@ function openMappingModal(type) {
   container.innerHTML = '';
   currentMappingRows = fields;
 
-  // Load saved mapping from localStorage if available
-  const lsKey = `pp_mapping_${type}_${[...cols].sort().join('|')}`;
   let savedMapping = null;
-  try { const raw = localStorage.getItem(lsKey); if (raw) savedMapping = JSON.parse(raw); } catch(e) {}
+  let savedDateFormat = null;
+  try {
+    const key = `pp_mapping_${type}_${cols.slice().sort().join('|')}`;
+    const saved = localStorage.getItem(key);
+    if (saved) { const p = JSON.parse(saved); savedMapping = p.mapping; savedDateFormat = p.dateFormat; }
+  } catch(e) {}
 
   // Date format selector
   const dateFmtSection = document.createElement('div');
@@ -1284,17 +1287,15 @@ function openMappingModal(type) {
       </select>
     </div>`;
   container.appendChild(dateFmtSection);
-  if (savedMapping) {
+  if (savedDateFormat) {
     const fmtSel = document.getElementById(`date-format-${type}`);
-    if (fmtSel && savedMapping.dateFormat) fmtSel.value = savedMapping.dateFormat;
+    if (fmtSel) fmtSel.value = savedDateFormat;
   }
 
   fields.forEach(field => {
     const section = document.createElement('div');
 
-    // Saved mapping takes priority; fall back to auto-match
-    const savedCol = savedMapping && savedMapping.mapping[field.key];
-    const autoMatch = (savedCol && cols.includes(savedCol)) ? savedCol : autoMatchColumn(field.key, field.label, cols);
+    const autoMatch = (savedMapping && savedMapping[field.key]) || autoMatchColumn(field.key, field.label, cols);
 
     section.innerHTML = `
       <div class="mapping-row">
@@ -1380,13 +1381,12 @@ function confirmMapping() {
   // Apply mapping + normalize
   const dateFormatEl = document.getElementById(`date-format-${type}`);
   const dateFormat = dateFormatEl ? dateFormatEl.value : 'auto';
+  try {
+    const key = `pp_mapping_${type}_${rawFileData[type].cols.slice().sort().join('|')}`;
+    localStorage.setItem(key, JSON.stringify({mapping, dateFormat}));
+  } catch(e) {}
   const normalized = normalizeRows(rows, mapping, type, dateFormat);
   mappedData[type] = {rows: normalized, fileName, mapping, dateFormat};
-
-  // Persist mapping to localStorage keyed by file shape
-  const {cols: savedCols} = rawFileData[type];
-  const lsKey = `pp_mapping_${type}_${[...savedCols].sort().join('|')}`;
-  try { localStorage.setItem(lsKey, JSON.stringify({mapping, dateFormat})); } catch(e) {}
 
   // Update slot UI
   closeMappingModal();
@@ -1582,21 +1582,40 @@ function showImportSummary(){
     .join('');
   document.getElementById('import-summary-body').innerHTML=`<div class="alert a-green"><span>✓</span><span><strong>${n} of 5 files loaded.</strong> ${n===5?'All files ready — run analysis.':'Add remaining files or proceed with available data.'}</span></div><div style="font-family:var(--mono);font-size:10px;margin-top:8px;">${fileDetails}</div>`;
 }
-function loadDemo(){
+function loadDemo() {
+  const hasRealData = Object.values(mappedData).some(v => v !== null);
+  if (hasRealData) {
+    const confirmed = confirm(
+      'This will clear your uploaded files and load the Meridian demo data instead. Continue?'
+    );
+    if (!confirmed) return;
+  }
+  // Clear all mapped data before loading demo
+  Object.keys(mappedData).forEach(k => mappedData[k] = null);
+  Object.keys(loaded).forEach(k => loaded[k] = false);
+  // Reset slot UI
+  ['inv','pol','dec','risk','ovr'].forEach(k => {
+    const sl = document.getElementById('slot-' + k);
+    sl.classList.remove('loaded');
+    sl.querySelector('.slot-ico').textContent = ['inv','📋','pol','📄','dec','⚖️','risk','🛡️','ovr','👁️'].reduce((m,v,i,a)=>i%2===0?{...m,[v]:a[i+1]}:m,{})[k] || '📋';
+    document.getElementById('ok-' + k).textContent = '';
+  });
+  // Pre-fill org/state for demo
   const orgInput = document.getElementById('org-name-input');
   const stateInput = document.getElementById('state-select');
   if (orgInput && !orgInput.value.trim()) orgInput.value = 'Meridian Insurance';
   if (stateInput && !stateInput.value) stateInput.value = 'Ohio';
   updateContextStrip();
-  ['inv','pol','dec','risk','ovr'].forEach((k,i)=>{
-    setTimeout(()=>{
-      loaded[k]=true;
-      mappedData[k]=null; // use hardcoded RAW for demo
-      const sl=document.getElementById('slot-'+k);
-      sl.classList.add('loaded');sl.querySelector('.slot-ico').textContent='✓';
-      document.getElementById('ok-'+k).textContent='Meridian demo data · loaded';
+  // Now load demo
+  ['inv','pol','dec','risk','ovr'].forEach((k, i) => {
+    setTimeout(() => {
+      loaded[k] = true;
+      const sl = document.getElementById('slot-' + k);
+      sl.classList.add('loaded');
+      sl.querySelector('.slot-ico').textContent = '✓';
+      document.getElementById('ok-' + k).textContent = 'Meridian demo data · loaded';
       checkLoaded();
-    },i*160);
+    }, i * 160);
   });
 }
 function goStep(n){
