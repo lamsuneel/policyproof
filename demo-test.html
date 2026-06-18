@@ -591,16 +591,33 @@ function processDecisions(decisions,policyIdx){
     const end=Math.min(i+BATCH,decisions.length);
     while(i<end){
       const d=decisions[i++];
-      if(!d.date||isNaN(new Date(d.date))){res.dqIssues.push({type:'INVALID_DATE',decId:d.id,src:d.src});continue;}
+      if(!d.date||isNaN(new Date(d.date))){
+        const _title=d.id?`Data quality issue — invalid date on decision ${d.id}`:'';
+        const _detail=`Decision ${d.id||'(unknown)'} has an unparseable date and was excluded from policy version matching.`;
+        if(_title) res.dqIssues.push({type:'INVALID_DATE',decId:d.id,src:d.src,title:_title,detail:_detail});
+        continue;
+      }
       const correct=getCorrectVersion(policyIdx,d.systemId,d.date);
       const vMatch=correct.status==='FOUND'&&correct.version===d.versionUsed;
       const hasRev=!!(d.reviewer&&d.reviewer.trim());
-      if(correct.status!=='FOUND') res.noGoverningPolicy.push({...d,correctInfo:correct});
-      else if(!vMatch) res.mismatches.push({...d,correctVersion:correct.version,approvedBy:correct.approvedBy,approverActive:correct.approverActive,policyId:correct.policyId});
-      if(!hasRev){ res.noReviewer.push({...d}); console.log('[PP] noReviewer:', d.id, 'outcome:', d.outcome, 'vMatch:', vMatch); }
-      if(vMatch&&hasRev) res.clean.push({...d});
+      // Policy bucket — mutually exclusive
+      if(correct.status!=='FOUND'){
+        res.noGoverningPolicy.push({...d,correctInfo:correct});
+      } else if(!vMatch){
+        res.mismatches.push({...d,correctVersion:correct.version,approvedBy:correct.approvedBy,approverActive:correct.approverActive,policyId:correct.policyId});
+      }
+      // Reviewer bucket — independent; a decision can be in mismatches AND noReviewer
+      if(!hasRev){
+        res.noReviewer.push({...d});
+        console.log('[PP] noReviewer:', d.id, 'outcome:', d.outcome, 'vMatch:', vMatch);
+        if(d.id==='DEC-0084'||d.id==='DEC-0083'){
+          console.log('[PP] DIAGNOSTIC '+d.id+': hasRev='+hasRev+' reviewer='+JSON.stringify(d.reviewer)+' vMatch='+vMatch+' policyStatus='+correct.status);
+        }
+      }
+      if(vMatch&&hasRev){ res.clean.push({...d}); }
     }
   }
+  console.log('total mismatches:', res.mismatches.length, res.mismatches.map(d => d.decisionId));
   return res;
 }
 
@@ -693,7 +710,10 @@ function detectGaps(decRes,policyIdx){
       naic:'NAIC Exhibit B §2.1',
       provenanceSources:['AI Inventory (Jira)','Decision Logs','Risk Registry','Oversight Records'],
       defImpact:`${s.name} cannot be defended if an examiner asks who is accountable for its decisions.`,
-      pts:'-15 pts'
+      pts:'-15 pts',
+      confidence:'HIGH',
+      confidenceReason:'Field directly observed as empty or absent in reviewed sources',
+      resolveWith:'HR directory or org chart with named accountability assignment'
     });
   });
 
@@ -732,7 +752,9 @@ function detectGaps(decRes,policyIdx){
       provenanceSources:['Policy Library (SharePoint)','Decision Logs'],
       govDiscoveryStmt:null,
       defImpact:`${m.decisions.length} decisions made by this system cannot be tied to an active governing policy. An examiner asking to see the policy will find a version that was not in force at decision time.`,
-      pts:'-10 pts'
+      pts:'-10 pts',
+      confidence:'HIGH',
+      confidenceReason:'Date comparison confirmed from policy library and decision logs'
     });
     // Also surface as a Governance Drift tab item
     const decSrcs=[...new Set(m.decisions.map(d=>d.src).filter(Boolean))].slice(0,3).join(' · ');
@@ -771,7 +793,10 @@ function detectGaps(decRes,policyIdx){
       provenanceSources:missing?['AI Inventory (Jira)','Risk Registry','Decision Logs','Oversight Records']:['Risk Registry','Decision Logs'],
       govDiscoveryStmt:missing?'This finding required evidence from 4 independent governance records. No individual source identified this issue.':null,
       defImpact:missing?'This system cannot be defended — the organisation has no documented authorisation to operate it.':'This system may be suspended — it has operated without valid authorisation for '+days+' days.',
-      pts:'-12 pts'
+      pts:'-12 pts',
+      confidence:'HIGH',
+      confidenceReason:missing?'Field directly observed as empty or absent in reviewed sources':'Date comparison confirmed from policy library and decision logs',
+      resolveWith:missing?null:'Risk registry renewal record or emergency authorisation documentation'
     });
   });
 
@@ -797,7 +822,9 @@ function detectGaps(decRes,policyIdx){
       provenanceSources:['Decision Logs'],
       govDiscoveryStmt:null,
       defImpact:`${decRes.noReviewer.length} decisions cannot be defended — there is no human reviewer on record to demonstrate governance oversight was applied.`,
-      pts:'-8 pts'
+      pts:'-8 pts',
+      confidence:'HIGH',
+      confidenceReason:'Field directly observed as empty or absent in reviewed sources'
     });
   }
 
@@ -820,7 +847,9 @@ function detectGaps(decRes,policyIdx){
       provenanceSources:['AI Inventory (Jira)'],
       govDiscoveryStmt:null,
       defImpact:`This system cannot be defended if an examiner asks how ${getOrgName()} would stop ${s.name} from producing a harmful decision.`,
-      pts:'-8 pts'
+      pts:'-8 pts',
+      confidence:'HIGH',
+      confidenceReason:'Field directly observed as empty or absent in reviewed sources'
     });
   });
 
@@ -843,7 +872,9 @@ function detectGaps(decRes,policyIdx){
       provenanceSources:['AI Inventory (Jira)'],
       govDiscoveryStmt:null,
       defImpact:`This system cannot be defended — it was deployed and has operated without compliance department authorisation.`,
-      pts:'-5 pts'
+      pts:'-5 pts',
+      confidence:'HIGH',
+      confidenceReason:'Field directly observed as empty or absent in reviewed sources'
     });
   });
 
@@ -864,7 +895,7 @@ function detectGaps(decRes,policyIdx){
   ACTIVE_DATA.systems.forEach(s=>{
     // (1) Unverifiable approval chain — approver status unknown
     const pv=ACTIVE_DATA.policyVersions.filter(v=>v.systemId===s.id&&v.approverActive===null);
-    if(pv.length>0){
+    if(pv.length>0&&s.name){
       vgIssues.push({
         id:'VG-APPR-'+s.id,
         title:`${s.name} — approval chain cannot be verified`,
@@ -878,7 +909,7 @@ function detectGaps(decRes,policyIdx){
     const latestPv2=(ACTIVE_DATA.policyVersions.filter(v=>v.systemId===s.id)||[])
       .sort((a,b)=>new Date(b.effectiveFrom)-new Date(a.effectiveFrom))[0];
     const ownerMissing=!s.owner||s.owner==='UNASSIGNED'||s.owner==='TBD';
-    if(latestPv2&&ownerMissing&&!pv.length){
+    if(latestPv2&&ownerMissing&&!pv.length&&s.name){
       vgIssues.push({
         id:'VG-OWNPOL-'+s.id,
         title:`${s.name} — no owner to maintain policy governance chain`,
@@ -906,25 +937,24 @@ function detectGaps(decRes,policyIdx){
     evidenceSources.push('Risk Register');
     evidenceSources.push('AI System Inventory');
     
-    // ── Drift 1: Ownership Drift ─────────────────────────────
-    // RA was approved by riskOwner, but current owner is different
-    if (s.riskOwner && s.owner && s.owner !== 'UNASSIGNED' && s.owner !== 'TBD') {
-      const raOwnerNorm = s.riskOwner.trim().toLowerCase();
-      const currentOwnerNorm = s.owner.trim().toLowerCase();
-      if (raOwnerNorm !== currentOwnerNorm) {
-        raFindings.push({
-          type: 'Ownership Drift',
-          detail: `Risk assessment was accepted by ${s.riskOwner}. Current accountable owner is ${s.owner}. If ownership transferred without a reassessment, the governance rationale may no longer be attributable to the current owner.`,
-          severity: 'medium',
-          indicator: 'DETECTED'
-        });
-      }
-    } else if (s.riskOwner && (!s.owner || s.owner === 'UNASSIGNED' || s.owner === 'TBD')) {
+    // ── Drift 1: Ownership Drift — Governance Continuity Risk ───
+    const riskOwner = s.riskOwner || null;
+    const currentOwner = (s.owner && s.owner !== 'UNASSIGNED' && s.owner !== 'TBD') ? s.owner : null;
+    const ownershipChanged = riskOwner && currentOwner && riskOwner.trim().toLowerCase() !== currentOwner.trim().toLowerCase();
+    const ownerMissing = riskOwner && !currentOwner;
+
+    if (ownershipChanged || ownerMissing) {
+      const continuityStatus = 'CANNOT DETERMINE';
+      const detail = ownershipChanged
+        ? `Risk assessment was accepted by ${riskOwner}. Current accountable owner is ${currentOwner}. If ownership transferred without a reassessment, the governance rationale may no longer be attributable to the current owner.`
+        : `Risk assessment was accepted by ${riskOwner} but no current owner is assigned. The governance rationale cannot be attributed to any active individual.`;
       raFindings.push({
         type: 'Ownership Drift',
-        detail: `Risk assessment was accepted by ${s.riskOwner} but no current owner is assigned. The governance rationale cannot be attributed to any active individual.`,
+        detail: detail,
         severity: 'high',
-        indicator: 'DETECTED'
+        indicator: 'DETECTED',
+        continuityStatus: continuityStatus,
+        resolveWith: 'HR records, governance committee minutes, or documented ownership transfer record'
       });
     }
     
@@ -1031,7 +1061,9 @@ function detectGaps(decRes,policyIdx){
       })),
       examinerQ: `Does the approved Risk Assessment for ${s.name} still accurately describe the AI system operating today?`,
       examinerVerdict: 'PARTIAL',
-      examinerCannotDemonstrate: `PolicyProof detected ${raFindings.map(f=>f.type).join(', ')}. Full validation requires configuration records not currently ingested.`,
+      examinerCannotDemonstrate: `PolicyProof detected ${raFindings.map(f=>f.type).join(', ')}. Transfer status: CANNOT DETERMINE. Full validation requires configuration records not currently ingested.`,
+      continuityStatus: 'CANNOT DETERMINE',
+      resolveWith: raFindings.filter(f=>f.resolveWith).map(f=>f.resolveWith).join('; ') || 'Configuration repository, governance committee minutes, or RACI documentation',
       examinerLikelyOutcome: 'Examiner may require demonstration that the risk assessment remains representative of the deployed system.',
       examinerRemediation: 'Review risk assessment against current system state. Initiate reassessment if material differences exist. Document rationale if assessment remains valid.',
       naic: 'NAIC Model Bulletin §1.7 · Exhibit D',
@@ -1041,7 +1073,9 @@ function detectGaps(decRes,policyIdx){
         notReviewed: cannotEvaluate
       },
       defImpact: `${s.name} risk assessment governance continuity cannot be fully confirmed from available sources.`,
-      pts: `${scoreDeduction} pts`
+      pts: `${scoreDeduction} pts`,
+      confidence:'MEDIUM',
+      confidenceReason:'Configuration records unavailable — assessment based on inventory and registry only'
     });
   });
 
@@ -1272,6 +1306,7 @@ function openMappingModal(type) {
   let savedDateFormat = null;
   try {
     const key = `pp_mapping_${type}_${cols.slice().sort().join('|')}`;
+    console.log('[PP] mapping key:', key, '| saved:', localStorage.getItem(key) ? 'FOUND' : 'NOT FOUND');
     const saved = localStorage.getItem(key);
     if (saved) { const p = JSON.parse(saved); savedMapping = p.mapping; savedDateFormat = p.dateFormat; }
   } catch(e) {}
@@ -1710,7 +1745,7 @@ function renderAnalysis(){
   document.getElementById('gap-ct').textContent=`(${AR.gaps.length})`;
   document.getElementById('gaps-list').innerHTML=AR.gaps.map(g=>gapCard(g)).join('');
 
-  const visibleDqIssues = AR.dqIssues.filter(d => d.title || d.type === 'INVALID_DATE');
+  const visibleDqIssues = AR.dqIssues.filter(item => item.title && item.detail);
   document.getElementById('dq-ct').textContent=`(${visibleDqIssues.length})`;
   document.getElementById('dq-list').innerHTML=visibleDqIssues.length
     ?visibleDqIssues.map(d=>{
@@ -1720,9 +1755,10 @@ function renderAnalysis(){
     }).join('')
     :'<p style="font-size:13px;color:var(--faint);padding:1rem 0;">No governance drift detected.</p>';
 
-  document.getElementById('vg-ct').textContent=`(${AR.vgIssues.length})`;
-  document.getElementById('vg-list').innerHTML=AR.vgIssues.length
-    ?AR.vgIssues.map(v=>`<div class="vg-item"><div class="vg-title">${v.title}</div><div class="vg-detail">${v.detail}</div><div class="vg-action">→ Required action: ${v.action}</div><div class="dq-src" style="font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:4px;">Source: ${v.src}</div></div>`).join('')
+  const visibleVgIssues = AR.vgIssues.filter(item => item.title && item.system);
+  document.getElementById('vg-ct').textContent=`(${visibleVgIssues.length})`;
+  document.getElementById('vg-list').innerHTML=visibleVgIssues.length
+    ?visibleVgIssues.map(v=>`<div class="vg-item"><div class="vg-title">${v.title}</div><div class="vg-detail">${v.detail}</div><div class="vg-action">→ Required action: ${v.action}</div><div class="dq-src" style="font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:4px;">Source: ${v.src}</div></div>`).join('')
     :'<p style="font-size:13px;color:var(--faint);padding:1rem 0;">No trust failures detected.</p>';
 
   document.getElementById('analysis-out').style.display='block';
@@ -1735,32 +1771,9 @@ function gapCard(g){
   // Defensibility impact sentence
   const defImpact=`<div style="font-family:var(--mono);font-size:10px;font-weight:500;color:var(--red);background:var(--red-bg);border:.5px solid var(--red-border);border-radius:var(--r4);padding:5px 9px;margin-bottom:10px;"><span style="letter-spacing:.04em;opacity:.7;">DEFENSIBILITY IMPACT · </span>${g.defImpact||'This finding reduces the defensibility of '+g.system+' in an NAIC examination.'}</div>`;
 
-  // Drift box — handles policy drift and RA drift
-  console.log('[PP] gapCard drift:', g.findingType, g.drift ? Object.keys(g.drift) : null);
-  console.log('findingType:', g.findingType, 'has raDriftIndicators:', g.drift && g.drift.raDriftIndicators);
+  // Drift box — policy drift only; ra-drift uses the chain section below
   let driftHtml = '';
-  if (g.drift && g.drift.raDriftIndicators) {
-    // RA Drift rendering
-    const indicators = g.drift.raDriftIndicators || [];
-    const reviewed = g.drift.evidenceSources || [];
-    const notReviewed = g.drift.cannotEvaluate || [];
-    driftHtml = `<div class="drift-box">
-    <div class="drift-box-title">RISK ASSESSMENT DRIFT DETECTED</div>
-    <div style="margin-bottom:10px;">
-      ${indicators.map(f=>`
-        <div style="margin-bottom:8px;padding:8px 10px;background:var(--amber-bg);border:.5px solid var(--amber-border);border-radius:var(--r4);">
-          <div style="font-family:var(--mono);font-size:10px;font-weight:500;color:var(--amber);margin-bottom:3px;">${f.type} · ${f.indicator}</div>
-          <div style="font-size:11px;color:var(--ink);">${f.detail}</div>
-        </div>`).join('')}
-    </div>
-    <div style="font-family:var(--mono);font-size:9px;color:var(--mid);margin-top:8px;">
-      <div style="margin-bottom:3px;font-weight:500;">EVIDENCE BOUNDARY</div>
-      <div style="color:var(--green);">Reviewed: ${reviewed.join(' · ')}</div>
-      <div style="color:var(--faint);margin-top:2px;">Not evaluated: ${notReviewed.slice(0,2).join(' · ')}</div>
-    </div>
-  </div>`;
-  } else if (g.drift) {
-    // Policy drift rendering (existing)
+  if (g.drift && g.findingType !== 'ra-drift') {
     driftHtml = `<div class="drift-box">
     <div class="drift-box-title">GOVERNANCE DRIFT DETECTED</div>
     <div class="drift-grid">
@@ -1803,6 +1816,11 @@ function gapCard(g){
     <div class="eb-note">Findings reflect evidence available in analysed sources only. Records outside these sources were not evaluated.</div>
   </div>`;
 
+  // Confidence badge
+  const _confColor=g.confidence==='HIGH'?'var(--green)':g.confidence==='MEDIUM'?'var(--amber)':'var(--mid)';
+  const _confBg=g.confidence==='HIGH'?'var(--green-bg)':g.confidence==='MEDIUM'?'var(--amber-bg)':'var(--paper)';
+  const confHtml=g.confidence?`<div style="display:inline-flex;align-items:center;gap:5px;margin-bottom:6px;padding:3px 8px;background:${_confBg};border-radius:99px;border:.5px solid ${_confColor};"><span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${_confColor};letter-spacing:.05em;">CONFIDENCE: ${g.confidence}</span><span style="font-size:10px;color:${_confColor};margin-left:4px;">${g.confidenceReason}</span></div>`:'';
+
   return `<div class="gap-card ${g.type}">
     <div class="gap-hd">
       <div class="gap-hd-left">
@@ -1818,7 +1836,7 @@ function gapCard(g){
     <div class="gap-body">
       ${defImpact}
       <div class="gap-consequence">${g.consequence}</div>
-      ${driftHtml}${chainHtml}${examHtml}${provHtml}
+      ${confHtml}${driftHtml}${chainHtml}${examHtml}${provHtml}
     </div>
   </div>`;
 }
@@ -1885,7 +1903,7 @@ function renderScore(){
     const withGaps=!notDef&&!atRisk&&(!policyOk||!complianceOk||!oversightOk||!interventionOk);
 
     const verdict=notDef?'notdef':atRisk?'risk':withGaps?'gaps':'defensible';
-    const verdictLabel={defensible:'Defensible',gaps:'Defensible with Gaps',risk:'At Risk',notdef:'Not Defensible'}[verdict];
+    const verdictLabel={defensible:'Full',gaps:'Partial',risk:'Fragile',notdef:'Broken'}[verdict];
 
     // Defensibility rationale — the "why" sentence
     const failures=[];
@@ -1923,19 +1941,19 @@ function renderScore(){
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem;">
         <div style="text-align:center;padding:10px;background:var(--green-bg);border:.5px solid var(--green-border);border-radius:var(--r6);">
           <div style="font-family:var(--serif);font-size:22px;font-weight:600;color:var(--green);">${defCounts.defensible}</div>
-          <div style="font-size:11px;color:var(--green);font-weight:500;">Defensible</div>
+          <div style="font-size:11px;color:var(--green);font-weight:500;">Full</div>
         </div>
         <div style="text-align:center;padding:10px;background:var(--amber-bg);border:.5px solid var(--amber-border);border-radius:var(--r6);">
           <div style="font-family:var(--serif);font-size:22px;font-weight:600;color:var(--amber);">${defCounts.gaps}</div>
-          <div style="font-size:11px;color:var(--amber);font-weight:500;">With Gaps</div>
+          <div style="font-size:11px;color:var(--amber);font-weight:500;">Partial</div>
         </div>
         <div style="text-align:center;padding:10px;background:var(--red-bg);border:.5px solid var(--red-border);border-radius:var(--r6);">
           <div style="font-family:var(--serif);font-size:22px;font-weight:600;color:var(--red);">${defCounts.risk}</div>
-          <div style="font-size:11px;color:var(--red);font-weight:500;">At Risk</div>
+          <div style="font-size:11px;color:var(--red);font-weight:500;">Fragile</div>
         </div>
         <div style="text-align:center;padding:10px;background:var(--red);border-radius:var(--r6);">
           <div style="font-family:var(--serif);font-size:22px;font-weight:600;color:#fff;">${defCounts.notdef}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.8);font-weight:500;">Not Defensible</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.8);font-weight:500;">Broken</div>
         </div>
       </div>
       ${highestRisk?`<div style="padding:10px 12px;background:var(--red-bg);border:.5px solid var(--red-border);border-radius:var(--r6);">
@@ -2007,7 +2025,7 @@ function renderScore(){
       <div class="fs-item d"><div class="fs-val">${trustCount}</div><div class="fs-lbl">Trust failures</div></div>
       <div class="fs-item a"><div class="fs-val">${driftCount}</div><div class="fs-lbl">Governance drift events</div></div>
       <div class="fs-item g"><div class="fs-val">${defensibleDecs}/${totalDecs}</div><div class="fs-lbl">Fully defensible decisions</div></div>
-      <div class="fs-item r"><div class="fs-val">${defData.filter(d=>d.verdict==='notdef').length}</div><div class="fs-lbl">Systems not defensible</div></div>
+      <div class="fs-item r"><div class="fs-val">${defData.filter(d=>d.verdict==='notdef').length}</div><div class="fs-lbl">Systems broken</div></div>
     </div>`;
 
   // Score breakdown — reference only, demoted
@@ -2268,9 +2286,13 @@ p{margin-bottom:8pt;line-height:1.6;}
   </div>
 </div>
 
-<!-- SYSTEM DEFENSIBILITY SUMMARY — PAGE 1 HERO -->
-<h1>System Defensibility Summary</h1>
-<p style="margin-bottom:12pt;font-size:10pt;color:#6b6560;">PolicyProof determines whether each AI system can be defended in an NAIC examination — not merely whether governance artifacts exist.</p>
+<!-- EXAMINER QUESTIONS -->
+<h1>Questions ${getOrgName()} Cannot Answer Today</h1>
+${eqs.map(q=>`<div class="eq-item"><div class="eq-hd"><span class="eq-sys">${q.system}</span><span class="eq-q">"${q.q}"</span><span class="eq-v ${q.verdict.toLowerCase()}">${q.verdict}</span></div><div class="eq-body">${q.why}</div></div>`).join('')}
+
+<!-- GOVERNANCE RECONSTRUCTABILITY -->
+<h1>Governance Reconstructability</h1>
+<p style="margin-bottom:12pt;font-size:10pt;color:#6b6560;">PolicyProof determines whether the governance story for each AI system can be reconstructed and defended in an NAIC examination — not merely whether governance artifacts exist.</p>
 ${(()=>{
   // Compute verdicts using same logic as app — single source of truth
   const dr2=AR.dRes;
@@ -2293,10 +2315,10 @@ ${(()=>{
   pdfDefData.forEach(v=>counts[v]++);
   const highestRiskSys=ACTIVE_DATA.systems.find((s,i)=>pdfDefData[i]==='notdef')||ACTIVE_DATA.systems.find((s,i)=>pdfDefData[i]==='risk');
   const tiles=[
-    {label:'Defensible',count:counts.defensible,color:'#0d6648',bg:'#e4f5ee',border:'#5bbf9a'},
-    {label:'With Gaps',count:counts.gaps,color:'#8a5c0a',bg:'#fdf3e0',border:'#e0a83a'},
-    {label:'At Risk',count:counts.risk,color:'#b83228',bg:'#faeae8',border:'#dba09a'},
-    {label:'Not Defensible',count:counts.notdef,color:'#fff',bg:'#b83228',border:'#b83228'},
+    {label:'Full',count:counts.defensible,color:'#0d6648',bg:'#e4f5ee',border:'#5bbf9a'},
+    {label:'Partial',count:counts.gaps,color:'#8a5c0a',bg:'#fdf3e0',border:'#e0a83a'},
+    {label:'Fragile',count:counts.risk,color:'#b83228',bg:'#faeae8',border:'#dba09a'},
+    {label:'Broken',count:counts.notdef,color:'#fff',bg:'#b83228',border:'#b83228'},
   ];
   const highestRiskFailures=highestRiskSys?[
     !(highestRiskSys.owner&&highestRiskSys.owner!=='UNASSIGNED')?'No accountable owner':'',
@@ -2388,7 +2410,7 @@ ${ACTIVE_DATA.systems.map(s=>{
   const notDef=!ownerOk||riskAbsent||authChainBroken;
   const atRisk=!notDef&&(riskExpired||(!oversightOk&&!interventionOk));
   const withGaps=!notDef&&!atRisk&&(!policyOk||!complianceOk||!oversightOk||!interventionOk);
-  const verdict=notDef?'NOT DEFENSIBLE':atRisk?'AT RISK':withGaps?'DEFENSIBLE WITH GAPS':'DEFENSIBLE';
+  const verdict=notDef?'BROKEN':atRisk?'FRAGILE':withGaps?'PARTIAL':'FULL';
   const vColor=notDef?'#b83228':atRisk?'#8a5c0a':withGaps?'#8a5c0a':'#0d6648';
   const vBg=notDef?'#faeae8':atRisk?'#fdf3e0':withGaps?'#fdf3e0':'#e4f5ee';
   const failures=[];
@@ -2434,11 +2456,14 @@ ${ACTIVE_DATA.systems.map(s=>{
 <h1>Governance Gaps (${AR.gaps.length} detected)</h1>
 ${AR.gaps.map(g=>{
   const ftLabel={missing:'Missing',drift:'Drift',trust:'Trust Failure','ra-drift':'RA Drift'}[g.findingType]||g.findingType;
-  const driftHtml=g.drift?`<div class="drift-box"><strong style="font-size:8.5pt;font-family:'DM Mono',monospace;color:#8a5c0a;">GOVERNANCE DRIFT DETECTED</strong><div class="drift-grid"><div><div class="drift-label">CURRENT POLICY</div><div class="drift-val">${g.drift.currentPolicy}</div></div><div><div class="drift-label">SYSTEM USING</div><div class="drift-val red">${g.drift.systemUsing}</div></div><div><div class="drift-label">DRIFT STARTED</div><div class="drift-val">${fmt(g.drift.driftStarted)}</div></div><div><div class="drift-label">DURATION</div><div class="drift-val red">${g.drift.driftDays} days</div></div></div><div style="margin-top:5pt;font-family:'DM Mono',monospace;font-size:8pt;color:#8a5c0a;">Affected decisions: ${g.drift.affectedDecisions}</div></div>`:'';
+  const driftHtml=(g.drift&&g.findingType!=='ra-drift')?`<div class="drift-box"><strong style="font-size:8.5pt;font-family:'DM Mono',monospace;color:#8a5c0a;">GOVERNANCE DRIFT DETECTED</strong><div class="drift-grid"><div><div class="drift-label">CURRENT POLICY</div><div class="drift-val">${g.drift.currentPolicy}</div></div><div><div class="drift-label">SYSTEM USING</div><div class="drift-val red">${g.drift.systemUsing}</div></div><div><div class="drift-label">DRIFT STARTED</div><div class="drift-val">${fmt(g.drift.driftStarted)}</div></div><div><div class="drift-label">DURATION</div><div class="drift-val red">${g.drift.driftDays} days</div></div></div><div style="margin-top:5pt;font-family:'DM Mono',monospace;font-size:8pt;color:#8a5c0a;">Affected decisions: ${g.drift.affectedDecisions}</div></div>`:'';
   const chainHtml=g.chain?`<table class="chain-table">${g.chain.map(n=>`<tr><td style="width:140pt;"><span class="${n.ok?'chain-dot-ok':'chain-dot-gap'}">${n.ok?'●':'✕'}</span> <strong>${n.label}</strong></td><td>${n.detail}</td><td style="width:90pt;font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">${n.date}</td></tr>`).join('')}</table>`:'';
   const evClass=g.examinerVerdict==='NO'?'no':'partial';
   const examHtml=`<div class="exam-box"><h3 style="margin-top:0;">EXAMINER IMPACT</h3><div class="exam-row"><span class="exam-label">Question:</span><span class="exam-val">"${g.examinerQ}"</span></div><div class="exam-row"><span class="exam-label">Cannot demonstrate:</span><span class="exam-val bad">${g.examinerCannotDemonstrate}</span></div><div class="exam-row"><span class="exam-label">Likely outcome:</span><span class="exam-val">${g.examinerLikelyOutcome}</span></div><div class="exam-row"><span class="exam-label">Remediation:</span><span class="exam-val">${g.examinerRemediation}</span></div><div class="verdict ${evClass}">● ${getOrgName()} can answer today: ${g.examinerVerdict}</div><div class="naic-ref">📋 ${g.naic}</div></div>`;
-  const _pSrcs=g.provenanceSources||[];const provHtml=`<div class="evidence-boundary"><div class="eb-label">EVIDENCE BOUNDARY</div><div class="eb-reviewed">Reviewed: ${_pSrcs.join(' · ')||'—'}</div><div class="eb-not-reviewed">Not reviewed: HR Directory · Org Chart · External Vendor Records · Configuration Repository</div><div class="eb-note">Findings reflect evidence available in analysed sources only. Records outside these sources were not evaluated.</div></div>`;
+  const _pSrcs=g.provenanceSources||[];const provHtml=`<div class="evidence-boundary"><div class="eb-label">EVIDENCE BOUNDARY</div><div class="eb-reviewed">Reviewed: ${_pSrcs.join(' · ')||'—'}</div><div class="eb-not-reviewed">Not reviewed: HR Directory · Org Chart · External Vendor Records · Configuration Repository</div>${g.resolveWith?`<div style="margin-top:4pt;font-family:'DM Mono',monospace;font-size:7.5pt;color:#1a4f8a;"><span style="font-weight:600;color:#6b6560;">WOULD RESOLVE WITH: </span>${g.resolveWith}</div>`:''}<div class="eb-note">Findings reflect evidence available in analysed sources only. Records outside these sources were not evaluated.</div></div>`;
+  const confColor=g.confidence==='HIGH'?'#0d6648':g.confidence==='MEDIUM'?'#8a5c0a':'#6b6560';
+  const confBg=g.confidence==='HIGH'?'#e4f5ee':g.confidence==='MEDIUM'?'#fdf3e0':'#f7f4ef';
+  const confHtml=g.confidence?`<div style="display:inline-flex;align-items:center;gap:5pt;margin-bottom:6pt;padding:3pt 8pt;background:${confBg};border-radius:99pt;border:0.5pt solid ${confColor}20;"><span style="font-family:'DM Mono',monospace;font-size:7.5pt;font-weight:700;color:${confColor};letter-spacing:.05em;">CONFIDENCE: ${g.confidence}</span><span style="font-size:8pt;color:${confColor};">${g.confidenceReason}</span></div>`:'';
   return `<div class="finding ${g.type}">
     <div class="finding-header">
       <div>
@@ -2448,13 +2473,9 @@ ${AR.gaps.map(g=>{
       <span class="finding-pts">${g.pts}</span>
     </div>
     <div class="finding-consequence">${g.consequence}</div>
-    ${driftHtml}${chainHtml}${examHtml}${provHtml}
+    ${confHtml}${driftHtml}${chainHtml}${examHtml}${provHtml}
   </div>`;
 }).join('')}
-
-<!-- EXAMINER QUESTIONS -->
-<h1>Examiner Questions ${getOrgName()} Cannot Answer (${eqs.filter(q=>q.verdict==='NO').length} unanswerable)</h1>
-${eqs.map(q=>`<div class="eq-item"><div class="eq-hd"><span class="eq-sys">${q.system}</span><span class="eq-q">"${q.q}"</span><span class="eq-v ${q.verdict.toLowerCase()}">${q.verdict}</span></div><div class="eq-body">${q.why}</div></div>`).join('')}
 
 <!-- GOVERNANCE DRIFT -->
 <h1>Governance Drift (${AR.dqIssues.length} items)</h1>
