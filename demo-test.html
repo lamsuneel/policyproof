@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -971,6 +971,33 @@ function openMappingModal(type) {
 
   document.getElementById('mapping-title').textContent = 'Map columns — ' + typeLabels[type];
   document.getElementById('mapping-sub').textContent = `File: ${fileName} · ${rows.length} rows · ${cols.length} columns detected`;
+  
+  // Add date format selector
+  const dateFormatHtml = `
+    <div style="margin-bottom:1rem;padding:10px 12px;background:var(--cream);border-radius:var(--r4);border:.5px solid var(--border);">
+      <label style="font-family:var(--mono);font-size:11px;font-weight:500;display:block;margin-bottom:6px;">Date format in this file</label>
+      <select id="date-format-${type}" style="font-size:12px;padding:6px 8px;border:.5px solid var(--border);border-radius:var(--r4);background:var(--paper);font-family:var(--sans);">
+        <option value="auto" ${savedDateFormat==='auto'?'selected':''}>Auto-detect</option>
+        <option value="YYYY-MM-DD" ${savedDateFormat==='YYYY-MM-DD'?'selected':''}>YYYY-MM-DD (2025-01-15)</option>
+        <option value="MM/DD/YYYY" ${savedDateFormat==='MM/DD/YYYY'?'selected':''}>MM/DD/YYYY (01/15/2025)</option>
+        <option value="DD/MM/YYYY" ${savedDateFormat==='DD/MM/YYYY'?'selected':''}>DD/MM/YYYY (15/01/2025)</option>
+        <option value="MM-DD-YYYY" ${savedDateFormat==='MM-DD-YYYY'?'selected':''}>MM-DD-YYYY (01-15-2025)</option>
+      </select>
+    </div>`;
+  document.getElementById('mapping-rows').innerHTML = dateFormatHtml;
+
+  // Load saved mapping if exists
+  const savedMappingKey = `pp_mapping_${type}_${cols.sort().join('|')}`;
+  let savedMapping = null;
+  let savedDateFormat = 'auto';
+  try {
+    const saved = localStorage.getItem(savedMappingKey);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      savedMapping = parsed.mapping;
+      savedDateFormat = parsed.dateFormat || 'auto';
+    }
+  } catch(e) {}
 
   // Auto-detect note
   const noteEl = document.getElementById('mapping-note');
@@ -989,7 +1016,7 @@ function openMappingModal(type) {
     const section = document.createElement('div');
 
     // Auto-match: find column that closely matches field key or label
-    const autoMatch = autoMatchColumn(field.key, field.label, cols);
+    const autoMatch = (savedMapping && savedMapping[field.key]) ? savedMapping[field.key] : autoMatchColumn(field.key, field.label, cols);
 
     section.innerHTML = `
       <div class="mapping-row">
@@ -1056,6 +1083,10 @@ function confirmMapping() {
   const fields = PP_FIELDS[type];
   const {rows, fileName} = rawFileData[type];
 
+  // Get date format preference
+  const dateFormatEl = document.getElementById(`date-format-${type}`);
+  const dateFormat = dateFormatEl ? dateFormatEl.value : 'auto';
+
   // Build mapping config
   const mapping = {};
   let missingRequired = [];
@@ -1072,8 +1103,14 @@ function confirmMapping() {
     return;
   }
 
+  // Save mapping to localStorage for next time
+  try {
+    const mappingKey = `pp_mapping_${type}_${rawFileData[type].cols.sort().join('|')}`;
+    localStorage.setItem(mappingKey, JSON.stringify({mapping, dateFormat}));
+  } catch(e) {}
+
   // Apply mapping + normalize
-  const normalized = normalizeRows(rows, mapping, type);
+  const normalized = normalizeRows(rows, mapping, type, dateFormat);
   mappedData[type] = {rows: normalized, fileName, mapping};
 
   // Update slot UI
@@ -1088,7 +1125,7 @@ function confirmMapping() {
 }
 
 // ── NORMALIZATION ─────────────────────────────────────────────
-function normalizeRows(rows, mapping, type) {
+function normalizeRows(rows, mapping, type, dateFormat) {
   return rows.map((row, idx) => {
     const out = {_src: `row ${idx + 2}`};
     Object.entries(mapping).forEach(([ppKey, srcCol]) => {
@@ -1102,7 +1139,7 @@ function normalizeRows(rows, mapping, type) {
       }
       // Normalize dates
       else if (['riskExpiry','effectiveFrom','effectiveTo','date','reviewDate','approvedDate'].includes(ppKey)) {
-        out[ppKey] = normalizeDate(val);
+        out[ppKey] = normalizeDate(val, dateFormat);
       }
       // Normalize risk status
       else if (ppKey === 'riskStatus') {
@@ -1119,8 +1156,8 @@ function normalizeRows(rows, mapping, type) {
     });
     return out;
   }).filter(row => {
-    // Filter rows that have at least one non-null value (skip blank rows)
-    return Object.values(row).some(v => v !== null && v !== undefined && v !== '' && v !== '_src');
+    const hasValue = Object.entries(row).some(([k,v]) => k !== '_src' && v !== null && v !== undefined && v !== '');
+    return hasValue;
   });
 }
 
@@ -1133,29 +1170,34 @@ function normalizeBool(val) {
   return null;
 }
 
-function normalizeDate(val) {
+function normalizeDate(val, fmt) {
   if (!val) return null;
-  // Already a JS Date (from XLSX)
   if (val instanceof Date) return val.toISOString().split('T')[0];
   const s = val.toString().trim();
   if (!s) return null;
-  // Try common formats
-  // YYYY-MM-DD
+  // YYYY-MM-DD always works regardless of format setting
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  // MM/DD/YYYY
-  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
-    const [m,d,y] = s.split('/');
-    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  // Use explicit format if provided
+  if (fmt === 'DD/MM/YYYY' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [d,m,y] = s.split('/'); return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
   }
-  // DD/MM/YYYY
-  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
-    const [d,m,y] = s.split('/');
-    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  if (fmt === 'MM/DD/YYYY' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [m,d,y] = s.split('/'); return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
   }
-  // Try native Date parse as fallback
+  if (fmt === 'MM-DD-YYYY' && /^\d{1,2}-\d{1,2}-\d{4}$/.test(s)) {
+    const [m,d,y] = s.split('-'); return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  // Auto-detect: if day part > 12 it must be DD/MM
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const parts = s.split('/');
+    if (parseInt(parts[0]) > 12) {
+      const [d,m,y] = parts; return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    }
+    const [m,d,y] = parts; return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
   const d = new Date(s);
   if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-  return null; // unparseable
+  return null;
 }
 
 function normalizeRiskStatus(val) {
@@ -1169,10 +1211,10 @@ function normalizeRiskStatus(val) {
 // ── BUILD RAW FROM MAPPED DATA ────────────────────────────────
 function buildRAWFromMappedData() {
   // Build systems from inventory
-  const systems = (mappedData.inv ? mappedData.inv.rows : RAW.systems).map(r => ({
+  const systems = (mappedData.inv ? mappedData.inv.rows : RAW.systems).filter(r => r.id && r.name).map(r => ({
     id: r.id || ('SYS-' + Math.random().toString(36).substr(2,4).toUpperCase()),
     name: r.name || 'Unknown System',
-    fn: r.fn || 'Unknown Function',
+    fn: (r.fn && r.fn !== r.name) ? r.fn : (r.fn || ''),
     vendor: r.vendor || 'Unknown',
     tier: r.tier || 'Tier 2',
     owner: r.owner || 'UNASSIGNED',
