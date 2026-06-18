@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>PolicyProof — Meridian Insurance</title>
+<title>PolicyProof â€” Meridian Insurance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -22,7 +22,6 @@
 .mapping-select:focus{outline:none;border-color:var(--ink);}
 .mapping-section{font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;margin:1rem 0 .5rem;}
 .mapping-note{font-size:11px;color:var(--amber);background:var(--amber-bg);border:.5px solid var(--amber-border);padding:8px 12px;border-radius:var(--r4);margin-bottom:1rem;}
-</style>
 :root{
   --ink:#0c0c0c;--paper:#f7f4ef;--cream:#edeae3;--mist:#e2ddd5;
   --mid:#6b6560;--faint:#9e9890;
@@ -60,7 +59,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 /* LAYOUT */
 .shell{max-width:1080px;margin:0 auto;padding:1.5rem 1.75rem 4rem;}
 
-/* STEPPER — sticky below topbar(52px) + context strip(36px) = 88px */
+/* STEPPER â€” sticky below topbar(52px) + context strip(36px) = 88px */
 .stepper{display:flex;border:.5px solid var(--border);border-radius:var(--r8);overflow:hidden;margin-bottom:1.5rem;background:var(--cream);position:sticky;top:88px;z-index:90;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
 .stp{flex:1;display:flex;align-items:center;gap:7px;padding:11px 12px;font-size:12px;font-weight:500;color:var(--faint);border-right:.5px solid var(--border);cursor:pointer;transition:all .18s;}
 .stp:last-child{border-right:none;}
@@ -149,14 +148,14 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 .tl-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
 .mono-sm{font-family:var(--mono);font-size:10px;}
 
-/* ── FINDING TYPE BADGE (Missing / Drift / Trust Failure) */
+/* â”€â”€ FINDING TYPE BADGE (Missing / Drift / Trust Failure) */
 .ftype{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.06em;padding:2px 7px;border-radius:99px;text-transform:uppercase;}
 .ftype-missing{background:var(--red-bg);color:var(--red);border:.5px solid var(--red-border);}
 .ftype-drift{background:var(--amber-bg);color:var(--amber);border:.5px solid var(--amber-border);}
 .ftype-trust{background:var(--discovery-bg);color:var(--discovery);border:.5px solid var(--discovery-border);}
 
-/* ── PROVENANCE LEVELS */
-/* Level 1: no badge — just source line */
+/* â”€â”€ PROVENANCE LEVELS */
+/* Level 1: no badge â€” just source line */
 .prov-src{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:5px;}
 
 /* Level 2: Cross-reference */
@@ -171,7 +170,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 .gov-discovery-sources{display:flex;flex-wrap:wrap;gap:6px;}
 .gov-source{font-family:var(--mono);font-size:10px;padding:3px 8px;background:#fff;border:.5px solid var(--discovery-border);color:var(--discovery);border-radius:var(--r4);}
 
-/* ── GAP CARDS */
+/* â”€â”€ GAP CARDS */
 .gap-card{border:.5px solid var(--border);border-radius:var(--r8);margin-bottom:.75rem;overflow:hidden;}
 .gap-card.critical{border-color:var(--red-border);}
 .gap-card.high{border-color:var(--amber-border);}
@@ -187,7 +186,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 .gap-body{padding:0 14px 14px;}
 .gap-consequence{font-size:13px;line-height:1.65;color:var(--ink);margin-bottom:10px;}
 
-/* ── DRIFT BOX */
+/* â”€â”€ DRIFT BOX */
 .drift-box{background:var(--amber-bg);border:.5px solid var(--amber-border);border-radius:var(--r6);padding:10px 12px;margin-bottom:10px;}
 .drift-box-title{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.06em;color:var(--amber);margin-bottom:8px;}
 .drift-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
@@ -196,7 +195,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 .drift-cell-val{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--amber);}
 .drift-cell-val.highlight{font-size:13px;color:var(--red);}
 
-/* ── EXAMINER IMPACT */
+/* â”€â”€ EXAMINER IMPACT */
 .exam-impact{background:var(--cream);border-radius:var(--r6);padding:10px 12px;margin-bottom:10px;}
 .exam-impact-title{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.06em;color:var(--faint);margin-bottom:8px;}
 .exam-rows{display:flex;flex-direction:column;gap:5px;}
@@ -209,7 +208,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 .exam-verdict.partial{color:var(--amber);}
 .exam-naic{font-family:var(--mono);font-size:10px;color:var(--blue);margin-top:6px;}
 
-/* ── ACCOUNTABILITY CHAIN */
+/* â”€â”€ ACCOUNTABILITY CHAIN */
 .chain{display:flex;flex-direction:column;margin:8px 0;}
 .chain-node{display:flex;align-items:flex-start;gap:10px;}
 .chain-left{display:flex;flex-direction:column;align-items:center;width:20px;}
@@ -346,7 +345,7 @@ input[type=file]{display:none;}
   <div class="topbar-meta">
     <span class="badge">v4 · Meridian Demo</span>
     <span class="badge badge-o">v4-meridian-demo</span>
-    <a href="/app.html" class="back">← v3 app</a>
+    <a href="/app.html" class="back">â† v3 app</a>
   </div>
 </div>
 
@@ -357,7 +356,7 @@ input[type=file]{display:none;}
     <span>·</span><span>State:</span><strong>Ohio</strong>
     <span>·</span><span>AI Systems:</span><strong>5 in production</strong>
   </div>
-  <span class="naic-tag">NAIC Evaluation Tool Pilot — Ohio Active</span>
+  <span class="naic-tag">NAIC Evaluation Tool Pilot â€” Ohio Active</span>
 </div>
 
 <div class="shell">
@@ -375,31 +374,31 @@ input[type=file]{display:none;}
     <div class="card">
       <div class="card-hd">
         <span class="card-title">Import your existing governance exports</span>
-        <span class="card-sub">CSV · JSON · XLSX — Jira · SharePoint · Excel · ServiceNow</span>
+        <span class="card-sub">CSV · JSON · XLSX â€” Jira · SharePoint · Excel · ServiceNow</span>
       </div>
       <div class="alert a-blue">
-        <span>ℹ</span>
-        <span>PolicyProof reads exports your team already has. Nothing new to maintain. All processing runs in your browser — no data leaves your device.</span>
+        <span>â„¹</span>
+        <span>PolicyProof reads exports your team already has. Nothing new to maintain. All processing runs in your browser â€” no data leaves your device.</span>
       </div>
       <div class="upload-grid">
-        <div class="slot" id="slot-inv" onclick="trig('f-inv')"><input type="file" id="f-inv" accept=".csv,.xlsx,.json" onchange="onFile('inv',this)"/><div class="slot-ico">📋</div><div class="slot-name">AI System Inventory</div><div class="slot-src">CSV · XLSX · JSON — Jira, ServiceNow, spreadsheet</div><div class="slot-ok" id="ok-inv"></div></div>
-        <div class="slot" id="slot-pol" onclick="trig('f-pol')"><input type="file" id="f-pol" accept=".json,.csv,.xlsx" onchange="onFile('pol',this)"/><div class="slot-ico">📄</div><div class="slot-name">Policy Version Library</div><div class="slot-src">JSON · CSV · XLSX — SharePoint, policy management system</div><div class="slot-ok" id="ok-pol"></div></div>
-        <div class="slot" id="slot-dec" onclick="trig('f-dec')"><input type="file" id="f-dec" accept=".csv,.xlsx" onchange="onFile('dec',this)"/><div class="slot-ico">⚖️</div><div class="slot-name">AI Decision Log</div><div class="slot-src">CSV · XLSX — claims system, decision audit log</div><div class="slot-ok" id="ok-dec"></div></div>
+        <div class="slot" id="slot-inv" onclick="trig('f-inv')"><input type="file" id="f-inv" accept=".csv,.xlsx,.json" onchange="onFile('inv',this)"/><div class="slot-ico">ðŸ“‹</div><div class="slot-name">AI System Inventory</div><div class="slot-src">CSV · XLSX · JSON â€” Jira, ServiceNow, spreadsheet</div><div class="slot-ok" id="ok-inv"></div></div>
+        <div class="slot" id="slot-pol" onclick="trig('f-pol')"><input type="file" id="f-pol" accept=".json,.csv,.xlsx" onchange="onFile('pol',this)"/><div class="slot-ico">ðŸ“„</div><div class="slot-name">Policy Version Library</div><div class="slot-src">JSON · CSV · XLSX â€” SharePoint, policy management system</div><div class="slot-ok" id="ok-pol"></div></div>
+        <div class="slot" id="slot-dec" onclick="trig('f-dec')"><input type="file" id="f-dec" accept=".csv,.xlsx" onchange="onFile('dec',this)"/><div class="slot-ico">âš–ï¸</div><div class="slot-name">AI Decision Log</div><div class="slot-src">CSV · XLSX â€” claims system, decision audit log</div><div class="slot-ok" id="ok-dec"></div></div>
       </div>
       <div class="upload-grid-2">
-        <div class="slot" id="slot-risk" onclick="trig('f-risk')"><input type="file" id="f-risk" accept=".xlsx,.csv,.json" onchange="onFile('risk',this)"/><div class="slot-ico">🛡️</div><div class="slot-name">Risk Assessments</div><div class="slot-src">XLSX · CSV · JSON — risk register, GRC platform export</div><div class="slot-ok" id="ok-risk"></div></div>
-        <div class="slot" id="slot-ovr" onclick="trig('f-ovr')"><input type="file" id="f-ovr" accept=".csv,.xlsx,.json" onchange="onFile('ovr',this)"/><div class="slot-ico">👁️</div><div class="slot-name">Oversight & Review Log</div><div class="slot-src">CSV · XLSX · JSON — ServiceNow, committee records</div><div class="slot-ok" id="ok-ovr"></div></div>
+        <div class="slot" id="slot-risk" onclick="trig('f-risk')"><input type="file" id="f-risk" accept=".xlsx,.csv,.json" onchange="onFile('risk',this)"/><div class="slot-ico">ðŸ›¡ï¸</div><div class="slot-name">Risk Assessments</div><div class="slot-src">XLSX · CSV · JSON â€” risk register, GRC platform export</div><div class="slot-ok" id="ok-risk"></div></div>
+        <div class="slot" id="slot-ovr" onclick="trig('f-ovr')"><input type="file" id="f-ovr" accept=".csv,.xlsx,.json" onchange="onFile('ovr',this)"/><div class="slot-ico">ðŸ‘ï¸</div><div class="slot-name">Oversight & Review Log</div><div class="slot-src">CSV · XLSX · JSON â€” ServiceNow, committee records</div><div class="slot-ok" id="ok-ovr"></div></div>
       </div>
       <div class="or">or</div>
       <div class="row-ctr">
-        <button class="btn btn-p btn-lg" onclick="loadDemo()">▶ Load Meridian Insurance demo data</button>
+        <button class="btn btn-p btn-lg" onclick="loadDemo()">â–¶ Load Meridian Insurance demo data</button>
       </div>
       <p style="font-family:var(--mono);font-size:10px;color:var(--faint);text-align:center;margin-top:6px;">Loads all five pre-built files automatically · No uploads needed</p>
     </div>
     <div class="card" id="import-summary" style="display:none;">
       <div class="card-hd"><span class="card-title">Import summary</span></div>
       <div id="import-summary-body"></div>
-      <div class="row-end"><button class="btn btn-p" onclick="runAnalysis()">Run analysis →</button></div>
+      <div class="row-end"><button class="btn btn-p" onclick="runAnalysis()">Run analysis â†’</button></div>
     </div>
   </div>
 
@@ -438,7 +437,7 @@ input[type=file]{display:none;}
         <div class="tab-panel" id="tab-dq"><div id="dq-list"></div></div>
         <div class="tab-panel" id="tab-verif"><div id="vg-list"></div></div>
       </div>
-      <div class="row-end"><button class="btn btn-p" onclick="goStep(3)">View system defensibility →</button></div>
+      <div class="row-end"><button class="btn btn-p" onclick="goStep(3)">View system defensibility â†’</button></div>
     </div>
   </div>
 
@@ -452,35 +451,35 @@ input[type=file]{display:none;}
       <div class="card" style="margin:0;"><div class="card-hd"><span class="card-title">Priority remediation</span></div><div id="pri-list"></div></div>
       <div class="card" style="margin:0;"><div class="card-hd"><span class="card-title">Examination Risk Factors</span><span class="card-sub">Reference only</span></div><table class="bk-tbl" id="bk-tbl"></table></div>
     </div>
-    <div class="row-end"><button class="btn btn-p" onclick="goStep(4)">See examiner questions →</button></div>
+    <div class="row-end"><button class="btn btn-p" onclick="goStep(4)">See examiner questions â†’</button></div>
   </div>
 
   <!-- PANEL 4: EXAMINER QUESTIONS -->
   <div class="panel" id="panel-4">
     <div class="card">
       <div class="card-hd"><span class="card-title">Examiner questions Meridian cannot answer today</span><span class="card-sub">NAIC examination simulation</span></div>
-      <div class="alert a-red"><span>⚠</span><span>These are the exact questions an NAIC examiner will ask. Each <strong>NO</strong> is a potential Material Finding. Meridian cannot answer <span id="no-count">—</span> of these questions today.</span></div>
+      <div class="alert a-red"><span>âš </span><span>These are the exact questions an NAIC examiner will ask. Each <strong>NO</strong> is a potential Material Finding. Meridian cannot answer <span id="no-count">â€”</span> of these questions today.</span></div>
       <div id="eq-list"></div>
     </div>
-    <div class="row-end"><button class="btn btn-p" onclick="goStep(5)">Generate evidence package →</button></div>
+    <div class="row-end"><button class="btn btn-p" onclick="goStep(5)">Generate evidence package â†’</button></div>
   </div>
 
   <!-- PANEL 5: EVIDENCE -->
   <div class="panel" id="panel-5">
     <div class="card">
       <div class="card-hd"><span class="card-title">Examination evidence package</span><span class="card-sub">NAIC Exhibit B · auto-generated</span></div>
-      <div class="alert a-green"><span>✓</span><span>Generated automatically from Meridian's imported files. No manual assembly. Every finding references its source record.</span></div>
+      <div class="alert a-green"><span>âœ“</span><span>Generated automatically from Meridian's imported files. No manual assembly. Every finding references its source record.</span></div>
       <div id="ev-sections"></div>
       <div class="sep"></div>
       <div class="row-end">
         <button class="btn" onclick="copyReport()">Copy report</button>
-        <button class="btn btn-red" onclick="dlReport()">⬇ Export as PDF</button>
+        <button class="btn btn-red" onclick="dlReport()">â¬‡ Export as PDF</button>
       </div>
     </div>
     <div class="card"><div class="card-hd"><span class="card-title">Full audit report</span></div><div class="report-box" id="full-report"></div></div>
     <div class="card">
       <div class="card-hd"><span class="card-title">The question to ask now</span></div>
-      <p style="font-size:14px;line-height:1.8;">If we ran this against <strong>your organisation's data</strong> — your Jira exports, your SharePoint policies, your decision logs — what would we find?</p>
+      <p style="font-size:14px;line-height:1.8;">If we ran this against <strong>your organisation's data</strong> â€” your Jira exports, your SharePoint policies, your decision logs â€” what would we find?</p>
       <div class="sep"></div>
       <p style="font-size:13px;color:var(--mid);">PolicyProof ingests your existing exports. No integration project. No new system. 20 minutes from import to readiness score.</p>
     </div>
@@ -497,19 +496,19 @@ input[type=file]{display:none;}
     <div id="mapping-rows"></div>
     <div class="row-end" style="margin-top:1.5rem;">
       <button class="btn" onclick="closeMappingModal()">Cancel</button>
-      <button class="btn btn-p" onclick="confirmMapping()">Apply mapping →</button>
+      <button class="btn btn-p" onclick="confirmMapping()">Apply mapping â†’</button>
     </div>
   </div>
 </div>
 
 <script>
-// ════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // DATA MODEL
-// ════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const RAW = {
   systems:[
     {id:'SYS-001',name:'ClaimScore AI',fn:'Claims Processing',vendor:'Verisk / GPT-4',tier:'Tier 2',owner:'Sarah Chen',ownerEmail:'sarah.chen@meridianins.com',policyId:'POL-CLAIMS-001',oversight:true,complianceSignoff:true,riskExpiry:'2025-01-10',riskStatus:'EXPIRED',jiraKey:'AIOPS-1001'},
-    {id:'SYS-002',name:'FraudGuard ML',fn:'Fraud Detection',vendor:'Internal / XGBoost',tier:'Tier 1',owner:'UNASSIGNED',ownerEmail:'',ownerDepartedNote:'Marcus Webb — VP Fraud Operations — departed December 2023. No replacement assigned.',policyId:'POL-FRAUD-002',oversight:false,complianceSignoff:false,riskExpiry:null,riskStatus:'NOT ON FILE',jiraKey:'AIOPS-1002'},
+    {id:'SYS-002',name:'FraudGuard ML',fn:'Fraud Detection',vendor:'Internal / XGBoost',tier:'Tier 1',owner:'UNASSIGNED',ownerEmail:'',ownerDepartedNote:'Marcus Webb â€” VP Fraud Operations â€” departed December 2023. No replacement assigned.',policyId:'POL-FRAUD-002',oversight:false,complianceSignoff:false,riskExpiry:null,riskStatus:'NOT ON FILE',jiraKey:'AIOPS-1002'},
     {id:'SYS-003',name:'UnderwriteAssist',fn:'Underwriting',vendor:'Gradient AI',tier:'Tier 2',owner:'James Okafor',ownerEmail:'james.okafor@meridianins.com',policyId:'POL-UW-003',oversight:true,complianceSignoff:true,riskExpiry:'2024-02-10',riskStatus:'EXPIRED',jiraKey:'AIOPS-1003'},
     {id:'SYS-004',name:'CustomerIQ',fn:'Customer Marketing',vendor:'Salesforce Einstein',tier:'Tier 3',owner:'Lisa Tran',ownerEmail:'lisa.tran@meridianins.com',policyId:'POL-OVERSIGHT-004',oversight:false,complianceSignoff:true,riskExpiry:'2025-06-10',riskStatus:'EXPIRED',jiraKey:'AIOPS-1004'},
     {id:'SYS-005',name:'DocExtract Pro',fn:'Document Processing',vendor:'AWS Textract / Claude',tier:'Tier 2',owner:'Mark Singh',ownerEmail:'mark.singh@meridianins.com',policyId:'POL-VENDOR-005',oversight:false,complianceSignoff:false,riskExpiry:'2025-04-08',riskStatus:'EXPIRED',jiraKey:'AIOPS-1005'},
@@ -544,9 +543,9 @@ const RAW = {
   ]
 };
 
-// ════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // PROCESSING ENGINE
-// ════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function buildPolicyVersionIndex(versions){
   const idx={};
   versions.forEach(v=>{
@@ -587,53 +586,53 @@ function processDecisions(decisions,policyIdx){
   return res;
 }
 
-// ── DRIFT DATE HELPERS ────────────────────────────────────────
+// â”€â”€ DRIFT DATE HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function daysBetween(d1,d2){return Math.floor((new Date(d2)-new Date(d1))/86400000);}
 function fmt(d){return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
 
-// ════════════════════════════════════════════════════════════════
-// ── GLOBAL DATE ──────────────────────────────────────────────
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ GLOBAL DATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const TODAY=new Date();
 const TODAY_STR=TODAY.toISOString().split('T')[0];
 
 // GAP DETECTION
-// ════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function detectGaps(decRes,policyIdx){
   const gaps=[],dqIssues=[...decRes.dqIssues],vgIssues=[];
   let score=100,breakdown=[];
 
-  // ── GAP 1: No owner — Missing — Level 3 Governance Discovery ──
+  // â”€â”€ GAP 1: No owner â€” Missing â€” Level 3 Governance Discovery â”€â”€
   ACTIVE_DATA.systems.filter(s=>!s.owner||s.owner==='UNASSIGNED').forEach(s=>{
     const decsDuringGap=decRes.mismatches.concat(decRes.noReviewer,decRes.clean,decRes.noGoverningPolicy).filter(d=>d.systemId===s.id);
     const uniqueDecs=[...new Set(decsDuringGap.map(d=>d.id))].length;
-    score-=15; breakdown.push({gap:'No accountable owner',system:s.name,ded:-15,naic:'Exhibit B §2.1'});
+    score-=15; breakdown.push({gap:'No accountable owner',system:s.name,ded:-15,naic:'Exhibit B Â§2.1'});
     gaps.push({
       type:'critical',findingType:'missing',provLevel:3,
       id:'GAP-OWN-'+s.id,
       title:`No named human is accountable for ${s.name}`,
       system:s.name,systemId:s.id,
-      consequence:`${s.name} has processed live ${s.fn.toLowerCase()} decisions for 18 months with no named accountable owner. ${s.ownerDepartedNote||''} No individual can be held responsible for any decision this system has made. If an examiner asks who is accountable — there is no answer.`,
+      consequence:`${s.name} has processed live ${s.fn.toLowerCase()} decisions for 18 months with no named accountable owner. ${s.ownerDepartedNote||''} No individual can be held responsible for any decision this system has made. If an examiner asks who is accountable â€” there is no answer.`,
       drift:null,
       chain:[
-        {label:'Marcus Webb — named owner',detail:'VP Fraud Operations · FraudGuard ML accountability holder on record',date:'Pre Dec 2023',ok:true},
+        {label:'Marcus Webb â€” named owner',detail:'VP Fraud Operations · FraudGuard ML accountability holder on record',date:'Pre Dec 2023',ok:true},
         {label:'Jira comment records departure',detail:'AIOPS-1002 comment (Michelle Torres, 18 Mar 2024): "IT sponsor Marcus Webb departed December 2023" · Source: free-text comment field, not HR system',date:'Dec 2023',ok:false},
         {label:'Owner field set to UNASSIGNED',detail:'Jira ticket AIOPS-1002 · Reassignment request sent to VP Operations · No response received',date:'Dec 2023',ok:false},
-        {label:'System continues processing live decisions',detail:'Fraud flags and clearances continue · No named human accountable for any decision made during this period',date:'Dec 2023 → Jun 2025',ok:false},
+        {label:'System continues processing live decisions',detail:'Fraud flags and clearances continue · No named human accountable for any decision made during this period',date:'Dec 2023 â†’ Jun 2025',ok:false},
         {label:'No accountable owner on record today',detail:'18 months of decisions with no named accountable human · Cannot be defended in examination',date:'Jun 2025',ok:false},
       ],
       examinerQ:'Who is accountable for FraudGuard ML\'s decisions?',
       examinerVerdict:'NO',
       examinerCannotDemonstrate:'No named owner on record for 18 months.',
-      examinerLikelyOutcome:'Material Finding — examiner will require immediate owner assignment and governance chain reapproval.',
+      examinerLikelyOutcome:'Material Finding â€” examiner will require immediate owner assignment and governance chain reapproval.',
       examinerRemediation:'Assign named owner, document accountability chain, resubmit for compliance sign-off.',
-      naic:'NAIC Exhibit B §2.1',
+      naic:'NAIC Exhibit B Â§2.1',
       provenanceSources:['AI Inventory (Jira)','Decision Logs','Risk Registry','Oversight Records'],
       defImpact:'This system cannot be defended if an examiner asks who is accountable for its decisions.',
       pts:'-15 pts'
     });
   });
 
-  // ── GAP 2: Policy version mismatch — Drift — Level 2 Cross-Reference ──
+  // â”€â”€ GAP 2: Policy version mismatch â€” Drift â€” Level 2 Cross-Reference â”€â”€
   const mBySys={};
   decRes.mismatches.forEach(d=>{
     if(!mBySys[d.systemId]) mBySys[d.systemId]={systemId:d.systemId,decisions:[],correctVersion:d.correctVersion,versionUsed:d.versionUsed};
@@ -644,11 +643,11 @@ function detectGaps(decRes,policyIdx){
     const dates=m.decisions.map(d=>d.date).sort();
     const driftStart=dates[0];
     const driftDays=daysBetween(driftStart,TODAY_STR);
-    score-=10; breakdown.push({gap:'Policy version mismatch',system:sys?.name,ded:-10,naic:'Exhibit B §3.3'});
+    score-=10; breakdown.push({gap:'Policy version mismatch',system:sys?.name,ded:-10,naic:'Exhibit B Â§3.3'});
     gaps.push({
       type:'critical',findingType:'drift',provLevel:2,
       id:'GAP-VER-'+m.systemId,
-      title:`${m.decisions.length} decisions made after governing policy changed — ${driftDays} days of policy execution drift`,
+      title:`${m.decisions.length} decisions made after governing policy changed â€” ${driftDays} days of policy execution drift`,
       system:sys?.name,systemId:m.systemId,
       consequence:`${m.decisions.length} decisions were made using ${m.versionUsed} after ${m.correctVersion} became the governing policy. Each of these decisions cannot be tied to the policy that was in force at the time they were made. If an examiner selects any one of these decisions and asks which policy governed it, Meridian cannot produce a valid answer.`,
       drift:{currentPolicy:m.correctVersion,systemUsing:m.versionUsed,driftStarted:driftStart,driftDays,affectedDecisions:m.decisions.length},
@@ -656,9 +655,9 @@ function detectGaps(decRes,policyIdx){
       examinerQ:`Which policy governed Decision ${m.decisions[0]?.id} on ${m.decisions[0]?.date}?`,
       examinerVerdict:'NO',
       examinerCannotDemonstrate:`${m.versionUsed} was not active on that date. ${m.correctVersion} was the governing policy.`,
-      examinerLikelyOutcome:'Material Finding — decisions cannot be tied to an active governance framework.',
+      examinerLikelyOutcome:'Material Finding â€” decisions cannot be tied to an active governance framework.',
       examinerRemediation:`Update system to ${m.correctVersion} immediately. Document transition date. Review all ${m.decisions.length} affected decisions.`,
-      naic:'NAIC Exhibit B §3.3(c)',
+      naic:'NAIC Exhibit B Â§3.3(c)',
       provenanceSources:['Policy Library (SharePoint)','Decision Logs'],
       govDiscoveryStmt:null,
       defImpact:`${m.decisions.length} decisions made by this system cannot be tied to an active governing policy. An examiner asking to see the policy will find a version that was not in force at decision time.`,
@@ -666,7 +665,7 @@ function detectGaps(decRes,policyIdx){
     });
   });
 
-  // ── GAP 3: Expired / missing risk acceptance — Missing/Drift ──
+  // â”€â”€ GAP 3: Expired / missing risk acceptance â€” Missing/Drift â”€â”€
   ACTIVE_DATA.systems.forEach(s=>{
     const expired=s.riskStatus==='EXPIRED',missing=s.riskStatus==='NOT ON FILE';
     if(!expired&&!missing) return;
@@ -677,55 +676,55 @@ function detectGaps(decRes,policyIdx){
     gaps.push({
       type:'critical',findingType:ft,provLevel:pl,
       id:'GAP-RISK-'+s.id,
-      title:missing?`${s.name} has never had a risk acceptance document`:`${s.name} risk acceptance expired ${days} days ago — system still in production`,
+      title:missing?`${s.name} has never had a risk acceptance document`:`${s.name} risk acceptance expired ${days} days ago â€” system still in production`,
       system:s.name,systemId:s.id,
       consequence:missing
         ?`${s.name} has been in production since 2021 with no formal risk acceptance ever completed. There is no documented authorisation to operate this system. No one has ever formally accepted the risk of deploying it.`
-        :`${s.name}'s risk acceptance expired on ${fmt(s.riskExpiry)} — ${days} days ago. The system has continued making ${s.fn.toLowerCase()} decisions ever since. The organisation cannot demonstrate it was authorised to operate this system after that date.`,
+        :`${s.name}'s risk acceptance expired on ${fmt(s.riskExpiry)} â€” ${days} days ago. The system has continued making ${s.fn.toLowerCase()} decisions ever since. The organisation cannot demonstrate it was authorised to operate this system after that date.`,
       drift:expired?{currentPolicy:'Valid acceptance required',systemUsing:'Expired acceptance',driftStarted:s.riskExpiry,driftDays:days,affectedDecisions:'All decisions post-'+fmt(s.riskExpiry)}:null,
       chain:null,
       examinerQ:missing?`Where is the risk acceptance document for ${s.name}?`:`Who authorised ${s.name} to continue operating after its risk acceptance expired on ${fmt(s.riskExpiry)}?`,
       examinerVerdict:'NO',
       examinerCannotDemonstrate:missing?'No risk acceptance document has ever been filed.':'No renewal was initiated. No emergency authorisation was documented.',
-      examinerLikelyOutcome:'Material Finding — examiner may require system suspension pending valid risk acceptance.',
+      examinerLikelyOutcome:'Material Finding â€” examiner may require system suspension pending valid risk acceptance.',
       examinerRemediation:missing?'Complete initial risk assessment and obtain CRO sign-off immediately.':'Complete renewal risk assessment. Obtain sign-off. Document rationale for continued operation during lapse.',
-      naic:'NAIC Exhibit D · Model Bulletin §1.7',
+      naic:'NAIC Exhibit D · Model Bulletin Â§1.7',
       provenanceSources:missing?['AI Inventory (Jira)','Risk Registry','Decision Logs','Oversight Records']:['Risk Registry','Decision Logs'],
       govDiscoveryStmt:missing?'This finding required evidence from 4 independent governance records. No individual source identified this issue.':null,
-      defImpact:missing?'This system cannot be defended — the organisation has no documented authorisation to operate it.':'This system may be suspended — it has operated without valid authorisation for '+days+' days.',
+      defImpact:missing?'This system cannot be defended â€” the organisation has no documented authorisation to operate it.':'This system may be suspended â€” it has operated without valid authorisation for '+days+' days.',
       pts:'-12 pts'
     });
   });
 
-  // ── GAP 4: No human reviewer — Missing — Level 1 ──────────────
+  // â”€â”€ GAP 4: No human reviewer â€” Missing â€” Level 1 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if(decRes.noReviewer.length>0){
     const bySys={};
     decRes.noReviewer.forEach(d=>{bySys[d.systemId]=(bySys[d.systemId]||0)+1;});
     const summary=Object.entries(bySys).map(([id,n])=>{const s=ACTIVE_DATA.systems.find(x=>x.id===id);return `${s?.name||id} (${n})`;}).join(', ');
-    score-=8; breakdown.push({gap:'Decisions with no human reviewer',system:`${decRes.noReviewer.length} decisions`,ded:-8,naic:'Exhibit B §2.3'});
+    score-=8; breakdown.push({gap:'Decisions with no human reviewer',system:`${decRes.noReviewer.length} decisions`,ded:-8,naic:'Exhibit B Â§2.3'});
     gaps.push({
       type:'high',findingType:'missing',provLevel:1,
       id:'GAP-REV',
       title:`${decRes.noReviewer.length} AI decisions have no human reviewer on record`,
       system:summary,systemId:'',
-      consequence:`${decRes.noReviewer.length} AI-assisted decisions were made with no human reviewer logged. Including ${decRes.noReviewer.filter(d=>d.outcome==='DENY').length} AI-generated denials with no adjuster sign-off — a direct violation of Policy v2.1 §4.2. If an examiner asks who was accountable for any of these decisions, there is no answer in the record.`,
+      consequence:`${decRes.noReviewer.length} AI-assisted decisions were made with no human reviewer logged. Including ${decRes.noReviewer.filter(d=>d.outcome==='DENY').length} AI-generated denials with no adjuster sign-off â€” a direct violation of Policy v2.1 Â§4.2. If an examiner asks who was accountable for any of these decisions, there is no answer in the record.`,
       drift:null,chain:null,
       examinerQ:`Who reviewed the AI decision on ${decRes.noReviewer[0]?.claimRef}?`,
       examinerVerdict:'NO',
       examinerCannotDemonstrate:'Reviewer field is blank. No sign-off exists.',
       examinerLikelyOutcome:'Control failure finding for each unreviewed decision.',
       examinerRemediation:'Implement mandatory reviewer logging. Retroactively identify reviewers for affected decisions where possible.',
-      naic:'NAIC Exhibit B §2.3',
+      naic:'NAIC Exhibit B Â§2.3',
       provenanceSources:['Decision Logs'],
       govDiscoveryStmt:null,
-      defImpact:`${decRes.noReviewer.length} decisions cannot be defended — there is no human reviewer on record to demonstrate governance oversight was applied.`,
+      defImpact:`${decRes.noReviewer.length} decisions cannot be defended â€” there is no human reviewer on record to demonstrate governance oversight was applied.`,
       pts:'-8 pts'
     });
   }
 
-  // ── GAP 5: No oversight mechanism — Missing — Level 1 ─────────
+  // â”€â”€ GAP 5: No oversight mechanism â€” Missing â€” Level 1 â”€â”€â”€â”€â”€â”€â”€â”€â”€
   ACTIVE_DATA.systems.filter(s=>!s.oversight&&s.tier!=='Tier 3').forEach(s=>{
-    score-=8; breakdown.push({gap:'No oversight mechanism',system:s.name,ded:-8,naic:'Exhibit B §2.3(d)'});
+    score-=8; breakdown.push({gap:'No oversight mechanism',system:s.name,ded:-8,naic:'Exhibit B Â§2.3(d)'});
     gaps.push({
       type:'high',findingType:'missing',provLevel:1,
       id:'GAP-OVS-'+s.id,
@@ -738,7 +737,7 @@ function detectGaps(decRes,policyIdx){
       examinerCannotDemonstrate:'No documented intervention capability exists.',
       examinerLikelyOutcome:'Required remediation before next examination cycle.',
       examinerRemediation:'Document override procedure. Implement escalation path. Test and evidence the mechanism.',
-      naic:'NAIC Exhibit B §2.3(d)',
+      naic:'NAIC Exhibit B Â§2.3(d)',
       provenanceSources:['AI Inventory (Jira)'],
       govDiscoveryStmt:null,
       defImpact:`This system cannot be defended if an examiner asks how Meridian would stop ${s.name} from producing a harmful decision.`,
@@ -746,7 +745,7 @@ function detectGaps(decRes,policyIdx){
     });
   });
 
-  // ── GAP 6: No compliance sign-off — Missing — Level 1 ─────────
+  // â”€â”€ GAP 6: No compliance sign-off â€” Missing â€” Level 1 â”€â”€â”€â”€â”€â”€â”€â”€â”€
   ACTIVE_DATA.systems.filter(s=>!s.complianceSignoff).forEach(s=>{
     score-=5; breakdown.push({gap:'No compliance sign-off',system:s.name,ded:-5,naic:'Exhibit C'});
     gaps.push({
@@ -759,37 +758,37 @@ function detectGaps(decRes,policyIdx){
       examinerQ:`Where is the compliance sign-off for ${s.name}?`,
       examinerVerdict:'NO',
       examinerCannotDemonstrate:'Compliance department was not involved in deployment approval.',
-      examinerLikelyOutcome:'Material Finding — compliance approval documentation required.',
+      examinerLikelyOutcome:'Material Finding â€” compliance approval documentation required.',
       examinerRemediation:'Obtain retrospective compliance sign-off. Document approval rationale.',
       naic:'NAIC Exhibit C',
       provenanceSources:['AI Inventory (Jira)'],
       govDiscoveryStmt:null,
-      defImpact:`This system cannot be defended — it was deployed and has operated without compliance department authorisation.`,
+      defImpact:`This system cannot be defended â€” it was deployed and has operated without compliance department authorisation.`,
       pts:'-5 pts'
     });
   });
 
-  // ── GOVERNANCE DRIFT items ─────────────────────────────────────
+  // â”€â”€ GOVERNANCE DRIFT items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   dqIssues.push({
-    title:'DocExtract Pro — Governance Drift: system using v2.0, vendor policy updated to v2.2',
+    title:'DocExtract Pro â€” Governance Drift: system using v2.0, vendor policy updated to v2.2',
     detail:'Decision DEC-2025-0094 (2025-06-01) uses v2.0. Policy v2.2 became effective 2025-04-01. System has not been updated to the current governing version. Drift started: 1 April 2025. Duration: 73 days.',
     src:'meridian_decisions.csv:row 15 · meridian_policies.json:POL-VENDOR-005',
     type:'drift'
   });
   dqIssues.push({
-    title:'Fraud Detection Policy — annual review overdue, no owner to initiate renewal',
+    title:'Fraud Detection Policy â€” annual review overdue, no owner to initiate renewal',
     detail:'Policy POL-FRAUD-002 next review due 2025-03-01. No updated version exists. Owner field is UNASSIGNED. A Tier 1 system\'s governing policy is operating past its review date with no accountable person to initiate renewal.',
     src:'meridian_policies.json:ID 2 · SharePoint: /sites/Compliance/PolicyLibrary/',
     type:'drift'
   });
 
-  // ── TRUST FAILURE items ────────────────────────────────────────
+  // â”€â”€ TRUST FAILURE items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   ACTIVE_DATA.systems.forEach(s=>{
     const pv=ACTIVE_DATA.policyVersions.filter(v=>v.systemId===s.id&&v.approverActive===null);
     if(pv.length>0){
       vgIssues.push({
         id:'VG-APPR-'+s.id,
-        title:`${s.name} — approval chain cannot be verified`,
+        title:`${s.name} â€” approval chain cannot be verified`,
         system:s.name,
         detail:`The policy governing ${s.name} was approved by ${pv[0].approvedBy}. This individual's current employment status does not appear in any imported file. If they have left the organisation, the approval is broken and cannot be relied upon as evidence in an examination.`,
         action:'Manually confirm current employment status of '+pv[0].approvedBy+'. If departed: reapprove under current authorised signatory before examination.',
@@ -802,36 +801,36 @@ function detectGaps(decRes,policyIdx){
   return {gaps,dqIssues,vgIssues,score,breakdown};
 }
 
-// ════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // EXAMINER QUESTIONS
-// ════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function buildEQs(){
   return [
-    {system:'FraudGuard ML',q:'Who is accountable for FraudGuard ML — who do I contact if there is a problem?',verdict:'NO',why:'Owner field UNASSIGNED since December 2023. No named individual on record.'},
+    {system:'FraudGuard ML',q:'Who is accountable for FraudGuard ML â€” who do I contact if there is a problem?',verdict:'NO',why:'Owner field UNASSIGNED since December 2023. No named individual on record.'},
     {system:'FraudGuard ML',q:'Show me the risk acceptance document for FraudGuard ML.',verdict:'NO',why:'No risk acceptance document has ever been filed. System in production since 2021 without one.'},
     {system:'ClaimScore AI',q:'Which policy governed ClaimScore AI\'s decisions in February and March 2025?',verdict:'NO',why:'Decisions made under v1.8 but v2.1 was active from January 15 2025. 3 decisions cannot be tied to the correct governing policy.'},
-    {system:'ClaimScore AI',q:'Show me the human reviewer sign-off for denial DEC-2025-0084.',verdict:'NO',why:'No reviewer logged. Policy v2.1 §4.2 requires adjuster sign-off on all AI-generated denials.'},
+    {system:'ClaimScore AI',q:'Show me the human reviewer sign-off for denial DEC-2025-0084.',verdict:'NO',why:'No reviewer logged. Policy v2.1 Â§4.2 requires adjuster sign-off on all AI-generated denials.'},
     {system:'UnderwriteAssist',q:'Who authorised UnderwriteAssist to operate after its risk acceptance expired February 10 2024?',verdict:'NO',why:'No renewal initiated. No emergency authorisation documented. System operated for 16+ months past expiry.'},
-    {system:'FraudGuard ML',q:'Show me the oversight and review records for FraudGuard ML.',verdict:'PARTIAL',why:'Oversight log shows compliance analyst reviews but no business owner sign-off. Three escalations to CCO level — none resolved.'},
+    {system:'FraudGuard ML',q:'Show me the oversight and review records for FraudGuard ML.',verdict:'PARTIAL',why:'Oversight log shows compliance analyst reviews but no business owner sign-off. Three escalations to CCO level â€” none resolved.'},
     {system:'DocExtract Pro',q:'Where is the compliance department sign-off for DocExtract Pro?',verdict:'NO',why:'Approved by IT Operations only. Compliance department not involved. No compliance sign-off exists.'},
     {system:'UnderwriteAssist',q:'Who approved the risk acceptance for UnderwriteAssist and are they still at Meridian?',verdict:'PARTIAL',why:'Signed by Robert Haines, CRO. Current employment status not confirmed from available data. If departed, approval chain is broken.'},
     {system:'ClaimScore AI',q:'Can you demonstrate ClaimScore AI operated under an active governance framework throughout 2025?',verdict:'PARTIAL',why:'Policy v2.1 active from January 15. But February and March decisions used v1.8. Gap period exists.'},
-    {system:'CustomerIQ',q:'How does Meridian intervene if CustomerIQ produces a harmful personalisation decision?',verdict:'PARTIAL',why:'No documented override capability. CMO classified as acceptable risk — no remediation implemented.'},
+    {system:'CustomerIQ',q:'How does Meridian intervene if CustomerIQ produces a harmful personalisation decision?',verdict:'PARTIAL',why:'No documented override capability. CMO classified as acceptable risk â€” no remediation implemented.'},
   ];
 }
 
-// ════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // STATE & UI
-// ════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 let loaded={inv:false,pol:false,dec:false,risk:false,ovr:false};
 let AR=null,analysisComplete=false;
-// Initialize ACTIVE_DATA with demo data — replaced with real data after upload + analysis
+// Initialize ACTIVE_DATA with demo data â€” replaced with real data after upload + analysis
 window.ACTIVE_DATA = RAW;
 
 function trig(id){document.getElementById(id).click();}
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // FILE UPLOAD + PARSING ENGINE
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 // Stores raw parsed data per slot before mapping
 const rawFileData = {inv:null, pol:null, dec:null, risk:null, ovr:null};
@@ -893,13 +892,13 @@ const PP_FIELDS = {
   ]
 };
 
-// ── FILE READING ──────────────────────────────────────────────
+// â”€â”€ FILE READING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function onFile(type, input) {
   if (!input.files.length) return;
   const file = input.files[0];
   const ext = file.name.split('.').pop().toLowerCase();
   const slotEl = document.getElementById('slot-' + type);
-  slotEl.querySelector('.slot-ico').textContent = '⏳';
+  slotEl.querySelector('.slot-ico').textContent = 'â³';
 
   if (ext === 'csv') {
     Papa.parse(file, {
@@ -958,19 +957,19 @@ function onFile(type, input) {
 
 function showSlotError(type, msg) {
   const sl = document.getElementById('slot-' + type);
-  sl.querySelector('.slot-ico').textContent = '⚠';
+  sl.querySelector('.slot-ico').textContent = 'âš ';
   document.getElementById('ok-' + type).textContent = msg;
   document.getElementById('ok-' + type).style.color = 'var(--red)';
 }
 
-// ── SCHEMA MAPPING MODAL ──────────────────────────────────────
+// â”€â”€ SCHEMA MAPPING MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function openMappingModal(type) {
   currentMappingType = type;
   const {rows, cols, fileName} = rawFileData[type];
   const fields = PP_FIELDS[type];
   const typeLabels = {inv:'AI System Inventory', pol:'Policy Version Library', dec:'AI Decision Log', risk:'Risk Assessments', ovr:'Oversight & Review Log'};
 
-  document.getElementById('mapping-title').textContent = 'Map columns — ' + typeLabels[type];
+  document.getElementById('mapping-title').textContent = 'Map columns â€” ' + typeLabels[type];
   document.getElementById('mapping-sub').textContent = `File: ${fileName} · ${rows.length} rows · ${cols.length} columns detected`;
 
   // Auto-detect note
@@ -978,7 +977,7 @@ function openMappingModal(type) {
   noteEl.style.display = 'none';
   if (cols.length === 0) {
     noteEl.style.display = 'block';
-    noteEl.textContent = '⚠ No columns detected. Check the file has a header row.';
+    noteEl.textContent = 'âš  No columns detected. Check the file has a header row.';
   }
 
   // Build mapping rows
@@ -995,9 +994,9 @@ function openMappingModal(type) {
     section.innerHTML = `
       <div class="mapping-row">
         <div class="mapping-field">${field.label}${field.required?' <span style="color:var(--red)">*</span>':''}<br><span style="font-weight:300;color:var(--faint);font-size:9px;">${field.hint}</span></div>
-        <div class="mapping-arrow">←</div>
+        <div class="mapping-arrow">â†</div>
         <select class="mapping-select" id="map-${type}-${field.key}">
-          <option value="">— skip this field —</option>
+          <option value="">â€” skip this field â€”</option>
           ${cols.map(c => `<option value="${c}" ${c === autoMatch ? 'selected' : ''}>${c}</option>`).join('')}
         </select>
       </div>`;
@@ -1021,7 +1020,7 @@ function autoMatchColumn(key, label, cols) {
   match = cols.find(c => norm(c) === normLabel);
   if (match) return match;
 
-  // Partial match — key contained in column or vice versa
+  // Partial match â€” key contained in column or vice versa
   match = cols.find(c => norm(c).includes(normKey) || normKey.includes(norm(c)));
   if (match) return match;
 
@@ -1069,7 +1068,7 @@ function confirmMapping() {
   if (missingRequired.length > 0) {
     const noteEl = document.getElementById('mapping-note');
     noteEl.style.display = 'block';
-    noteEl.textContent = '⚠ Required fields not mapped: ' + missingRequired.join(', ');
+    noteEl.textContent = 'âš  Required fields not mapped: ' + missingRequired.join(', ');
     return;
   }
 
@@ -1082,13 +1081,13 @@ function confirmMapping() {
   loaded[type] = true;
   const sl = document.getElementById('slot-' + type);
   sl.classList.add('loaded');
-  sl.querySelector('.slot-ico').textContent = '✓';
+  sl.querySelector('.slot-ico').textContent = 'âœ“';
   document.getElementById('ok-' + type).textContent = `${fileName} · ${normalized.length} rows mapped`;
   document.getElementById('ok-' + type).style.color = '';
   checkLoaded();
 }
 
-// ── NORMALIZATION ─────────────────────────────────────────────
+// â”€â”€ NORMALIZATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function normalizeRows(rows, mapping, type) {
   return rows.map((row, idx) => {
     const out = {_src: `row ${idx + 2}`};
@@ -1109,7 +1108,7 @@ function normalizeRows(rows, mapping, type) {
       else if (ppKey === 'riskStatus') {
         out[ppKey] = normalizeRiskStatus(val);
       }
-      // Normalize owner — blank/TBD/unassigned = UNASSIGNED
+      // Normalize owner â€” blank/TBD/unassigned = UNASSIGNED
       else if (ppKey === 'owner') {
         const v = (val || '').toString().trim().toLowerCase();
         out[ppKey] = (!v || v === 'tbd' || v === 'n/a' || v === 'unassigned' || v === '-') ? 'UNASSIGNED' : val;
@@ -1129,7 +1128,7 @@ function normalizeBool(val) {
   if (val === true || val === 1) return true;
   if (val === false || val === 0) return false;
   const v = (val || '').toString().trim().toLowerCase();
-  if (['yes','y','true','1','x','✓'].includes(v)) return true;
+  if (['yes','y','true','1','x','âœ“'].includes(v)) return true;
   if (['no','n','false','0',''].includes(v)) return false;
   return null;
 }
@@ -1167,7 +1166,7 @@ function normalizeRiskStatus(val) {
   return v || 'UNKNOWN';
 }
 
-// ── BUILD RAW FROM MAPPED DATA ────────────────────────────────
+// â”€â”€ BUILD RAW FROM MAPPED DATA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function buildRAWFromMappedData() {
   // Build systems from inventory
   const systems = (mappedData.inv ? mappedData.inv.rows : RAW.systems).map(r => ({
@@ -1247,9 +1246,9 @@ function showImportSummary(){
   const n=Object.values(loaded).filter(Boolean).length;
   document.getElementById('import-summary').style.display='block';
   const fileDetails = Object.entries(mappedData)
-    .map(([k,v]) => v ? `<span style="margin-right:10px;color:var(--green)">✓ ${k}: ${v.rows.length} rows</span>` : `<span style="margin-right:10px;color:var(--faint)">○ ${k}</span>`)
+    .map(([k,v]) => v ? `<span style="margin-right:10px;color:var(--green)">âœ“ ${k}: ${v.rows.length} rows</span>` : `<span style="margin-right:10px;color:var(--faint)">â—‹ ${k}</span>`)
     .join('');
-  document.getElementById('import-summary-body').innerHTML=`<div class="alert a-green"><span>✓</span><span><strong>${n} of 5 files loaded.</strong> ${n===5?'All files ready — run analysis.':'Add remaining files or proceed with available data.'}</span></div><div style="font-family:var(--mono);font-size:10px;margin-top:8px;">${fileDetails}</div>`;
+  document.getElementById('import-summary-body').innerHTML=`<div class="alert a-green"><span>âœ“</span><span><strong>${n} of 5 files loaded.</strong> ${n===5?'All files ready â€” run analysis.':'Add remaining files or proceed with available data.'}</span></div><div style="font-family:var(--mono);font-size:10px;margin-top:8px;">${fileDetails}</div>`;
 }
 function loadDemo(){
   ['inv','pol','dec','risk','ovr'].forEach((k,i)=>{
@@ -1257,7 +1256,7 @@ function loadDemo(){
       loaded[k]=true;
       mappedData[k]=null; // use hardcoded RAW for demo
       const sl=document.getElementById('slot-'+k);
-      sl.classList.add('loaded');sl.querySelector('.slot-ico').textContent='✓';
+      sl.classList.add('loaded');sl.querySelector('.slot-ico').textContent='âœ“';
       document.getElementById('ok-'+k).textContent='Meridian demo data · loaded';
       checkLoaded();
     },i*160);
@@ -1285,9 +1284,9 @@ function runAnalysis(){
   goStep(2);
   const steps=[
     {id:'pc1',label:'Ingesting 5 files...',pct:11},
-    {id:'pc2',label:'Normalising — lowercase, trim, parse dates...',pct:22},
-    {id:'pc3',label:'Building PolicyVersionIndex — one pass...',pct:33},
-    {id:'pc4',label:'Date-aware version matching — binary search per decision...',pct:44},
+    {id:'pc2',label:'Normalising â€” lowercase, trim, parse dates...',pct:22},
+    {id:'pc3',label:'Building PolicyVersionIndex â€” one pass...',pct:33},
+    {id:'pc4',label:'Date-aware version matching â€” binary search per decision...',pct:44},
     {id:'pc5',label:'Scanning risk acceptance expiry dates...',pct:55},
     {id:'pc6',label:'Auditing human reviewer logs...',pct:66},
     {id:'pc7',label:'Checking governance relationship chains...',pct:77},
@@ -1320,7 +1319,7 @@ function finish(){
   renderAnalysis();renderScore();renderEQs();renderEvidence();
 }
 
-// ── RENDER: ANALYSIS ─────────────────────────────────────────
+// â”€â”€ RENDER: ANALYSIS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderAnalysis(){
   const dr=AR.dRes;
   const rc=ACTIVE_DATA.systems.filter(s=>!s.owner||s.owner==='UNASSIGNED').length;
@@ -1329,7 +1328,7 @@ function renderAnalysis(){
     <div class="met r"><div class="met-val">${rc}</div><div class="met-lbl">No accountable owner</div></div>
     <div class="met r"><div class="met-val">${dr.mismatches.length}</div><div class="met-lbl">Policy version mismatches</div></div>
     <div class="met r"><div class="met-val">${ec}</div><div class="met-lbl">Expired / missing risk acceptances</div></div>
-    <div class="met a"><div class="met-val">${dr.noReviewer.length}</div><div class="met-lbl">Decisions — no reviewer</div></div>
+    <div class="met a"><div class="met-val">${dr.noReviewer.length}</div><div class="met-lbl">Decisions â€” no reviewer</div></div>
     <div class="met a"><div class="met-val">${AR.vgIssues.length}</div><div class="met-lbl">Trust failures</div></div>
     <div class="met a"><div class="met-val">${AR.dqIssues.length}</div><div class="met-lbl">Governance drift items</div></div>
     <div class="met g"><div class="met-val">${dr.clean.length}</div><div class="met-lbl">Fully defensible decisions</div></div>
@@ -1340,9 +1339,9 @@ function renderAnalysis(){
     const st=(og||rg)?'r':(vg||ovg)?'a':'g';
     const tl=st==='r'?`<span class="tl tl-r"><span class="tl-dot"></span>Critical</span>`:st==='a'?`<span class="tl tl-a"><span class="tl-dot"></span>Gaps</span>`:`<span class="tl tl-g"><span class="tl-dot"></span>Compliant</span>`;
     const vm=AR.dRes.mismatches.filter(d=>d.systemId===s.id);
-    const vb=vm.length?`<span style="color:var(--red);font-size:10px;">${vm[0].versionUsed} ≠ ${vm[0].correctVersion}</span>`:`<span style="color:var(--green);font-size:10px);">✓ Current</span>`;
-    const rb=rg?`<span style="color:var(--red);font-size:10px;">${s.riskStatus}</span>`:`<span style="color:var(--green);font-size:10px);">✓ ${s.riskStatus}</span>`;
-    const ob=ovg?`<span style="color:var(--amber);font-size:10px;">Not documented</span>`:`<span style="color:var(--green);font-size:10px);">✓ OK</span>`;
+    const vb=vm.length?`<span style="color:var(--red);font-size:10px;">${vm[0].versionUsed} â‰  ${vm[0].correctVersion}</span>`:`<span style="color:var(--green);font-size:10px);">âœ“ Current</span>`;
+    const rb=rg?`<span style="color:var(--red);font-size:10px;">${s.riskStatus}</span>`:`<span style="color:var(--green);font-size:10px);">âœ“ ${s.riskStatus}</span>`;
+    const ob=ovg?`<span style="color:var(--amber);font-size:10px;">Not documented</span>`:`<span style="color:var(--green);font-size:10px);">âœ“ OK</span>`;
     return `<tr><td><strong>${s.name}</strong><br><span class="mono-sm">${s.id} · ${s.tier}</span></td><td>${s.fn}</td><td>${og?'<span style="color:var(--red);font-weight:600;">UNASSIGNED</span>':s.owner}</td><td>${vb}</td><td>${rb}</td><td>${ob}</td><td>${tl}</td></tr>`;
   }).join('');
 
@@ -1356,7 +1355,7 @@ function renderAnalysis(){
 
   document.getElementById('vg-ct').textContent=`(${AR.vgIssues.length})`;
   document.getElementById('vg-list').innerHTML=AR.vgIssues.length
-    ?AR.vgIssues.map(v=>`<div class="vg-item"><div class="vg-title">${v.title}</div><div class="vg-detail">${v.detail}</div><div class="vg-action">→ Required action: ${v.action}</div><div class="dq-src" style="font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:4px;">Source: ${v.src}</div></div>`).join('')
+    ?AR.vgIssues.map(v=>`<div class="vg-item"><div class="vg-title">${v.title}</div><div class="vg-detail">${v.detail}</div><div class="vg-action">â†’ Required action: ${v.action}</div><div class="dq-src" style="font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:4px;">Source: ${v.src}</div></div>`).join('')
     :'<p style="font-size:13px;color:var(--faint);padding:1rem 0;">No trust failures detected.</p>';
 
   document.getElementById('analysis-out').style.display='block';
@@ -1398,22 +1397,22 @@ function gapCard(g){
       <div class="exam-row"><span class="exam-row-label">Likely outcome:</span><span class="exam-row-val">${g.examinerLikelyOutcome}</span></div>
       <div class="exam-row"><span class="exam-row-label">Remediation:</span><span class="exam-row-val">${g.examinerRemediation}</span></div>
     </div>
-    <div class="exam-verdict ${evClass}">● Meridian can answer today: ${g.examinerVerdict}</div>
-    <div class="exam-naic">📋 ${g.naic}</div>
+    <div class="exam-verdict ${evClass}">â— Meridian can answer today: ${g.examinerVerdict}</div>
+    <div class="exam-naic">ðŸ“‹ ${g.naic}</div>
   </div>`;
 
-  // Provenance — level-based
+  // Provenance â€” level-based
   let provHtml='';
   if(g.provLevel===3&&g.govDiscoveryStmt){
     provHtml=`<div class="gov-discovery">
-      <div class="gov-discovery-hd"><span class="gov-discovery-label">● GOVERNANCE DISCOVERY</span></div>
+      <div class="gov-discovery-hd"><span class="gov-discovery-label">â— GOVERNANCE DISCOVERY</span></div>
       <div class="gov-discovery-body">
         <div class="gov-discovery-stmt">${g.govDiscoveryStmt}</div>
         <div class="gov-discovery-sources">${g.provenanceSources.map(s=>`<span class="gov-source">${s}</span>`).join('')}</div>
       </div>
     </div>`;
   } else if(g.provLevel===2){
-    provHtml=`<div style="margin-top:8px;"><span class="prov-xref">⊕ CROSS-REFERENCE · ${g.provenanceSources.join(' + ')}</span></div>`;
+    provHtml=`<div style="margin-top:8px;"><span class="prov-xref">âŠ• CROSS-REFERENCE · ${g.provenanceSources.join(' + ')}</span></div>`;
   } else {
     provHtml=`<div class="prov-src">Source: ${g.provenanceSources[0]||''}</div>`;
   }
@@ -1438,7 +1437,7 @@ function gapCard(g){
   </div>`;
 }
 
-// ── RENDER: SCORE + DEFENSIBILITY ────────────────────────────
+// â”€â”€ RENDER: SCORE + DEFENSIBILITY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderScore(){
   const safeScore=Math.max(AR.score,0);
   const dr=AR.dRes;
@@ -1454,15 +1453,15 @@ function renderScore(){
   function chainConsequence(dim, ok, s){
     const fails={
       owner:'No named human accountable for decisions',
-      risk: s.riskStatus==='NOT ON FILE'?'No documented authorisation to operate this system':'Authorisation to operate has expired — governance chain degraded',
-      policy:'Policy execution drift detected — system running after governing policy changed',
+      risk: s.riskStatus==='NOT ON FILE'?'No documented authorisation to operate this system':'Authorisation to operate has expired â€” governance chain degraded',
+      policy:'Policy execution drift detected â€” system running after governing policy changed',
       oversight:'No mechanism to stop or override AI decisions',
       intervention:'Cannot intervene if system produces harmful output',
       compliance:'Deployed without compliance authorisation',
     };
     const passes={
       owner:s.owner,
-      risk:'Active — expires '+s.riskExpiry,
+      risk:'Active â€” expires '+s.riskExpiry,
       policy:'Current governing version',
       oversight:'Documented',
       intervention:'Documented',
@@ -1476,13 +1475,13 @@ function renderScore(){
     // Risk: Active = ok, Expired = degraded (AT RISK), NOT ON FILE = absent (NOT DEFENSIBLE)
     const riskAbsent=s.riskStatus==='NOT ON FILE';
     const riskExpired=s.riskStatus==='EXPIRED';
-    const riskOk=s.riskStatus==='Active'||s.riskStatus==='Active — Incomplete';
+    const riskOk=s.riskStatus==='Active'||s.riskStatus==='Active â€” Incomplete';
     const oversightOk=s.oversight;
     const complianceOk=s.complianceSignoff;
     const policyOk=!dr.mismatches.some(d=>d.systemId===s.id);
     const interventionOk=s.oversight;
 
-    // Governance-chain-aware verdict — not arithmetic
+    // Governance-chain-aware verdict â€” not arithmetic
     // NOT DEFENSIBLE: accountability or authorisation chain is absent (not just degraded)
     //   - No owner (cannot answer "who is accountable?")
     //   - Risk acceptance never existed (no documented authorisation)
@@ -1502,7 +1501,7 @@ function renderScore(){
     const verdict=notDef?'notdef':atRisk?'risk':withGaps?'gaps':'defensible';
     const verdictLabel={defensible:'Defensible',gaps:'Defensible with Gaps',risk:'At Risk',notdef:'Not Defensible'}[verdict];
 
-    // Defensibility rationale — the "why" sentence
+    // Defensibility rationale â€” the "why" sentence
     const failures=[];
     if(!ownerOk) failures.push('no accountable owner');
     if(riskAbsent) failures.push('no risk acceptance document');
@@ -1517,13 +1516,13 @@ function renderScore(){
 
     let exposure=null;
     if(!ownerOk&&s.ownerDepartedNote) exposure='18 months without accountable owner';
-    else if(riskExpired&&s.riskExpiry) exposure=`${daysBetween(s.riskExpiry,TODAY_STR)} days past risk acceptance expiry — governance chain degraded`;
+    else if(riskExpired&&s.riskExpiry) exposure=`${daysBetween(s.riskExpiry,TODAY_STR)} days past risk acceptance expiry â€” governance chain degraded`;
     const decsDuring=dr.mismatches.concat(dr.noReviewer).filter(d=>d.systemId===s.id);
     const uniqueDecs=[...new Set(decsDuring.map(d=>d.id))].length;
     return {s,ownerOk,riskOk,riskAbsent,riskExpired,oversightOk,complianceOk,policyOk,interventionOk,verdict,verdictLabel,rationale,exposure,uniqueDecs};
   });
 
-  // Defensibility counts — computed from defData, must sum to total systems
+  // Defensibility counts â€” computed from defData, must sum to total systems
   const defCounts={defensible:0,gaps:0,risk:0,notdef:0};
   defData.forEach(d=>defCounts[d.verdict]++);
   const highestRisk=defData.find(d=>d.verdict==='notdef')||defData.find(d=>d.verdict==='risk');
@@ -1583,7 +1582,7 @@ function renderScore(){
                   <div style="display:flex;align-items:center;gap:8px;">
                     <span style="font-family:var(--mono);font-size:10px;color:var(--faint);">${d.s.tier}</span>
                     <span class="def-verdict ${d.verdict}">${d.verdictLabel}</span>
-                    <span style="font-size:11px;color:var(--faint);">▾</span>
+                    <span style="font-size:11px;color:var(--faint);">â–¾</span>
                   </div>
                 </div>
                 <div class="def-expand" id="def-${d.s.id}">
@@ -1598,11 +1597,11 @@ function renderScore(){
                       {dim:'compliance',label:'COMPLIANCE SIGN-OFF',ok:d.complianceOk},
                     ].map(c=>`<div class="def-chain-item ${c.ok?'pass':'fail'}">
                       <div class="def-chain-label">${c.label}</div>
-                      <div class="def-chain-val">${c.ok?'✓ PASS':'✕ FAIL'}</div>
+                      <div class="def-chain-val">${c.ok?'âœ“ PASS':'âœ• FAIL'}</div>
                       <div style="font-size:10px;margin-top:2px;color:var(--mid);line-height:1.3;">${chainConsequence(c.dim,c.ok,d.s)}</div>
                     </div>`).join('')}
                   </div>
-                  ${d.exposure?`<div class="def-exposure">⚠ Duration of exposure: ${d.exposure}</div>`:''}
+                  ${d.exposure?`<div class="def-exposure">âš  Duration of exposure: ${d.exposure}</div>`:''}
                   ${d.uniqueDecs>0?`<div style="font-family:var(--mono);font-size:10px;color:var(--red);margin-top:3px;">Decisions made during governance gap: ${d.uniqueDecs}</div>`:''}
                   <div class="def-overall">
                     <span class="def-overall-label">Overall governance chain:</span>
@@ -1625,7 +1624,7 @@ function renderScore(){
       <div class="fs-item r"><div class="fs-val">${defData.filter(d=>d.verdict==='notdef').length}</div><div class="fs-lbl">Systems not defensible</div></div>
     </div>`;
 
-  // Score breakdown — reference only, demoted
+  // Score breakdown â€” reference only, demoted
   document.getElementById('bk-tbl').innerHTML=`
     <thead><tr><th>Gap</th><th>System</th><th>NAIC ref</th><th>Pts</th></tr></thead>
     <tbody>
@@ -1660,7 +1659,7 @@ function toggleDef(id){
   el.classList.toggle('open');
 }
 
-// ── RENDER: EXAMINER QUESTIONS ────────────────────────────────
+// â”€â”€ RENDER: EXAMINER QUESTIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderEQs(){
   const eqs=buildEQs();
   document.getElementById('no-count').textContent=eqs.filter(q=>q.verdict==='NO').length;
@@ -1671,7 +1670,7 @@ function renderEQs(){
     </div>`).join('');
 }
 
-// ── RENDER: EVIDENCE ──────────────────────────────────────────
+// â”€â”€ RENDER: EVIDENCE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderEvidence(){
   const eqs=buildEQs();
   const dr=AR.dRes;
@@ -1682,32 +1681,32 @@ function renderEvidence(){
   // Governance controls verified
   const verifiedControls=[];
   ACTIVE_DATA.systems.filter(s=>s.owner&&s.owner!=='UNASSIGNED').forEach(s=>{
-    verifiedControls.push(`✓ ${s.name} has a named accountable owner (${s.owner})`);
+    verifiedControls.push(`âœ“ ${s.name} has a named accountable owner (${s.owner})`);
   });
   ACTIVE_DATA.systems.filter(s=>s.complianceSignoff).forEach(s=>{
-    verifiedControls.push(`✓ ${s.name} has compliance department sign-off on record`);
+    verifiedControls.push(`âœ“ ${s.name} has compliance department sign-off on record`);
   });
   ACTIVE_DATA.systems.filter(s=>s.riskStatus==='Active').forEach(s=>{
-    verifiedControls.push(`✓ ${s.name} has an active risk acceptance document (expires ${s.riskExpiry})`);
+    verifiedControls.push(`âœ“ ${s.name} has an active risk acceptance document (expires ${s.riskExpiry})`);
   });
-  verifiedControls.push(`✓ ${cleanDecs} of ${totalDecs} decisions (${cleanPct}%) have a named human reviewer on record`);
-  verifiedControls.push(`✓ ${cleanDecs} of ${totalDecs} decisions (${cleanPct}%) used the correct active policy version`);
+  verifiedControls.push(`âœ“ ${cleanDecs} of ${totalDecs} decisions (${cleanPct}%) have a named human reviewer on record`);
+  verifiedControls.push(`âœ“ ${cleanDecs} of ${totalDecs} decisions (${cleanPct}%) used the correct active policy version`);
   ACTIVE_DATA.systems.filter(s=>s.oversight).forEach(s=>{
-    verifiedControls.push(`✓ ${s.name} has a documented oversight and intervention mechanism`);
+    verifiedControls.push(`âœ“ ${s.name} has a documented oversight and intervention mechanism`);
   });
   const sections=[
     {t:'Governance Controls Verified',b:verifiedControls.join('\n'),verified:true},
-    {t:'Exhibit A — AI System Inventory',b:ACTIVE_DATA.systems.map(s=>`${s.id} | ${s.name} | ${s.fn} | ${s.vendor} | ${s.tier} | Owner: ${s.owner}`).join('\n')},
-    {t:'Exhibit B — Governance Gaps',b:AR.gaps.map(g=>`[${g.findingType.toUpperCase()}] ${g.title}\nSystem: ${g.system}\n${g.consequence}\nNAIC: ${g.naic}\nProvenance Level: ${g.provLevel===3?'Governance Discovery':g.provLevel===2?'Cross-Reference':'Single Source'}`).join('\n\n')},
-    {t:'Exhibit B — Policy Version Drift',b:AR.dRes.mismatches.map(d=>`${d.id} | ${d.date} | Used: ${d.versionUsed} | Correct: ${d.correctVersion} | MISMATCH | ${d.src}`).join('\n')||'None.'},
-    {t:'Exhibit D — Risk Acceptance Status',b:ACTIVE_DATA.systems.map(s=>`${s.name} | Expiry: ${s.riskExpiry||'NONE ON FILE'} | ${s.riskStatus}`).join('\n')},
-    {t:'Examiner Questions — NO Answers',b:eqs.filter(q=>q.verdict==='NO').map(q=>`[NO] ${q.system}: "${q.q}"\n     ${q.why}`).join('\n\n')},
-    {t:'Trust Failures — Manual Verification Required',b:AR.vgIssues.length?AR.vgIssues.map(v=>`${v.title}\n${v.detail}\nAction: ${v.action}`).join('\n\n'):'None detected.'},
+    {t:'Exhibit A â€” AI System Inventory',b:ACTIVE_DATA.systems.map(s=>`${s.id} | ${s.name} | ${s.fn} | ${s.vendor} | ${s.tier} | Owner: ${s.owner}`).join('\n')},
+    {t:'Exhibit B â€” Governance Gaps',b:AR.gaps.map(g=>`[${g.findingType.toUpperCase()}] ${g.title}\nSystem: ${g.system}\n${g.consequence}\nNAIC: ${g.naic}\nProvenance Level: ${g.provLevel===3?'Governance Discovery':g.provLevel===2?'Cross-Reference':'Single Source'}`).join('\n\n')},
+    {t:'Exhibit B â€” Policy Version Drift',b:AR.dRes.mismatches.map(d=>`${d.id} | ${d.date} | Used: ${d.versionUsed} | Correct: ${d.correctVersion} | MISMATCH | ${d.src}`).join('\n')||'None.'},
+    {t:'Exhibit D â€” Risk Acceptance Status',b:ACTIVE_DATA.systems.map(s=>`${s.name} | Expiry: ${s.riskExpiry||'NONE ON FILE'} | ${s.riskStatus}`).join('\n')},
+    {t:'Examiner Questions â€” NO Answers',b:eqs.filter(q=>q.verdict==='NO').map(q=>`[NO] ${q.system}: "${q.q}"\n     ${q.why}`).join('\n\n')},
+    {t:'Trust Failures â€” Manual Verification Required',b:AR.vgIssues.length?AR.vgIssues.map(v=>`${v.title}\n${v.detail}\nAction: ${v.action}`).join('\n\n'):'None detected.'},
   ];
   document.getElementById('ev-sections').innerHTML=sections.map(s=>`
     <div class="ev-section" style="${s.verified?'border-color:var(--green-border);':''}">
       <div class="ev-hd" style="${s.verified?'background:var(--green-bg);color:var(--green);':''}">
-        <span>${s.t}</span><span class="tag">${s.verified?'✓ VERIFIED':'NAIC'}</span>
+        <span>${s.t}</span><span class="tag">${s.verified?'âœ“ VERIFIED':'NAIC'}</span>
       </div>
       <div class="ev-body">${s.b}</div>
     </div>`).join('');
@@ -1716,33 +1715,33 @@ function renderEvidence(){
 
 function buildReport(){
   const eqs=buildEQs();const now=new Date().toISOString().split('T')[0];
-  return `POLICYPROOF — NAIC EXAMINATION EVIDENCE PACKAGE
+  return `POLICYPROOF â€” NAIC EXAMINATION EVIDENCE PACKAGE
 Generated: ${now} | Meridian Insurance | Score: ${AR.score}/100
 Report ID: PP-${Date.now().toString(36).toUpperCase()}
-${'━'.repeat(60)}
-NAIC READINESS SCORE: ${AR.score}/100 — ${AR.score<70?'BELOW THRESHOLD':'ABOVE THRESHOLD'}
-State: Ohio — Active NAIC Evaluation Tool pilot state
+${'â”'.repeat(60)}
+NAIC READINESS SCORE: ${AR.score}/100 â€” ${AR.score<70?'BELOW THRESHOLD':'ABOVE THRESHOLD'}
+State: Ohio â€” Active NAIC Evaluation Tool pilot state
 
-${'━'.repeat(60)}
+${'â”'.repeat(60)}
 GOVERNANCE GAPS (${AR.gaps.length})
 ${AR.gaps.map((g,i)=>`\n[${i+1}] [${g.findingType.toUpperCase()}] ${g.title}\nSystem: ${g.system} | Provenance: ${g.provLevel===3?'Governance Discovery (4 sources)':g.provLevel===2?'Cross-Reference':'Single Source'}\nConsequence: ${g.consequence}\nExaminer Q: "${g.examinerQ}"\nMeridian can answer: ${g.examinerVerdict}\nLikely outcome: ${g.examinerLikelyOutcome}\nNAIC: ${g.naic}`).join('\n')}
 
-${'━'.repeat(60)}
-EXAMINER QUESTIONS — CANNOT ANSWER (${eqs.filter(q=>q.verdict==='NO').length})
+${'â”'.repeat(60)}
+EXAMINER QUESTIONS â€” CANNOT ANSWER (${eqs.filter(q=>q.verdict==='NO').length})
 ${eqs.filter(q=>q.verdict==='NO').map(q=>`\n[NO] "${q.q}"\n     ${q.why}`).join('\n')}
 
-${'━'.repeat(60)}
+${'â”'.repeat(60)}
 GOVERNANCE DRIFT (${AR.dqIssues.length})
 ${AR.dqIssues.map(d=>`\n${d.title}\n${d.detail}\nSource: ${d.src}`).join('\n')}
 
-${'━'.repeat(60)}
-TRUST FAILURES (${AR.vgIssues.length}) — MANUAL VERIFICATION REQUIRED
+${'â”'.repeat(60)}
+TRUST FAILURES (${AR.vgIssues.length}) â€” MANUAL VERIFICATION REQUIRED
 ${AR.vgIssues.length?AR.vgIssues.map(v=>`\n${v.title}\n${v.detail}\nAction: ${v.action}`).join('\n'):'None detected.'}
 
-${'━'.repeat(60)}
+${'â”'.repeat(60)}
 SCORE BREAKDOWN
 ${AR.breakdown.map(b=>`${b.gap.padEnd(38)} ${b.system.padEnd(20)} ${String(b.ded).padStart(5)}`).join('\n')}
-${'─'.repeat(60)}
+${'â”€'.repeat(60)}
 NAIC READINESS SCORE${' '.repeat(38)}${AR.score}/100
 
 PolicyProof v4 · v4-meridian-demo · ${now}`;
@@ -1767,7 +1766,7 @@ async function dlReport(){
 <html>
 <head>
 <meta charset="UTF-8"/>
-<title>PolicyProof Evidence Package — Meridian Insurance</title>
+<title>PolicyProof Evidence Package â€” Meridian Insurance</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,300&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1873,7 +1872,7 @@ p{margin-bottom:8pt;line-height:1.6;}
     <div class="cover-meta-item"><div class="cover-meta-label">ORGANISATION</div><div class="cover-meta-value">Meridian Insurance</div></div>
     <div class="cover-meta-item"><div class="cover-meta-label">GENERATED</div><div class="cover-meta-value">${nowStr}</div></div>
     <div class="cover-meta-item"><div class="cover-meta-label">REPORT ID</div><div class="cover-meta-value">${reportId}</div></div>
-    <div class="cover-meta-item"><div class="cover-meta-label">STATE</div><div class="cover-meta-value">Ohio — NAIC Pilot Active</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">STATE</div><div class="cover-meta-value">Ohio â€” NAIC Pilot Active</div></div>
     <div class="cover-meta-item"><div class="cover-meta-label">SYSTEMS ANALYSED</div><div class="cover-meta-value">${ACTIVE_DATA.systems.length}</div></div>
     <div class="cover-meta-item"><div class="cover-meta-label">CRITICAL FINDINGS</div><div class="cover-meta-value">${AR.gaps.filter(g=>g.type==='critical').length}</div></div>
     <div class="cover-meta-item"><div class="cover-meta-label">TRUST FAILURES</div><div class="cover-meta-value">${AR.vgIssues.length}</div></div>
@@ -1881,17 +1880,17 @@ p{margin-bottom:8pt;line-height:1.6;}
   </div>
 </div>
 
-<!-- SYSTEM DEFENSIBILITY SUMMARY — PAGE 1 HERO -->
+<!-- SYSTEM DEFENSIBILITY SUMMARY â€” PAGE 1 HERO -->
 <h1>System Defensibility Summary</h1>
-<p style="margin-bottom:12pt;font-size:10pt;color:#6b6560;">PolicyProof determines whether each AI system can be defended in an NAIC examination — not merely whether governance artifacts exist.</p>
+<p style="margin-bottom:12pt;font-size:10pt;color:#6b6560;">PolicyProof determines whether each AI system can be defended in an NAIC examination â€” not merely whether governance artifacts exist.</p>
 ${(()=>{
-  // Compute verdicts using same logic as app — single source of truth
+  // Compute verdicts using same logic as app â€” single source of truth
   const dr2=AR.dRes;
   const pdfDefData=ACTIVE_DATA.systems.map(s=>{
     const ownerOk=!!(s.owner&&s.owner!=='UNASSIGNED');
     const riskAbsent=s.riskStatus==='NOT ON FILE';
     const riskExpired=s.riskStatus==='EXPIRED';
-    const riskOk=s.riskStatus==='Active'||s.riskStatus==='Active — Incomplete';
+    const riskOk=s.riskStatus==='Active'||s.riskStatus==='Active â€” Incomplete';
     const policyOk=!dr2.mismatches.some(d=>d.systemId===s.id);
     const oversightOk=s.oversight;
     const interventionOk=s.oversight;
@@ -1928,7 +1927,7 @@ ${(()=>{
     <div style="font-family:'DM Mono',monospace;font-size:8pt;color:#b83228;letter-spacing:.05em;margin-bottom:6pt;">HIGHEST RISK SYSTEM</div>
     <div style="font-family:'Fraunces',serif;font-size:14pt;font-weight:600;margin-bottom:5pt;">${highestRiskSys.name} <span style="font-family:'DM Mono',monospace;font-size:9pt;color:#9e9890;">${highestRiskSys.id}</span></div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6pt;margin-top:8pt;">
-      ${highestRiskFailures.map(r=>`<div style="font-family:'DM Mono',monospace;font-size:8pt;color:#b83228;">✕ ${r}</div>`).join('')}
+      ${highestRiskFailures.map(r=>`<div style="font-family:'DM Mono',monospace;font-size:8pt;color:#b83228;">âœ• ${r}</div>`).join('')}
     </div>
   </div>`:''}`;
 })()}
@@ -1940,7 +1939,7 @@ ${ACTIVE_DATA.systems.map(s=>{
   const ownerOk=!!(s.owner&&s.owner!=='UNASSIGNED');
   const riskAbsent=s.riskStatus==='NOT ON FILE';
   const riskExpired=s.riskStatus==='EXPIRED';
-  const riskOk=s.riskStatus==='Active'||s.riskStatus==='Active — Incomplete';
+  const riskOk=s.riskStatus==='Active'||s.riskStatus==='Active â€” Incomplete';
   const policyOk=!dr2.mismatches.some(d=>d.systemId===s.id);
   const oversightOk=s.oversight;
   const interventionOk=s.oversight;
@@ -1972,14 +1971,14 @@ ${ACTIVE_DATA.systems.map(s=>{
     <table style="width:100%;border-collapse:collapse;">
       ${[
         {label:'Owner',ok:ownerOk,consequence:ownerOk?s.owner:'No named human accountable for decisions'},
-        {label:'Risk Acceptance',ok:riskOk,consequence:riskOk?'Active — expires '+s.riskExpiry:(riskAbsent?'No documented authorisation to operate this system':'Authorisation to operate has expired — governance chain degraded')},
-        {label:'Policy Currency',ok:policyOk,consequence:policyOk?'Current governing version':'Policy execution drift — decisions made after governing policy changed'},
+        {label:'Risk Acceptance',ok:riskOk,consequence:riskOk?'Active â€” expires '+s.riskExpiry:(riskAbsent?'No documented authorisation to operate this system':'Authorisation to operate has expired â€” governance chain degraded')},
+        {label:'Policy Currency',ok:policyOk,consequence:policyOk?'Current governing version':'Policy execution drift â€” decisions made after governing policy changed'},
         {label:'Oversight',ok:oversightOk,consequence:oversightOk?'Documented':'No mechanism to stop or override AI decisions'},
         {label:'Intervention Capability',ok:interventionOk,consequence:interventionOk?'Documented':'Cannot intervene if system produces harmful output'},
         {label:'Compliance Sign-Off',ok:complianceOk,consequence:complianceOk?'Obtained':'Deployed without compliance authorisation'},
       ].map((c,i)=>`<tr style="background:${i%2===0?'#fff':'#fafaf9'};">
         <td style="padding:5pt 10pt;width:130pt;font-family:'DM Mono',monospace;font-size:8pt;color:#6b6560;">${c.label}</td>
-        <td style="padding:5pt 8pt;width:60pt;font-family:'DM Mono',monospace;font-size:8.5pt;font-weight:700;color:${c.ok?'#0d6648':'#b83228'};">${c.ok?'✓ PASS':'✕ FAIL'}</td>
+        <td style="padding:5pt 8pt;width:60pt;font-family:'DM Mono',monospace;font-size:8.5pt;font-weight:700;color:${c.ok?'#0d6648':'#b83228'};">${c.ok?'âœ“ PASS':'âœ• FAIL'}</td>
         <td style="padding:5pt 8pt;font-size:9pt;color:${c.ok?'#0c0c0c':'#b83228'};">${c.consequence}</td>
       </tr>`).join('')}
     </table>
@@ -2002,10 +2001,10 @@ ${ACTIVE_DATA.systems.map(s=>{
 ${AR.gaps.map(g=>{
   const ftLabel={missing:'Missing',drift:'Drift',trust:'Trust Failure'}[g.findingType]||g.findingType;
   const driftHtml=g.drift?`<div class="drift-box"><strong style="font-size:8.5pt;font-family:'DM Mono',monospace;color:#8a5c0a;">GOVERNANCE DRIFT DETECTED</strong><div class="drift-grid"><div><div class="drift-label">CURRENT POLICY</div><div class="drift-val">${g.drift.currentPolicy}</div></div><div><div class="drift-label">SYSTEM USING</div><div class="drift-val red">${g.drift.systemUsing}</div></div><div><div class="drift-label">DRIFT STARTED</div><div class="drift-val">${fmt(g.drift.driftStarted)}</div></div><div><div class="drift-label">DURATION</div><div class="drift-val red">${g.drift.driftDays} days</div></div></div><div style="margin-top:5pt;font-family:'DM Mono',monospace;font-size:8pt;color:#8a5c0a;">Affected decisions: ${g.drift.affectedDecisions}</div></div>`:'';
-  const chainHtml=g.chain?`<table class="chain-table">${g.chain.map(n=>`<tr><td style="width:140pt;"><span class="${n.ok?'chain-dot-ok':'chain-dot-gap'}">${n.ok?'●':'✕'}</span> <strong>${n.label}</strong></td><td>${n.detail}</td><td style="width:90pt;font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">${n.date}</td></tr>`).join('')}</table>`:'';
+  const chainHtml=g.chain?`<table class="chain-table">${g.chain.map(n=>`<tr><td style="width:140pt;"><span class="${n.ok?'chain-dot-ok':'chain-dot-gap'}">${n.ok?'â—':'âœ•'}</span> <strong>${n.label}</strong></td><td>${n.detail}</td><td style="width:90pt;font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">${n.date}</td></tr>`).join('')}</table>`:'';
   const evClass=g.examinerVerdict==='NO'?'no':'partial';
-  const examHtml=`<div class="exam-box"><h3 style="margin-top:0;">EXAMINER IMPACT</h3><div class="exam-row"><span class="exam-label">Question:</span><span class="exam-val">"${g.examinerQ}"</span></div><div class="exam-row"><span class="exam-label">Cannot demonstrate:</span><span class="exam-val bad">${g.examinerCannotDemonstrate}</span></div><div class="exam-row"><span class="exam-label">Likely outcome:</span><span class="exam-val">${g.examinerLikelyOutcome}</span></div><div class="exam-row"><span class="exam-label">Remediation:</span><span class="exam-val">${g.examinerRemediation}</span></div><div class="verdict ${evClass}">● Meridian can answer today: ${g.examinerVerdict}</div><div class="naic-ref">📋 ${g.naic}</div></div>`;
-  const provHtml=g.provLevel===3&&g.govDiscoveryStmt?`<div class="gov-disc"><div class="gov-disc-hd">● GOVERNANCE DISCOVERY</div><div class="gov-disc-body"><div class="gov-disc-stmt">${g.govDiscoveryStmt}</div><div class="gov-disc-sources">${g.provenanceSources.map(s=>`<span class="gov-source">${s}</span>`).join('')}</div></div></div>`:g.provLevel===2?`<span class="xref">⊕ CROSS-REFERENCE · ${g.provenanceSources.join(' + ')}</span>`:`<div class="src-line">Source: ${g.provenanceSources[0]||''}</div>`;
+  const examHtml=`<div class="exam-box"><h3 style="margin-top:0;">EXAMINER IMPACT</h3><div class="exam-row"><span class="exam-label">Question:</span><span class="exam-val">"${g.examinerQ}"</span></div><div class="exam-row"><span class="exam-label">Cannot demonstrate:</span><span class="exam-val bad">${g.examinerCannotDemonstrate}</span></div><div class="exam-row"><span class="exam-label">Likely outcome:</span><span class="exam-val">${g.examinerLikelyOutcome}</span></div><div class="exam-row"><span class="exam-label">Remediation:</span><span class="exam-val">${g.examinerRemediation}</span></div><div class="verdict ${evClass}">â— Meridian can answer today: ${g.examinerVerdict}</div><div class="naic-ref">ðŸ“‹ ${g.naic}</div></div>`;
+  const provHtml=g.provLevel===3&&g.govDiscoveryStmt?`<div class="gov-disc"><div class="gov-disc-hd">â— GOVERNANCE DISCOVERY</div><div class="gov-disc-body"><div class="gov-disc-stmt">${g.govDiscoveryStmt}</div><div class="gov-disc-sources">${g.provenanceSources.map(s=>`<span class="gov-source">${s}</span>`).join('')}</div></div></div>`:g.provLevel===2?`<span class="xref">âŠ• CROSS-REFERENCE · ${g.provenanceSources.join(' + ')}</span>`:`<div class="src-line">Source: ${g.provenanceSources[0]||''}</div>`;
   return `<div class="finding ${g.type}">
     <div class="finding-header">
       <div>
@@ -2028,8 +2027,8 @@ ${eqs.map(q=>`<div class="eq-item"><div class="eq-hd"><span class="eq-sys">${q.s
 ${AR.dqIssues.map(d=>`<div class="drift-item"><div class="drift-item-title">${d.title}</div><div class="drift-item-detail">${d.detail}</div><div class="drift-item-src">Source: ${d.src}</div></div>`).join('')}
 
 <!-- TRUST FAILURES -->
-<h1>Trust Failures — Manual Verification Required (${AR.vgIssues.length})</h1>
-${AR.vgIssues.length?AR.vgIssues.map(v=>`<div class="trust-item"><div class="trust-item-title">${v.title}</div><p style="font-size:9.5pt;margin-top:3pt;">${v.detail}</p><div class="trust-item-action">→ Required action: ${v.action}</div><div class="drift-item-src" style="margin-top:4pt;font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">Source: ${v.src}</div></div>`).join(''):'<p>None detected.</p>'}
+<h1>Trust Failures â€” Manual Verification Required (${AR.vgIssues.length})</h1>
+${AR.vgIssues.length?AR.vgIssues.map(v=>`<div class="trust-item"><div class="trust-item-title">${v.title}</div><p style="font-size:9.5pt;margin-top:3pt;">${v.detail}</p><div class="trust-item-action">â†’ Required action: ${v.action}</div><div class="drift-item-src" style="margin-top:4pt;font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">Source: ${v.src}</div></div>`).join(''):'<p>None detected.</p>'}
 
 <!-- TAMPER-PROOF HASH -->
 <div class="hash-box">
