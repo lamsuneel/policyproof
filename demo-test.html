@@ -381,13 +381,13 @@ input[type=file]{display:none;}
         <span>PolicyProof reads exports your team already has. Nothing new to maintain. All processing runs in your browser — no data leaves your device.</span>
       </div>
       <div class="upload-grid">
-        <div class="slot" id="slot-inv" onclick="trig('f-inv')"><input type="file" id="f-inv" accept=".csv,.xlsx,.json" onchange="onFile('inv',this)"/><div class="slot-ico">📋</div><div class="slot-name">AI System Inventory</div><div class="slot-src">CSV · XLSX · JSON — Jira, ServiceNow, spreadsheet</div><div class="slot-ok" id="ok-inv"></div></div>
-        <div class="slot" id="slot-pol" onclick="trig('f-pol')"><input type="file" id="f-pol" accept=".json,.csv,.xlsx" onchange="onFile('pol',this)"/><div class="slot-ico">📄</div><div class="slot-name">Policy Version Library</div><div class="slot-src">JSON · CSV · XLSX — SharePoint, policy management system</div><div class="slot-ok" id="ok-pol"></div></div>
-        <div class="slot" id="slot-dec" onclick="trig('f-dec')"><input type="file" id="f-dec" accept=".csv,.xlsx" onchange="onFile('dec',this)"/><div class="slot-ico">⚖️</div><div class="slot-name">AI Decision Log</div><div class="slot-src">CSV · XLSX — claims system, decision audit log</div><div class="slot-ok" id="ok-dec"></div></div>
+        <div class="slot" id="slot-inv" onclick="trig('f-inv')"><input type="file" id="f-inv" accept=".csv,.xlsx,.json" onchange="onFile('inv',this)"/><div class="slot-ico">[ ]</div><div class="slot-name">AI System Inventory</div><div class="slot-src">CSV · XLSX · JSON — Jira, ServiceNow, spreadsheet</div><div class="slot-ok" id="ok-inv"></div></div>
+        <div class="slot" id="slot-pol" onclick="trig('f-pol')"><input type="file" id="f-pol" accept=".json,.csv,.xlsx" onchange="onFile('pol',this)"/><div class="slot-ico">[ ]</div><div class="slot-name">Policy Version Library</div><div class="slot-src">JSON · CSV · XLSX — SharePoint, policy management system</div><div class="slot-ok" id="ok-pol"></div></div>
+        <div class="slot" id="slot-dec" onclick="trig('f-dec')"><input type="file" id="f-dec" accept=".csv,.xlsx" onchange="onFile('dec',this)"/><div class="slot-ico">[ ]</div><div class="slot-name">AI Decision Log</div><div class="slot-src">CSV · XLSX — claims system, decision audit log</div><div class="slot-ok" id="ok-dec"></div></div>
       </div>
       <div class="upload-grid-2">
-        <div class="slot" id="slot-risk" onclick="trig('f-risk')"><input type="file" id="f-risk" accept=".xlsx,.csv,.json" onchange="onFile('risk',this)"/><div class="slot-ico">🛡️</div><div class="slot-name">Risk Assessments</div><div class="slot-src">XLSX · CSV · JSON — risk register, GRC platform export</div><div class="slot-ok" id="ok-risk"></div></div>
-        <div class="slot" id="slot-ovr" onclick="trig('f-ovr')"><input type="file" id="f-ovr" accept=".csv,.xlsx,.json" onchange="onFile('ovr',this)"/><div class="slot-ico">👁️</div><div class="slot-name">Oversight & Review Log</div><div class="slot-src">CSV · XLSX · JSON — ServiceNow, committee records</div><div class="slot-ok" id="ok-ovr"></div></div>
+        <div class="slot" id="slot-risk" onclick="trig('f-risk')"><input type="file" id="f-risk" accept=".xlsx,.csv,.json" onchange="onFile('risk',this)"/><div class="slot-ico">[ ]</div><div class="slot-name">Risk Assessments</div><div class="slot-src">XLSX · CSV · JSON — risk register, GRC platform export</div><div class="slot-ok" id="ok-risk"></div></div>
+        <div class="slot" id="slot-ovr" onclick="trig('f-ovr')"><input type="file" id="f-ovr" accept=".csv,.xlsx,.json" onchange="onFile('ovr',this)"/><div class="slot-ico">[ ]</div><div class="slot-name">Oversight & Review Log</div><div class="slot-src">CSV · XLSX · JSON — ServiceNow, committee records</div><div class="slot-ok" id="ok-ovr"></div></div>
       </div>
       <div class="or">or</div>
       <div class="row-ctr">
@@ -494,7 +494,12 @@ input[type=file]{display:none;}
     <div class="mapping-sub" id="mapping-sub">We detected these columns in your file. Tell us which PP field each one maps to.</div>
     <div class="mapping-note" id="mapping-note"></div>
     <div id="mapping-rows"></div>
+    <div id="mapping-preview" style="display:none;margin-top:1rem;">
+      <div class="mapping-section">Preview — first 3 rows after mapping</div>
+      <div id="mapping-preview-body" style="font-family:var(--mono);font-size:10px;overflow-x:auto;"></div>
+    </div>
     <div class="row-end" style="margin-top:1.5rem;">
+      <button class="btn" onclick="previewMapping()">Preview rows</button>
       <button class="btn" onclick="closeMappingModal()">Cancel</button>
       <button class="btn btn-p" onclick="confirmMapping()">Apply mapping →</button>
     </div>
@@ -972,6 +977,19 @@ function openMappingModal(type) {
   document.getElementById('mapping-title').textContent = 'Map columns — ' + typeLabels[type];
   document.getElementById('mapping-sub').textContent = `File: ${fileName} · ${rows.length} rows · ${cols.length} columns detected`;
   
+  // Load saved mapping if exists
+  const savedMappingKey = `pp_mapping_${type}_${cols.sort().join('|')}`;
+  let savedMapping = null;
+  let savedDateFormat = 'auto';
+  try {
+    const saved = localStorage.getItem(savedMappingKey);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      savedMapping = parsed.mapping;
+      savedDateFormat = parsed.dateFormat || 'auto';
+    }
+  } catch(e) {}
+
   // Add date format selector
   const dateFormatHtml = `
     <div style="margin-bottom:1rem;padding:10px 12px;background:var(--cream);border-radius:var(--r4);border:.5px solid var(--border);">
@@ -985,19 +1003,6 @@ function openMappingModal(type) {
       </select>
     </div>`;
   document.getElementById('mapping-rows').innerHTML = dateFormatHtml;
-
-  // Load saved mapping if exists
-  const savedMappingKey = `pp_mapping_${type}_${cols.sort().join('|')}`;
-  let savedMapping = null;
-  let savedDateFormat = 'auto';
-  try {
-    const saved = localStorage.getItem(savedMappingKey);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      savedMapping = parsed.mapping;
-      savedDateFormat = parsed.dateFormat || 'auto';
-    }
-  } catch(e) {}
 
   // Auto-detect note
   const noteEl = document.getElementById('mapping-note');
@@ -1078,6 +1083,96 @@ function closeMappingModal() {
   currentMappingType = null;
 }
 
+
+
+// ── PREVIEW MAPPING ───────────────────────────────────────────
+function previewMapping() {
+  const type = currentMappingType;
+  const fields = PP_FIELDS[type];
+  const {rows} = rawFileData[type];
+
+  // Build temp mapping from current dropdown values
+  const mapping = {};
+  fields.forEach(field => {
+    const sel = document.getElementById(`map-${type}-${field.key}`);
+    mapping[field.key] = sel ? sel.value : '';
+  });
+
+  const dateFormatEl = document.getElementById(`date-format-${type}`);
+  const dateFormat = dateFormatEl ? dateFormatEl.value : 'auto';
+
+  // Normalize first 3 rows
+  const preview = normalizeRows(rows.slice(0, 3), mapping, type, dateFormat);
+
+  if (!preview.length) {
+    document.getElementById('mapping-preview').style.display = 'block';
+    document.getElementById('mapping-preview-body').innerHTML = '<div style="color:var(--red);padding:8px;">No valid rows found with current mapping.</div>';
+    return;
+  }
+
+  // Build preview table
+  const mappedFields = fields.filter(f => mapping[f.key]);
+  let html = '<table style="border-collapse:collapse;width:100%;margin-top:6px;">';
+  html += '<tr>' + mappedFields.map(f => `<th style="padding:4px 8px;border:.5px solid var(--border);background:var(--cream);text-align:left;">${f.label}</th>`).join('') + '</tr>';
+  
+  preview.forEach(row => {
+    html += '<tr>' + mappedFields.map(f => {
+      const val = row[f.key];
+      const display = val === null ? '<span style="color:var(--faint)">—</span>' : String(val);
+      const isNull = val === null;
+      return `<td style="padding:4px 8px;border:.5px solid var(--border);${isNull?'color:var(--faint)':''}">${display}</td>`;
+    }).join('') + '</tr>';
+  });
+  html += '</table>';
+  html += `<div style="margin-top:6px;color:var(--mid);">Showing ${preview.length} of ${rows.length} rows</div>`;
+
+  document.getElementById('mapping-preview').style.display = 'block';
+  document.getElementById('mapping-preview-body').innerHTML = html;
+}
+
+// ── SANITY CHECK: wrong file in wrong slot ────────────────────
+function checkFileSanity(type, rows, cols) {
+  if (!rows.length) return null;
+  const sample = rows[0];
+
+  // Inventory: should have id and name fields with data
+  if (type === 'inv') {
+    if (!sample.id) return 'This may not be an AI inventory file. Expected a System ID column. Check you uploaded the right file.';
+    // Check if it looks like a policy file uploaded in inventory slot
+    if (sample.effectiveFrom || sample.version || cols.some(c => c.toLowerCase().includes('effective') || c.toLowerCase().includes('version'))) {
+      return 'This looks like a Policy Version file, not an AI Inventory. Check you uploaded the right file.';
+    }
+  }
+
+  // Policy: should have systemId and effectiveFrom
+  if (type === 'pol') {
+    if (!sample.systemId) return 'This may not be a policy version file. Expected a System ID column.';
+    if (!sample.effectiveFrom) return 'This may not be a policy version file. Expected an effective date column.';
+    // Check if inventory uploaded in policy slot
+    if (sample.fn || sample.owner || cols.some(c => c.toLowerCase().includes('owner') || c.toLowerCase().includes('function'))) {
+      return 'This looks like an AI Inventory file, not a Policy Version file. Check you uploaded the right file.';
+    }
+  }
+
+  // Decisions: should have date and systemId
+  if (type === 'dec') {
+    if (!sample.date) return 'This may not be a decision log. Expected a date column. Check date format selection.';
+    if (!sample.systemId) return 'This may not be a decision log. Expected a System ID column.';
+  }
+
+  // Risk: should have systemId and riskExpiry
+  if (type === 'risk') {
+    if (!sample.systemId) return 'This may not be a risk register. Expected a System ID column.';
+  }
+
+  // Oversight: should have systemId and reviewDate
+  if (type === 'ovr') {
+    if (!sample.systemId) return 'This may not be an oversight log. Expected a System ID column.';
+  }
+
+  return null; // looks fine
+}
+
 function confirmMapping() {
   const type = currentMappingType;
   const fields = PP_FIELDS[type];
@@ -1112,6 +1207,23 @@ function confirmMapping() {
   // Apply mapping + normalize
   const normalized = normalizeRows(rows, mapping, type, dateFormat);
   mappedData[type] = {rows: normalized, fileName, mapping};
+
+  // Sanity check — detect obvious wrong file in wrong slot
+  const sanityWarning = checkFileSanity(type, normalized, rawFileData[type].cols);
+  if (sanityWarning) {
+    const noteEl = document.getElementById('mapping-note');
+    noteEl.style.display = 'block';
+    noteEl.textContent = '⚠ ' + sanityWarning;
+    // Don't block — warn only, let user proceed
+  }
+
+  // Check for empty result after normalization
+  if (normalized.length === 0) {
+    const noteEl = document.getElementById('mapping-note');
+    noteEl.style.display = 'block';
+    noteEl.textContent = '⚠ No valid rows found after mapping. Check your column mappings and try again.';
+    return;
+  }
 
   // Update slot UI
   closeMappingModal();
