@@ -837,6 +837,161 @@ function detectGaps(decRes,policyIdx){
     }
   });
 
+
+  // ── GAP 7: Risk Assessment Drift — Phase 1 ──────────────────
+  // Detectable from existing files without config/model metadata
+  
+  ACTIVE_DATA.systems.forEach(s => {
+    const raFindings = [];
+    const evidenceSources = [];
+    const cannotEvaluate = [];
+    
+    // Only run drift check if system has a risk assessment
+    const hasRA = s.riskStatus && s.riskStatus !== 'NOT ON FILE';
+    if (!hasRA) return; // No RA = caught by GAP 3 already
+    
+    evidenceSources.push('Risk Register');
+    evidenceSources.push('AI System Inventory');
+    
+    // ── Drift 1: Ownership Drift ─────────────────────────────
+    // RA was approved by riskOwner, but current owner is different
+    if (s.riskOwner && s.owner && s.owner !== 'UNASSIGNED' && s.owner !== 'TBD') {
+      const raOwnerNorm = s.riskOwner.trim().toLowerCase();
+      const currentOwnerNorm = s.owner.trim().toLowerCase();
+      if (raOwnerNorm !== currentOwnerNorm) {
+        raFindings.push({
+          type: 'Ownership Drift',
+          detail: `Risk assessment was accepted by ${s.riskOwner}. Current accountable owner is ${s.owner}. If ownership transferred without a reassessment, the governance rationale may no longer be attributable to the current owner.`,
+          severity: 'medium',
+          indicator: 'DETECTED'
+        });
+      }
+    } else if (s.riskOwner && (!s.owner || s.owner === 'UNASSIGNED' || s.owner === 'TBD')) {
+      raFindings.push({
+        type: 'Ownership Drift',
+        detail: `Risk assessment was accepted by ${s.riskOwner} but no current owner is assigned. The governance rationale cannot be attributed to any active individual.`,
+        severity: 'high',
+        indicator: 'DETECTED'
+      });
+    }
+    
+    // ── Drift 2: Risk Tier Drift ──────────────────────────────
+    // RA risk level vs system tier in inventory
+    if (s.riskLevel && s.tier && s.tier !== 'Tier Unknown') {
+      const levelNorm = s.riskLevel.trim().toLowerCase();
+      const tierNorm = s.tier.trim().toLowerCase();
+      
+      // Map risk levels to tiers for comparison
+      const highRisk = levelNorm.includes('high') || levelNorm === 'critical';
+      const lowRisk = levelNorm.includes('low') || levelNorm === 'minimal';
+      const tier1 = tierNorm.includes('1') || tierNorm.includes('one');
+      const tier3 = tierNorm.includes('3') || tierNorm.includes('three') || tierNorm.includes('low');
+      
+      if (highRisk && tier3) {
+        raFindings.push({
+          type: 'Risk Tier Drift',
+          detail: `Risk assessment classified this system as ${s.riskLevel} risk but current AI inventory shows ${s.tier}. If the system has been reclassified to a lower tier without a corresponding reassessment, the original risk controls may be insufficient.`,
+          severity: 'medium',
+          indicator: 'POSSIBLE'
+        });
+      } else if (lowRisk && tier1) {
+        raFindings.push({
+          type: 'Risk Tier Drift',
+          detail: `Risk assessment classified this system as ${s.riskLevel} risk but current AI inventory shows ${s.tier}. The system may have been reclassified to a higher risk tier without a corresponding reassessment.`,
+          severity: 'high',
+          indicator: 'DETECTED'
+        });
+      }
+    }
+    
+    // ── Drift 3: Governance Anchor Failure ────────────────────
+    // RA exists but cannot lead to oversight records, decisions, or policy
+    const hasOversightRecords = mappedData.ovr ? 
+      (mappedData.ovr.rows || []).some(r => r.systemId === s.id) :
+      (ACTIVE_DATA.policyVersions || []).some(p => p.systemId === s.id);
+    
+    const hasDecisions = (ACTIVE_DATA.decisions || []).some(d => d.systemId === s.id);
+    const hasPolicyVersion = (ACTIVE_DATA.policyVersions || []).some(p => p.systemId === s.id);
+    
+    const anchorFailures = [];
+    if (!hasOversightRecords && mappedData.ovr) anchorFailures.push('no linked oversight records');
+    if (!hasDecisions && mappedData.dec) anchorFailures.push('no linked decision records');
+    if (!hasPolicyVersion) anchorFailures.push('no linked policy version');
+    
+    if (anchorFailures.length >= 2) {
+      raFindings.push({
+        type: 'Governance Anchor Failure',
+        detail: `Risk assessment exists but cannot anchor the governance chain — ${anchorFailures.join(', ')} found in analysed sources. An examiner who starts with the risk assessment cannot trace to evidence of ongoing governance.`,
+        severity: 'high',
+        indicator: 'DETECTED'
+      });
+      evidenceSources.push('Oversight Log');
+      evidenceSources.push('Decision Log');
+      evidenceSources.push('Policy Library');
+    }
+    
+    // Cannot evaluate (missing data sources)
+    cannotEvaluate.push('Model version drift — configuration records not ingested');
+    cannotEvaluate.push('Decision volume drift — historical metrics not available');
+    cannotEvaluate.push('Data source drift — configuration records not ingested');
+    cannotEvaluate.push('Workflow drift — process documentation not ingested');
+    
+    // Only create finding if at least one drift indicator detected
+    if (raFindings.length === 0) return;
+    
+    const hasCritical = raFindings.some(f => f.severity === 'high');
+    const findingType = hasCritical ? 'critical' : 'high';
+    const scoreDeduction = hasCritical ? -8 : -5;
+    
+    score += scoreDeduction;
+    breakdown.push({
+      gap: 'Risk Assessment Drift',
+      system: s.name,
+      ded: scoreDeduction,
+      naic: 'NAIC Model Bulletin §1.7 · Exhibit D'
+    });
+    
+    gaps.push({
+      type: findingType,
+      findingType: 'ra-drift',
+      provLevel: 2,
+      id: 'GAP-RADRIFT-' + s.id,
+      title: `${s.name} — Risk Assessment Drift detected (${raFindings.length} indicator${raFindings.length > 1 ? 's' : ''})`,
+      system: s.name,
+      systemId: s.id,
+      consequence: `The approved Risk Assessment for ${s.name} may no longer accurately reflect the deployed system. PolicyProof detected ${raFindings.length} drift indicator${raFindings.length > 1 ? 's' : ''} from available evidence. This represents a Governance Continuity Risk — the organisation may possess a valid risk assessment that no longer describes the system it governs.`,
+      drift: {
+        raDriftIndicators: raFindings,
+        evidenceSources,
+        cannotEvaluate,
+        riskOwner: s.riskOwner || null,
+        currentOwner: s.owner || null,
+        riskLevel: s.riskLevel || null,
+        currentTier: s.tier || null,
+        approvedDate: s.riskApprovedDate || null,
+      },
+      chain: raFindings.map(f => ({
+        label: `${f.type}: ${f.indicator}`,
+        detail: f.detail,
+        date: 'Current',
+        ok: false
+      })),
+      examinerQ: `Does the approved Risk Assessment for ${s.name} still accurately describe the AI system operating today?`,
+      examinerVerdict: 'PARTIAL',
+      examinerCannotDemonstrate: `PolicyProof detected ${raFindings.map(f=>f.type).join(', ')}. Full validation requires configuration records not currently ingested.`,
+      examinerLikelyOutcome: 'Examiner may require demonstration that the risk assessment remains representative of the deployed system.',
+      examinerRemediation: 'Review risk assessment against current system state. Initiate reassessment if material differences exist. Document rationale if assessment remains valid.',
+      naic: 'NAIC Model Bulletin §1.7 · Exhibit D',
+      provenanceSources: evidenceSources,
+      evidenceBoundary: {
+        reviewed: evidenceSources,
+        notReviewed: cannotEvaluate
+      },
+      defImpact: `${s.name} risk assessment governance continuity cannot be fully confirmed from available sources.`,
+      pts: `${scoreDeduction} pts`
+    });
+  });
+
   score=Math.max(score,0);
   return {gaps,dqIssues,vgIssues,score,breakdown};
 }
@@ -1256,6 +1411,9 @@ function buildRAWFromMappedData() {
     oversight: r.oversight === true,
     complianceSignoff: r.complianceSignoff === true,
     riskExpiry: r.riskExpiry || null,
+    riskOwner: r.riskOwner || null,
+    riskLevel: r.riskLevel || null,
+    riskApprovedDate: r.riskApprovedDate || null,
     riskStatus: r.riskStatus || (r.riskExpiry ? computeRiskStatus(r.riskExpiry) : 'NOT ON FILE'),
     jiraKey: r.id || null,
     _src: r._src
@@ -1295,6 +1453,10 @@ function buildRAWFromMappedData() {
         if (r.riskExpiry) s.riskExpiry = r.riskExpiry;
         if (r.riskStatus) s.riskStatus = r.riskStatus;
         else if (r.riskExpiry) s.riskStatus = computeRiskStatus(r.riskExpiry);
+        // Carry RA metadata for drift detection
+        if (r.riskOwner) s.riskOwner = r.riskOwner;
+        if (r.riskLevel) s.riskLevel = r.riskLevel;
+        if (r.approvedDate) s.riskApprovedDate = r.approvedDate;
       }
     });
   }
@@ -1404,6 +1566,7 @@ function renderAnalysis(){
     <div class="met r"><div class="met-val">${dr.mismatches.length}</div><div class="met-lbl">Policy version mismatches</div></div>
     <div class="met r"><div class="met-val">${ec}</div><div class="met-lbl">Expired / missing risk acceptances</div></div>
     <div class="met a"><div class="met-val">${dr.noReviewer.length}</div><div class="met-lbl">Decisions — no reviewer</div></div>
+    <div class="met a"><div class="met-val">${AR.gaps.filter(g=>g.findingType==='ra-drift').length}</div><div class="met-lbl">RA drift indicators</div></div>
     <div class="met a"><div class="met-val">${AR.vgIssues.length}</div><div class="met-lbl">Trust failures</div></div>
     <div class="met a"><div class="met-val">${AR.dqIssues.length}</div><div class="met-lbl">Governance drift items</div></div>
     <div class="met g"><div class="met-val">${dr.clean.length}</div><div class="met-lbl">Fully defensible decisions</div></div>
@@ -1437,14 +1600,37 @@ function renderAnalysis(){
 }
 
 function gapCard(g){
-  const ftLabel={missing:'Missing',drift:'Drift',trust:'Trust Failure'}[g.findingType]||g.findingType;
-  const ftClass={missing:'ftype-missing',drift:'ftype-drift',trust:'ftype-trust'}[g.findingType]||'ftype-missing';
+  const ftLabel={missing:'Missing',drift:'Drift',trust:'Trust Failure','ra-drift':'RA Drift'}[g.findingType]||g.findingType;
+  const ftClass={missing:'ftype-missing',drift:'ftype-drift',trust:'ftype-trust','ra-drift':'ftype-drift'}[g.findingType]||'ftype-missing';
 
   // Defensibility impact sentence
   const defImpact=`<div style="font-family:var(--mono);font-size:10px;font-weight:500;color:var(--red);background:var(--red-bg);border:.5px solid var(--red-border);border-radius:var(--r4);padding:5px 9px;margin-bottom:10px;"><span style="letter-spacing:.04em;opacity:.7;">DEFENSIBILITY IMPACT · </span>${g.defImpact||'This finding reduces the defensibility of '+g.system+' in an NAIC examination.'}</div>`;
 
-  // Drift box
-  const driftHtml=g.drift?`<div class="drift-box">
+  // Drift box — handles policy drift and RA drift
+  let driftHtml = '';
+  if (g.drift && g.drift.raDriftIndicators) {
+    // RA Drift rendering
+    const indicators = g.drift.raDriftIndicators || [];
+    const reviewed = g.drift.evidenceSources || [];
+    const notReviewed = g.drift.cannotEvaluate || [];
+    driftHtml = `<div class="drift-box">
+    <div class="drift-box-title">RISK ASSESSMENT DRIFT DETECTED</div>
+    <div style="margin-bottom:10px;">
+      ${indicators.map(f=>`
+        <div style="margin-bottom:8px;padding:8px 10px;background:var(--amber-bg);border:.5px solid var(--amber-border);border-radius:var(--r4);">
+          <div style="font-family:var(--mono);font-size:10px;font-weight:500;color:var(--amber);margin-bottom:3px;">${f.type} · ${f.indicator}</div>
+          <div style="font-size:11px;color:var(--ink);">${f.detail}</div>
+        </div>`).join('')}
+    </div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--mid);margin-top:8px;">
+      <div style="margin-bottom:3px;font-weight:500;">EVIDENCE BOUNDARY</div>
+      <div style="color:var(--green);">Reviewed: ${reviewed.join(' · ')}</div>
+      <div style="color:var(--faint);margin-top:2px;">Not evaluated: ${notReviewed.slice(0,2).join(' · ')}</div>
+    </div>
+  </div>`;
+  } else if (g.drift) {
+    // Policy drift rendering (existing)
+    driftHtml = `<div class="drift-box">
     <div class="drift-box-title">GOVERNANCE DRIFT DETECTED</div>
     <div class="drift-grid">
       <div class="drift-cell"><div class="drift-cell-label">CURRENT POLICY</div><div class="drift-cell-val">${g.drift.currentPolicy}</div></div>
@@ -1453,7 +1639,8 @@ function gapCard(g){
       <div class="drift-cell"><div class="drift-cell-label">DURATION</div><div class="drift-cell-val highlight">${g.drift.driftDays} days</div></div>
     </div>
     <div style="margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--amber);">Affected decisions: ${g.drift.affectedDecisions}</div>
-  </div>`:'' ;
+  </div>`;
+  }
 
   // Chain
   const chainHtml=g.chain?`<div class="chain">${g.chain.map((n,i)=>`
@@ -2074,7 +2261,7 @@ ${ACTIVE_DATA.systems.map(s=>{
 <!-- GOVERNANCE GAPS -->
 <h1>Governance Gaps (${AR.gaps.length} detected)</h1>
 ${AR.gaps.map(g=>{
-  const ftLabel={missing:'Missing',drift:'Drift',trust:'Trust Failure'}[g.findingType]||g.findingType;
+  const ftLabel={missing:'Missing',drift:'Drift',trust:'Trust Failure','ra-drift':'RA Drift'}[g.findingType]||g.findingType;
   const driftHtml=g.drift?`<div class="drift-box"><strong style="font-size:8.5pt;font-family:'DM Mono',monospace;color:#8a5c0a;">GOVERNANCE DRIFT DETECTED</strong><div class="drift-grid"><div><div class="drift-label">CURRENT POLICY</div><div class="drift-val">${g.drift.currentPolicy}</div></div><div><div class="drift-label">SYSTEM USING</div><div class="drift-val red">${g.drift.systemUsing}</div></div><div><div class="drift-label">DRIFT STARTED</div><div class="drift-val">${fmt(g.drift.driftStarted)}</div></div><div><div class="drift-label">DURATION</div><div class="drift-val red">${g.drift.driftDays} days</div></div></div><div style="margin-top:5pt;font-family:'DM Mono',monospace;font-size:8pt;color:#8a5c0a;">Affected decisions: ${g.drift.affectedDecisions}</div></div>`:'';
   const chainHtml=g.chain?`<table class="chain-table">${g.chain.map(n=>`<tr><td style="width:140pt;"><span class="${n.ok?'chain-dot-ok':'chain-dot-gap'}">${n.ok?'●':'✕'}</span> <strong>${n.label}</strong></td><td>${n.detail}</td><td style="width:90pt;font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">${n.date}</td></tr>`).join('')}</table>`:'';
   const evClass=g.examinerVerdict==='NO'?'no':'partial';
