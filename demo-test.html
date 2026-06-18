@@ -1215,11 +1215,38 @@ function openMappingModal(type) {
   container.innerHTML = '';
   currentMappingRows = fields;
 
+  // Load saved mapping from localStorage if available
+  const lsKey = `pp_mapping_${type}_${[...cols].sort().join('|')}`;
+  let savedMapping = null;
+  try { const raw = localStorage.getItem(lsKey); if (raw) savedMapping = JSON.parse(raw); } catch(e) {}
+
+  // Date format selector
+  const dateFmtSection = document.createElement('div');
+  dateFmtSection.innerHTML = `
+    <div class="mapping-section">Date format</div>
+    <div class="mapping-row">
+      <div class="mapping-field">Date Format<br><span style="font-weight:300;color:var(--faint);font-size:9px;">How dates are written in this file</span></div>
+      <div class="mapping-arrow">←</div>
+      <select class="mapping-select" id="date-format-${type}">
+        <option value="auto">Auto-detect</option>
+        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+        <option value="MM-DD-YYYY">MM-DD-YYYY</option>
+      </select>
+    </div>`;
+  container.appendChild(dateFmtSection);
+  if (savedMapping) {
+    const fmtSel = document.getElementById(`date-format-${type}`);
+    if (fmtSel && savedMapping.dateFormat) fmtSel.value = savedMapping.dateFormat;
+  }
+
   fields.forEach(field => {
     const section = document.createElement('div');
 
-    // Auto-match: find column that closely matches field key or label
-    const autoMatch = autoMatchColumn(field.key, field.label, cols);
+    // Saved mapping takes priority; fall back to auto-match
+    const savedCol = savedMapping && savedMapping.mapping[field.key];
+    const autoMatch = (savedCol && cols.includes(savedCol)) ? savedCol : autoMatchColumn(field.key, field.label, cols);
 
     section.innerHTML = `
       <div class="mapping-row">
@@ -1303,8 +1330,15 @@ function confirmMapping() {
   }
 
   // Apply mapping + normalize
-  const normalized = normalizeRows(rows, mapping, type);
-  mappedData[type] = {rows: normalized, fileName, mapping};
+  const dateFormatEl = document.getElementById(`date-format-${type}`);
+  const dateFormat = dateFormatEl ? dateFormatEl.value : 'auto';
+  const normalized = normalizeRows(rows, mapping, type, dateFormat);
+  mappedData[type] = {rows: normalized, fileName, mapping, dateFormat};
+
+  // Persist mapping to localStorage keyed by file shape
+  const {cols: savedCols} = rawFileData[type];
+  const lsKey = `pp_mapping_${type}_${[...savedCols].sort().join('|')}`;
+  try { localStorage.setItem(lsKey, JSON.stringify({mapping, dateFormat})); } catch(e) {}
 
   // Update slot UI
   closeMappingModal();
@@ -1318,7 +1352,7 @@ function confirmMapping() {
 }
 
 // ── NORMALIZATION ─────────────────────────────────────────────
-function normalizeRows(rows, mapping, type) {
+function normalizeRows(rows, mapping, type, dateFormat) {
   return rows.map((row, idx) => {
     const out = {_src: `row ${idx + 2}`};
     Object.entries(mapping).forEach(([ppKey, srcCol]) => {
@@ -1332,7 +1366,7 @@ function normalizeRows(rows, mapping, type) {
       }
       // Normalize dates
       else if (['riskExpiry','effectiveFrom','effectiveTo','date','reviewDate','approvedDate'].includes(ppKey)) {
-        out[ppKey] = normalizeDate(val);
+        out[ppKey] = normalizeDate(val, dateFormat);
       }
       // Normalize risk status
       else if (ppKey === 'riskStatus') {
@@ -1363,25 +1397,38 @@ function normalizeBool(val) {
   return null;
 }
 
-function normalizeDate(val) {
+function normalizeDate(val, fmt) {
   if (!val) return null;
   // Already a JS Date (from XLSX)
   if (val instanceof Date) return val.toISOString().split('T')[0];
   const s = val.toString().trim();
   if (!s) return null;
-  // Try common formats
-  // YYYY-MM-DD
+
+  // YYYY-MM-DD — unambiguous, always try first
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  // MM/DD/YYYY
+
+  // Slash-separated: N/N/YYYY — ambiguous without fmt
   if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
-    const [m,d,y] = s.split('/');
+    const parts = s.split('/');
+    if (fmt === 'DD/MM/YYYY') {
+      const [d,m,y] = parts;
+      return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    }
+    // MM/DD/YYYY is the default for auto-detect (matches prior behaviour)
+    const [m,d,y] = parts;
     return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
   }
-  // DD/MM/YYYY
-  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
-    const [d,m,y] = s.split('/');
-    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+
+  // Dash-separated: N-N-YYYY (MM-DD-YYYY format)
+  if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(s)) {
+    const parts = s.split('-');
+    if (fmt === 'MM-DD-YYYY') {
+      const [m,d,y] = parts;
+      return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    }
+    // Fallthrough to native parse for other fmt values
   }
+
   // Try native Date parse as fallback
   const d = new Date(s);
   if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
@@ -1588,7 +1635,11 @@ function renderAnalysis(){
 
   document.getElementById('dq-ct').textContent=`(${AR.dqIssues.length})`;
   document.getElementById('dq-list').innerHTML=AR.dqIssues.length
-    ?AR.dqIssues.map(d=>`<div class="dq-item"><div><div class="dq-title">${d.title}</div><div class="dq-detail">${d.detail}</div><div class="dq-src">Source: ${d.src}</div></div></div>`).join('')
+    ?AR.dqIssues.map(d=>{
+      const title = d.title || (d.type==='INVALID_DATE' ? 'Data quality issue — invalid or missing date' : 'Governance drift item');
+      const detail = d.detail || (d.type==='INVALID_DATE' ? `Decision ${d.decId||'(unknown)'} has an unparseable date and was excluded from policy version matching.` : '');
+      return `<div class="dq-item"><div><div class="dq-title">${title}</div><div class="dq-detail">${detail}</div><div class="dq-src">Source: ${d.src}</div></div></div>`;
+    }).join('')
     :'<p style="font-size:13px;color:var(--faint);padding:1rem 0;">No governance drift detected.</p>';
 
   document.getElementById('vg-ct').textContent=`(${AR.vgIssues.length})`;
