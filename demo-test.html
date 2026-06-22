@@ -309,6 +309,8 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 .eq-verdict.no{background:var(--red);color:#fff;}
 .eq-verdict.partial{background:var(--amber);color:#fff;}
 .eq-verdict.yes{background:var(--green);color:#fff;}
+.eq-verdict.cannot-determine{background:var(--mid);color:#fff;}
+.eq-verdict.n-a{background:var(--faint);color:#fff;}
 .eq-body{padding:8px 12px;font-size:12px;color:var(--mid);border-top:.5px solid var(--border);}
 
 /* FINDINGS TABS */
@@ -685,6 +687,109 @@ function updateContextStrip() {
   set('ev-org-name', org);
 }
 
+// ── RISK ACCEPTANCE RATIONALE ASSESSMENT ────────────────────────────
+// A risk assessment records WHAT was decided; this checks whether it also
+// records WHY. Graceful with missing/null fields and odd document formats:
+//   • scanned / image-only PDF  → CANNOT DETERMINE (cannot extract fields)
+//   • rationale in a narrative paragraph (keywords) → treated as CAPTURED
+//   • structured rationale field present → CAPTURED
+//   • field empty / null / absent → NOT CAPTURED
+function riskRationaleAssessment(s){
+  const hasRA = !!(s && s.riskStatus && s.riskStatus !== 'NOT ON FILE');
+  if(!hasRA) return {applies:false};
+
+  // Underlying uploaded risk row, if any (rationale fields are not in the
+  // standard schema, so read defensively from both the row and the system).
+  let row=null;
+  if(typeof mappedData!=='undefined' && mappedData && mappedData.risk && Array.isArray(mappedData.risk.rows)){
+    row = mappedData.risk.rows.find(r=>r && r.systemId===s.id) || null;
+  }
+  const get=(...keys)=>{
+    for(const src of [row,s]){ if(!src) continue;
+      for(const k of keys){ const v=src[k]; if(v!==undefined && v!==null && String(v).trim()!=='') return String(v).trim(); }
+    }
+    return '';
+  };
+
+  // Document format — scanned / image-only PDFs cannot have fields extracted
+  const fmt=get('docFormat','documentFormat','riskDocFormat','format','fileType','mimeType').toLowerCase();
+  const scannedFlag=get('scanned','isScanned','imageOnly','ocrRequired');
+  const scanned = /scan|image|ocr|jpe?g|png|tiff/.test(fmt) || /^(y|yes|true|1)$/i.test(scannedFlag);
+
+  // Structured rationale fields
+  const fields=[
+    {key:'threshold',   label:'Threshold rationale',         val:get('thresholdRationale','riskThresholdRationale','whyThreshold','thresholdBasis','thresholdReason')},
+    {key:'assumptions', label:'Assumption acceptance',       val:get('assumptions','assumptionsAccepted','approvalAssumptions','acceptedAssumptions')},
+    {key:'residual',    label:'Residual risk justification', val:get('residualRiskJustification','residualRisk','whoAcceptedResidualRisk','residualRationale','residualAcceptedBy')},
+    {key:'alternatives',label:'Alternatives considered',     val:get('alternativesConsidered','alternatives','optionsConsidered')},
+  ];
+
+  // Narrative free-text that may carry rationale without a dedicated field.
+  // Hardest case: look for rationale keywords before declaring NOT CAPTURED.
+  const narrative=get('rationale','narrative','riskNarrative','notes','justification','comments','rationaleNarrative','basis');
+  const KEYWORDS=['because','rationale','reason','justified by','justification'];
+  const narrativeHasRationale = !!narrative && KEYWORDS.some(k=>narrative.toLowerCase().includes(k));
+
+  const capturedCount = fields.filter(f=>f.val).length;
+  return {applies:true, scanned, fields, narrative, narrativeHasRationale, capturedCount};
+}
+
+// ── STALE APPROVAL — currency & system-change assessment ────────────
+// For an EXPIRED risk acceptance: an expired approval that predates undocumented
+// system change is invalid, not merely expired. Escalates to CRITICAL when drift
+// ≥180 days AND no change records exist to prove the system is unchanged.
+// Graceful with missing/null change-record fields → CANNOT DETERMINE, never PASS.
+function approvalCurrencyAssessment(s){
+  s=s||{};
+  if(s.riskStatus!=='EXPIRED') return {applies:false};
+  const today=(typeof TODAY_STR!=='undefined')?TODAY_STR:null;
+  const days=(s.riskExpiry&&today)?daysBetween(s.riskExpiry,today):null;
+
+  // Change records — defensive lookup across the risk row and the system object
+  let row=null;
+  if(typeof mappedData!=='undefined'&&mappedData&&mappedData.risk&&Array.isArray(mappedData.risk.rows)){
+    row=mappedData.risk.rows.find(r=>r&&r.systemId===s.id)||null;
+  }
+  const get=(...keys)=>{
+    for(const src of [row,s]){ if(!src) continue;
+      for(const k of keys){ const v=src[k]; if(v!==undefined&&v!==null&&String(v).trim()!=='') return String(v).trim(); }
+    }
+    return '';
+  };
+  const changeFields=[
+    {label:'model version change history', val:get('modelChangeLog','modelVersionHistory','modelChanges')},
+    {label:'configuration change log',     val:get('configChangeLog','configHistory','configChanges')},
+    {label:'data source change records',   val:get('dataSourceChanges','dataLineageChanges')},
+    {label:'threshold change records',     val:get('thresholdChanges','thresholdChangeLog')},
+  ];
+  const present=changeFields.filter(f=>f.val);
+  const missingLabels=changeFields.filter(f=>!f.val).map(f=>f.label);
+  let changeStatus,changeNote;
+  if(present.length===0){ changeStatus='CANNOT DETERMINE'; changeNote='no change records in reviewed sources'; }
+  else if(present.length<changeFields.length){ changeStatus='PARTIAL'; changeNote='partial change records — missing: '+missingLabels.join(', '); }
+  else { changeStatus='AVAILABLE'; changeNote='change records on file for review'; }
+
+  const driftOver180=days!=null&&days>=180;                 // edge: exactly 180 → escalate
+  const changeRecordsUnavailable=changeStatus==='CANNOT DETERMINE';
+  const escalated=driftOver180&&changeRecordsUnavailable;
+
+  // Decisions after expiry — edge: none post-expiry still flags, just noted
+  const sysDecs=((ACTIVE_DATA&&ACTIVE_DATA.decisions)||[]).filter(d=>d&&d.systemId===s.id);
+  const postExpiry=(s.riskExpiry)?sysDecs.filter(d=>d.date&&new Date(d.date)>new Date(s.riskExpiry)):[];
+  const noDecisionsPostExpiry=postExpiry.length===0;
+
+  return {
+    applies:true, days, changeStatus, changeNote, missingLabels, escalated, driftOver180,
+    approvalCurrency:`CANNOT DETERMINE — expired ${days!=null?days+' days ago':'(expiry date unavailable)'}`,
+    systemChangeStatus:`${changeStatus} — ${changeNote}`,
+    cannotDetermineStatement:'PolicyProof cannot determine whether the expired approval still describes the current system. If the system has changed since approval, the acceptance is invalid not merely expired.',
+    examinerQ:`Does the expired approval still accurately describe how ${s.name||s.id} operates today?`,
+    examinerCannotDemonstrate:'No change records available for review period. Cannot confirm system has not changed since approval expired.',
+    eqVerdict: changeStatus==='CANNOT DETERMINE'?'CANNOT DETERMINE':'PARTIAL',
+    noDecisionsPostExpiry, postExpiryCount:postExpiry.length, anyDecisions:sysDecs.length>0
+  };
+}
+
 function detectGaps(decRes,policyIdx){
   const gaps=[],dqIssues=[...decRes.dqIssues],vgIssues=[];
   let score=100,breakdown=[];
@@ -774,7 +879,7 @@ function detectGaps(decRes,policyIdx){
     const ft=missing?'missing':'drift';
     const pl=missing?3:2;
     score-=12; breakdown.push({gap:missing?'No risk acceptance on file':'Expired risk acceptance',system:s.name,ded:-12,naic:'Exhibit D'});
-    gaps.push({
+    const _riskGap={
       type:'critical',findingType:ft,provLevel:pl,
       id:'GAP-RISK-'+s.id,
       title:missing?`${s.name} has never had a risk acceptance document`:`${s.name} risk acceptance expired ${days} days ago — system still in production`,
@@ -797,7 +902,24 @@ function detectGaps(decRes,policyIdx){
       confidence:'HIGH',
       confidenceReason:missing?'Field directly observed as empty or absent in reviewed sources':'Date comparison confirmed from policy library and decision logs',
       resolveWith:missing?null:'Risk registry renewal record or emergency authorisation documentation'
-    });
+    };
+    // Stale-approval escalation — adds to the expired finding, does not replace it
+    if(expired){
+      const esc=approvalCurrencyAssessment(s);
+      _riskGap.escalation=esc;
+      _riskGap.extraExaminerQs=[{
+        system:s.name, systemId:s.id,
+        q:esc.examinerQ,
+        verdict:esc.eqVerdict,
+        why:esc.examinerCannotDemonstrate,
+        outcome:'Examiner may treat an unverifiable expired approval as invalid, not merely lapsed.',
+        remediation:'Provide change records (model/config/data/threshold history) for the period since expiry, or re-perform and re-approve the risk acceptance.'
+      }];
+      if(esc.escalated){
+        _riskGap.confidenceReason='Date comparison confirmed; drift ≥180 days with no change records to confirm the system is unchanged.';
+      }
+    }
+    gaps.push(_riskGap);
   });
 
   // ── GAP 4: No human reviewer — Missing — Level 1 ──────────────
@@ -820,6 +942,7 @@ function detectGaps(decRes,policyIdx){
       examinerRemediation:'Implement mandatory reviewer logging. Retroactively identify reviewers for affected decisions where possible.',
       naic:'NAIC Exhibit B §2.3',
       provenanceSources:['Decision Logs'],
+      resolveWith:'Override logs, human review records, escalation records, reviewer sign-off documentation',
       govDiscoveryStmt:null,
       defImpact:`${decRes.noReviewer.length} decisions cannot be defended — there is no human reviewer on record to demonstrate governance oversight was applied.`,
       pts:'-8 pts',
@@ -845,6 +968,7 @@ function detectGaps(decRes,policyIdx){
       examinerRemediation:'Document override procedure. Implement escalation path. Test and evidence the mechanism.',
       naic:'NAIC Exhibit B §2.3(d)',
       provenanceSources:['AI Inventory (Jira)'],
+      resolveWith:'Override logs, human review records, escalation records, reviewer sign-off documentation',
       govDiscoveryStmt:null,
       defImpact:`This system cannot be defended if an examiner asks how ${getOrgName()} would stop ${s.name} from producing a harmful decision.`,
       pts:'-8 pts',
@@ -1079,6 +1203,52 @@ function detectGaps(decRes,policyIdx){
     });
   });
 
+  // ── MISSING RATIONALE — risk acceptance records "what", not "why" ──
+  // Display/finding-only: does NOT alter the governance chain score.
+  ACTIVE_DATA.systems.forEach(s=>{
+    const ra=riskRationaleAssessment(s);
+    if(!ra.applies) return;                    // no risk assessment → other gaps cover it
+    if(ra.narrativeHasRationale) return;       // rationale found in narrative → captured
+    if(ra.capturedCount===ra.fields.length) return; // all four structured fields present
+
+    const cannotDetermine = ra.scanned;        // scanned/image-only → cannot extract fields
+    const statusOf=(f)=> cannotDetermine ? 'CANNOT DETERMINE' : (f.val ? 'CAPTURED' : 'NOT CAPTURED');
+    const indicators = ra.fields.map(f=>`${f.label}: ${statusOf(f)}`);
+    const missing = ra.fields.filter(f=>!f.val);
+
+    const consequence = cannotDetermine
+      ? `A risk assessment exists for ${s.name}, but its rationale fields could not be extracted — the document appears to be a scanned or image-only file. PolicyProof cannot determine whether the reasoning behind the risk decisions was recorded.`
+      : `A risk assessment exists for ${s.name} but the rationale behind key decisions was not captured. The document records what was decided but not why.`;
+
+    gaps.push({
+      type:'high', findingType:'missing-rationale', provLevel:2,
+      id:'GAP-RATL-'+s.id,
+      title:'Risk acceptance rationale not captured',
+      system:s.name, systemId:s.id,
+      consequence,
+      description:consequence,
+      indicators,
+      drift:null, chain:null,
+      examinerQ:`Why was this threshold chosen for ${s.name}?`,
+      examinerVerdict: cannotDetermine ? 'CANNOT DETERMINE' : 'NO',
+      examinerCannotDemonstrate: cannotDetermine
+        ? 'Risk assessment is a scanned/image-only document — rationale fields cannot be extracted from analysed sources.'
+        : 'The risk acceptance record states the decision but contains no captured rationale for the threshold, assumptions, residual-risk acceptance, or alternatives.',
+      examinerLikelyOutcome:'Examiner may require the documented basis for the accepted risk, not merely the accepted value.',
+      examinerRemediation:'Capture decision rationale at acceptance: threshold basis, assumptions accepted, residual-risk acceptor and reasoning, and alternatives considered.',
+      naic:'NAIC Model Bulletin §1.7 · Exhibit D',
+      provenanceSources:['Risk Registry'],
+      resolveWith:'Decision rationale log, governance committee minutes, risk acceptance narrative',
+      govDiscoveryStmt:null,
+      defImpact:`${s.name} risk acceptance can state the decision but not defend the reasoning behind it if an examiner asks why.`,
+      pts:'0 pts',
+      confidence:'MEDIUM',
+      confidenceReason: cannotDetermine
+        ? 'Document format prevents field extraction — rationale may exist in the scanned file.'
+        : 'Absence of rationale fields may reflect document format rather than actual absence of rationale.'
+    });
+  });
+
   score=Math.max(score,0);
   return {gaps,dqIssues,vgIssues,score,breakdown};
 }
@@ -1111,6 +1281,18 @@ function buildEQs(){
     }
     
     eqs.push(eq);
+
+    // Extra examiner questions attached to a finding (e.g. stale-approval currency)
+    (gap.extraExaminerQs||[]).forEach(xq=>{
+      eqs.push({
+        system: xq.system || gap.system || 'Unknown System',
+        q: xq.q,
+        verdict: xq.verdict || 'CANNOT DETERMINE',
+        why: xq.why || 'Evidence not available in analysed sources.',
+        outcome: xq.outcome || '',
+        remediation: xq.remediation || ''
+      });
+    });
   });
 
   // Add DQ-based questions (no reviewer)
@@ -1132,6 +1314,33 @@ function buildEQs(){
       });
     }
   }
+
+  // Decision reconstruction questions — one per system (graceful with missing data)
+  (ACTIVE_DATA.systems||[]).forEach(sys=>{
+    const r=decisionReconstruction(sys);
+    const name=sys.name||sys.id||'Unknown System';
+    if(!r.applicable){
+      eqs.push({
+        system: name,
+        q: `Can you reconstruct what ${name} was doing at the moment of a specific decision?`,
+        verdict: 'N/A',
+        why: 'Answer: N/A — no decisions recorded for this system in reviewed sources; reconstruction is not applicable.',
+        outcome: '', remediation: ''
+      });
+      return;
+    }
+    const decId=r.target&&r.target.id?r.target.id:'(no decision on file)';
+    const cov=r.coveragePartial?' Coverage is partial across reviewed decisions.':'';
+    const why=`${r.found} of 6 required components available.${r.missing.length?' Missing: '+r.missing.map(c=>c.label).join(', ')+'.':''}${cov}`;
+    eqs.push({
+      system: name,
+      q: `Can you reconstruct what ${name} was doing at the moment of Decision ${decId}?`,
+      verdict: r.answer,
+      why: `Answer: ${r.answer} — ${why}`,
+      outcome: r.pct<100?'Examiner can isolate a decision the organisation cannot fully reconstruct.':'',
+      remediation: r.missing.length?('Capture: '+r.missing.map(c=>`${c.label} (${c.source})`).join('; ')):''
+    });
+  });
 
   return eqs;
 }
@@ -1765,8 +1974,8 @@ function renderAnalysis(){
 }
 
 function gapCard(g){
-  const ftLabel={missing:'Missing',drift:'Drift',trust:'Trust Failure','ra-drift':'RA Drift'}[g.findingType]||g.findingType;
-  const ftClass={missing:'ftype-missing',drift:'ftype-drift',trust:'ftype-trust','ra-drift':'ftype-drift'}[g.findingType]||'ftype-missing';
+  const ftLabel={missing:'Missing',drift:'Drift',trust:'Trust Failure','ra-drift':'RA Drift','missing-rationale':'Missing Rationale'}[g.findingType]||g.findingType;
+  const ftClass={missing:'ftype-missing',drift:'ftype-drift',trust:'ftype-trust','ra-drift':'ftype-drift','missing-rationale':'ftype-missing'}[g.findingType]||'ftype-missing';
 
   // Defensibility impact sentence
   const defImpact=`<div style="font-family:var(--mono);font-size:10px;font-weight:500;color:var(--red);background:var(--red-bg);border:.5px solid var(--red-border);border-radius:var(--r4);padding:5px 9px;margin-bottom:10px;"><span style="letter-spacing:.04em;opacity:.7;">DEFENSIBILITY IMPACT · </span>${g.defImpact||'This finding reduces the defensibility of '+g.system+' in an NAIC examination.'}</div>`;
@@ -1813,6 +2022,7 @@ function gapCard(g){
     <div class="eb-label">EVIDENCE BOUNDARY</div>
     <div class="eb-reviewed">Reviewed: ${_provSrcs.join(' · ') || '—'}</div>
     <div class="eb-not-reviewed">Not reviewed: HR Directory · Org Chart · External Vendor Records · Configuration Repository</div>
+    ${g.resolveWith?`<div style="margin-top:4px;font-family:var(--mono);font-size:10px;color:var(--blue);"><span style="font-weight:600;color:var(--mid);">WOULD RESOLVE WITH: </span>${g.resolveWith}</div>`:''}
     <div class="eb-note">Findings reflect evidence available in analysed sources only. Records outside these sources were not evaluated.</div>
   </div>`;
 
@@ -1820,6 +2030,26 @@ function gapCard(g){
   const _confColor=g.confidence==='HIGH'?'var(--green)':g.confidence==='MEDIUM'?'var(--amber)':'var(--mid)';
   const _confBg=g.confidence==='HIGH'?'var(--green-bg)':g.confidence==='MEDIUM'?'var(--amber-bg)':'var(--paper)';
   const confHtml=g.confidence?`<div style="display:inline-flex;align-items:center;gap:5px;margin-bottom:6px;padding:3px 8px;background:${_confBg};border-radius:99px;border:.5px solid ${_confColor};"><span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${_confColor};letter-spacing:.05em;">CONFIDENCE: ${g.confidence}</span><span style="font-size:10px;color:${_confColor};margin-left:4px;">${g.confidenceReason}</span></div>`:'';
+
+  // Indicators list (e.g. missing-rationale per-component status)
+  const indHtml=(g.indicators&&g.indicators.length)?`<div style="margin:8px 0;border:.5px solid var(--border);border-radius:var(--r4);overflow:hidden;">${g.indicators.map(t=>{
+    const cap=/NOT CAPTURED/i.test(t)?'var(--red)':/CANNOT DETERMINE/i.test(t)?'var(--mid)':'var(--green)';
+    return `<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 9px;font-family:var(--mono);font-size:10px;border-bottom:.5px solid var(--border);"><span style="color:var(--ink);">${t.split(':')[0]}</span><span style="font-weight:700;color:${cap};">${t.split(':').slice(1).join(':').trim()}</span></div>`;
+  }).join('')}</div>`:'';
+
+  // Stale-approval escalation block (expired risk acceptance)
+  const _e=g.escalation;
+  const escHtml=_e?`<div style="margin:8px 0;border:.5px solid var(--red-border);border-radius:var(--r4);overflow:hidden;">
+    <div style="background:var(--red);color:#fff;padding:5px 9px;font-family:var(--mono);font-size:9px;letter-spacing:.05em;">STALE APPROVAL — CURRENCY &amp; SYSTEM-CHANGE${_e.escalated?' · SEVERITY ESCALATED → CRITICAL':''}</div>
+    <div style="padding:8px 10px;">
+      <div style="font-family:var(--mono);font-size:10px;line-height:1.5;"><span style="font-weight:700;">APPROVAL CURRENCY:</span> ${_e.approvalCurrency}</div>
+      <div style="font-family:var(--mono);font-size:10px;line-height:1.5;margin-top:3px;"><span style="font-weight:700;">SYSTEM CHANGE STATUS:</span> ${_e.systemChangeStatus}</div>
+      <div style="font-family:var(--mono);font-size:10px;line-height:1.5;margin-top:3px;"><span style="font-weight:700;">EXAMINER QUESTION:</span> Does this approval still describe the current system?</div>
+      ${_e.changeStatus==='CANNOT DETERMINE'?`<div style="margin-top:8px;font-size:11.5px;color:var(--red);background:var(--red-bg);border:.5px solid var(--red-border);border-radius:var(--r4);padding:8px 10px;line-height:1.5;">${_e.cannotDetermineStatement}</div>`:''}
+      ${_e.changeStatus==='PARTIAL'?`<div style="margin-top:8px;font-size:11px;color:var(--amber);">Change records are incomplete — missing: ${_e.missingLabels.join(', ')}.</div>`:''}
+      ${_e.noDecisionsPostExpiry?`<div style="margin-top:6px;font-size:10px;color:var(--mid);">Note: no decisions recorded after expiry — exposure window cannot be sized from decision logs, but the lapsed approval still stands.</div>`:''}
+    </div>
+  </div>`:'';
 
   return `<div class="gap-card ${g.type}">
     <div class="gap-hd">
@@ -1836,7 +2066,344 @@ function gapCard(g){
     <div class="gap-body">
       ${defImpact}
       <div class="gap-consequence">${g.consequence}</div>
-      ${confHtml}${driftHtml}${chainHtml}${examHtml}${provHtml}
+      ${confHtml}${escHtml}${indHtml}${driftHtml}${chainHtml}${examHtml}${provHtml}
+    </div>
+  </div>`;
+}
+
+// ── CONTROL DESIGN vs CONTROL OPERATION — Human Oversight & Review ──
+// Separates whether a control was *required* (design) from whether there is
+// evidence it *executed* (operation). A control that is required but never
+// observed operating cannot be distinguished from a decorative one.
+function oversightControlAssessment(s){
+  s=s||{};
+  // CONTROL DESIGN — does the governance record require human review?
+  // Edge: if multiple policy versions exist, use the most recent ACTIVE version only.
+  const pvs=((ACTIVE_DATA&&ACTIVE_DATA.policyVersions)||[]).filter(p=>p&&p.systemId===s.id)
+    .sort((a,b)=>new Date(b.effectiveFrom||0)-new Date(a.effectiveFrom||0));
+  const today=(typeof TODAY_STR!=='undefined')?TODAY_STR:null;
+  const activePv=pvs.find(p=>!p.effectiveTo||String(p.effectiveTo).trim()===''||(today&&new Date(p.effectiveTo)>=new Date(today)));
+  const latest=activePv||pvs[0]||null;
+  const hasPolicy=pvs.length>0||!!s.policyId;
+  const designStatus=hasPolicy?'FOUND':'NOT FOUND';
+  const policyRef=(latest&&(latest.policyId||latest.version))||s.policyId||null;
+  const designSource=hasPolicy
+    ? `${policyRef||'Governing policy'}${latest&&latest.version?(' '+latest.version):''}${pvs.length>1?' (most recent active version)':''} · Policy v2.1 §4.2 / NAIC Exhibit B §2.3(d) — human-review requirement`
+    : 'No governing policy or oversight requirement located in analysed sources';
+
+  // CONTROL OPERATION — is there evidence the control actually executed?
+  // Looks for override logs, review records, escalation records, reviewer fields.
+  const ovField=s.oversight;
+  const ovFieldMissing=(ovField===null||ovField===undefined||(typeof ovField==='string'&&ovField.trim()===''));
+  const ovFieldTrue=(ovField===true||ovField==='true'||ovField==='Y'||ovField==='Yes'||ovField==='yes'||ovField===1||ovField==='1');
+  const hasOversightLog=(typeof mappedData!=='undefined'&&mappedData&&mappedData.ovr&&Array.isArray(mappedData.ovr.rows))
+    ? mappedData.ovr.rows.some(r=>r&&r.systemId===s.id) : false;
+  const sysDecs=((ACTIVE_DATA&&ACTIVE_DATA.decisions)||[]).filter(d=>d&&d.systemId===s.id);
+  const reviewed=sysDecs.filter(d=>d.reviewer&&String(d.reviewer).trim());
+  const decCount=sysDecs.length, reviewedCount=reviewed.length;
+
+  let operationStatus,operationEvidence;
+  if(hasOversightLog||(decCount>0&&reviewedCount===decCount)){
+    // Explicit logs, or every decision carries a reviewer
+    operationStatus='FOUND';
+    const ev=[];
+    if(hasOversightLog) ev.push('override / review log records on file');
+    if(decCount>0&&reviewedCount===decCount) ev.push(`all ${decCount} decision${decCount>1?'s':''} carry a named reviewer`);
+    operationEvidence='Operating evidence located: '+ev.join('; ')+'.';
+  } else if(reviewedCount>0&&reviewedCount<decCount){
+    // Edge: partial oversight records — some decisions reviewed, some not
+    operationStatus='PARTIAL';
+    operationEvidence=`${reviewedCount} of ${decCount} decisions carry a named reviewer; the remainder do not — operating evidence is partial across reviewed decisions.`;
+  } else if(ovFieldTrue){
+    // Edge: oversight documented (mentions review) but no explicit logs/reviewers → ambiguous
+    operationStatus='CANNOT DETERMINE';
+    operationEvidence='Oversight is documented but no explicit override/review logs or reviewer fields were found in reviewed sources — operating evidence is ambiguous.';
+  } else if(ovFieldMissing){
+    // Edge: oversight field null/empty/missing → CANNOT DETERMINE, not a failure
+    operationStatus='CANNOT DETERMINE';
+    operationEvidence='Oversight field is absent or empty in reviewed sources — operation cannot be determined.';
+  } else if(decCount>0){
+    // Oversight explicitly absent and no reviewer evidence across existing decisions
+    operationStatus='NOT FOUND';
+    operationEvidence=`No override logs, review records, escalation records, or reviewer fields found across ${decCount} decision${decCount>1?'s':''} in the review period.`;
+  } else {
+    operationStatus='CANNOT DETERMINE';
+    operationEvidence='No decisions, override logs, or review records for this system in analysed sources — operation cannot be confirmed either way.';
+  }
+
+  const decorative=designStatus==='FOUND'&&operationStatus==='NOT FOUND';
+  const findingText=decorative
+    ? 'PolicyProof found evidence this control was required but no evidence it operated during the review period. This control cannot be distinguished from a decorative one without operating evidence.'
+    : null;
+  return {designStatus,designSource,operationStatus,operationEvidence,decorative,findingText,
+    resolveWith:'Override logs, human review records, escalation records, reviewer sign-off documentation'};
+}
+
+// Chain-row verdict for the oversight/intervention dimensions — never a simple PASS.
+// Minimum output is "ASSIGNED — operating evidence unverified".
+function oversightChainVerdict(s){
+  const a=oversightControlAssessment(s);
+  const opWord={'FOUND':'found','PARTIAL':'partial','NOT FOUND':'not found','CANNOT DETERMINE':'unverified'}[a.operationStatus]||'unverified';
+  const prefix=a.designStatus==='FOUND'?'ASSIGNED':'NOT REQUIRED';
+  return `${prefix} — operating evidence ${opWord}`;
+}
+
+// Web-app rendering of the Control Design vs Operation block (CSS variables)
+function oversightBlockHTML(s){
+  const a=oversightControlAssessment(s);
+  const pill=(st)=>{const c=st==='FOUND'?'var(--green)':st==='PARTIAL'?'var(--amber)':st==='NOT FOUND'?'var(--red)':'var(--mid)';
+    const b=st==='FOUND'?'var(--green-bg)':st==='PARTIAL'?'var(--amber-bg)':st==='NOT FOUND'?'var(--red-bg)':'var(--cream)';
+    return `<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${c};background:${b};border:.5px solid ${c};border-radius:99px;padding:2px 8px;letter-spacing:.04em;white-space:nowrap;">${st}</span>`;};
+  return `<div style="margin:10px 0;border:.5px solid ${a.decorative?'var(--red-border)':'var(--border)'};border-radius:var(--r6);overflow:hidden;">
+    <div style="background:var(--ink);color:var(--paper);padding:6px 10px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;">CONTROL DESIGN vs CONTROL OPERATION · HUMAN OVERSIGHT &amp; REVIEW</div>
+    <div style="padding:10px;">
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;">
+        <span style="font-family:var(--mono);font-size:10px;font-weight:600;flex:1;line-height:1.4;">CONTROL DESIGN — does the governance record require human review?</span>${pill(a.designStatus)}
+      </div>
+      <div style="font-size:11px;color:var(--mid);margin-bottom:10px;line-height:1.4;">Source: ${a.designSource}</div>
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;">
+        <span style="font-family:var(--mono);font-size:10px;font-weight:600;flex:1;line-height:1.4;">CONTROL OPERATION — is there evidence the control executed?</span>${pill(a.operationStatus)}
+      </div>
+      <div style="font-size:11px;color:var(--mid);line-height:1.4;">${a.operationEvidence}</div>
+      ${a.findingText?`<div style="margin-top:10px;font-size:11.5px;color:var(--red);background:var(--red-bg);border:.5px solid var(--red-border);border-radius:var(--r4);padding:8px 10px;line-height:1.5;">${a.findingText}</div>`:''}
+      <div style="margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--blue);line-height:1.4;"><span style="font-weight:600;color:var(--mid);">WOULD RESOLVE WITH: </span>${a.resolveWith}</div>
+    </div>
+  </div>`;
+}
+
+// PDF rendering of the Control Design vs Operation block (print units / hex)
+function oversightBlockPDF(s){
+  const a=oversightControlAssessment(s);
+  const pill=(st)=>{const c=st==='FOUND'?'#0d6648':st==='PARTIAL'?'#8a5c0a':st==='NOT FOUND'?'#b83228':'#6b6560';
+    const b=st==='FOUND'?'#e4f5ee':st==='PARTIAL'?'#fdf3e0':st==='NOT FOUND'?'#faeae8':'#edeae3';
+    return `<span style="font-family:'DM Mono',monospace;font-size:8pt;font-weight:700;color:${c};background:${b};border:0.5pt solid ${c};border-radius:99pt;padding:2pt 7pt;white-space:nowrap;">${st}</span>`;};
+  return `<div style="margin:8pt 10pt 10pt;border:1pt solid ${a.decorative?'#dba09a':'#e2ddd5'};border-radius:4pt;overflow:hidden;page-break-inside:avoid;">
+    <div style="background:#0c0c0c;color:#f7f4ef;padding:5pt 8pt;font-family:'DM Mono',monospace;font-size:7.5pt;letter-spacing:.06em;">CONTROL DESIGN vs CONTROL OPERATION · HUMAN OVERSIGHT &amp; REVIEW</div>
+    <div style="padding:8pt 10pt;">
+      <div style="display:flex;justify-content:space-between;gap:8pt;margin-bottom:3pt;"><span style="font-family:'DM Mono',monospace;font-size:8.5pt;font-weight:600;">CONTROL DESIGN — does the governance record require human review?</span>${pill(a.designStatus)}</div>
+      <div style="font-size:8.5pt;color:#6b6560;margin-bottom:8pt;">Source: ${a.designSource}</div>
+      <div style="display:flex;justify-content:space-between;gap:8pt;margin-bottom:3pt;"><span style="font-family:'DM Mono',monospace;font-size:8.5pt;font-weight:600;">CONTROL OPERATION — is there evidence the control executed?</span>${pill(a.operationStatus)}</div>
+      <div style="font-size:8.5pt;color:#6b6560;">${a.operationEvidence}</div>
+      ${a.findingText?`<div style="margin-top:8pt;font-size:9pt;color:#b83228;background:#faeae8;border:0.5pt solid #dba09a;border-radius:3pt;padding:7pt 9pt;line-height:1.5;">${a.findingText}</div>`:''}
+      <div style="margin-top:7pt;font-family:'DM Mono',monospace;font-size:8pt;color:#1a4f8a;"><span style="font-weight:600;color:#6b6560;">WOULD RESOLVE WITH: </span>${a.resolveWith}</div>
+    </div>
+  </div>`;
+}
+
+// ── DECISION RECONSTRUCTION READINESS ───────────────────────────────
+// Can a specific decision be reconstructed end-to-end from reviewed sources?
+// Checks six components against a representative decision. Missing fields are
+// reported as NOT FOUND; when no decision exists at all the readiness is
+// CANNOT DETERMINE (graceful — never errors or shows undefined).
+function decisionReconstruction(s){
+  s=s||{};
+  const COMPONENTS=[
+    {key:'model',    label:'Model Version at decision time',   source:'Model registry / MLOps version log'},
+    {key:'policy',   label:'Policy Version at decision time',  source:'Policy version library'},
+    {key:'threshold',label:'Threshold value at decision time', source:'Model configuration repository'},
+    {key:'dataSource',label:'Data Source at decision time',    source:'Data lineage / feature-store records'},
+    {key:'reviewer', label:'Human Reviewer',                   source:'Decision log reviewer field / oversight & review log'},
+    {key:'outcome',  label:'Decision Outcome',                 source:'Decision log outcome field'},
+  ];
+  const decs=((ACTIVE_DATA&&ACTIVE_DATA.decisions)||[]).filter(d=>d&&d.systemId===s.id);
+  const polVers=((ACTIVE_DATA&&ACTIVE_DATA.policyVersions)||[]).filter(p=>p&&p.systemId===s.id);
+  const ovr=(typeof mappedData!=='undefined'&&mappedData&&mappedData.ovr&&Array.isArray(mappedData.ovr.rows))
+    ? mappedData.ovr.rows.filter(r=>r&&r.systemId===s.id) : [];
+
+  // Edge: zero decisions → NOT APPLICABLE (not 0%)
+  if(decs.length===0){
+    return {
+      applicable:false, available:false, target:null,
+      components:COMPONENTS.map(c=>({label:c.label,source:c.source,status:'CANNOT DETERMINE',note:''})),
+      found:0, total:6, pct:null, answer:'N/A', coveragePartial:false,
+      missing:COMPONENTS.map(c=>({label:c.label,source:c.source,status:'CANNOT DETERMINE'})),
+      note:'No decisions recorded for this system in reviewed sources — reconstruction not applicable.'
+    };
+  }
+
+  // Representative decision named in the examiner question (deterministic, null-safe)
+  const target=decs.slice().sort((a,b)=>new Date(a.date||0)-new Date(b.date||0))[0];
+  const has=(v)=>v!==undefined&&v!==null&&String(v).trim()!==''&&String(v).trim().toUpperCase()!=='UNKNOWN';
+  const keyExists=(o,k)=>!!o&&Object.prototype.hasOwnProperty.call(o,k);
+
+  // Presence of a decision field across ALL the system's decisions
+  const scan=(fieldKey)=>{
+    const withVal=decs.filter(d=>has(d[fieldKey]));
+    return {count:withVal.length, total:decs.length, anyKey:decs.some(d=>keyExists(d,fieldKey))};
+  };
+  // Build a FOUND result, noting partial coverage and/or alternate source
+  const mk=(f,extraNote)=>{
+    const partial=f&&f.count>0&&f.count<f.total;
+    let note=partial?`partial coverage — ${f.count} of ${f.total} decisions`:'';
+    if(extraNote) note=note?(note+'; '+extraNote):extraNote;
+    return {status:'FOUND', note, partial:!!partial};
+  };
+  // Field exists but blank → NOT CAPTURED; field absent entirely → NOT FOUND
+  const empty=(f)=> f.anyKey?{status:'NOT CAPTURED',note:'field present but blank in decision records',partial:false}
+                            :{status:'NOT FOUND',note:'',partial:false};
+
+  const evalComp=(key)=>{
+    if(key==='model'){
+      const f=scan('modelVersion');
+      if(f.count>0) return mk(f);
+      if(has(s.modelVersion)||has(s.model)) return {status:'FOUND',note:'model version from inventory, not confirmed in decision records',partial:false};
+      return empty(f);
+    }
+    if(key==='policy'){
+      const f=scan('versionUsed');
+      if(f.count>0) return mk(f);
+      if(polVers.length>0) return {status:'FOUND',note:'policy version available from policy library, not confirmed in decision records',partial:false};
+      return empty(f);
+    }
+    if(key==='threshold'){
+      const f=scan('threshold');
+      if(f.count>0) return mk(f);
+      if(polVers.some(p=>has(p.threshold)||has(p.thresholdValue))) return {status:'FOUND',note:'threshold defined in policy but not confirmed in decision records',partial:false};
+      return empty(f);
+    }
+    if(key==='dataSource'){
+      const f=scan('dataSource');
+      if(f.count>0) return mk(f);
+      return empty(f);
+    }
+    if(key==='reviewer'){
+      const f=scan('reviewer');
+      const inOvr=ovr.some(r=>has(r.reviewer));
+      if(f.count>0) return mk(f, inOvr?'also evidenced in oversight log':'');
+      if(inOvr) return {status:'FOUND',note:'reviewer evidenced in oversight log, not in decision records',partial:false};
+      return empty(f);
+    }
+    if(key==='outcome'){
+      const f=scan('outcome');
+      if(f.count>0) return mk(f);
+      return empty(f);
+    }
+    return {status:'NOT FOUND',note:'',partial:false};
+  };
+
+  const components=COMPONENTS.map(c=>{const e=evalComp(c.key);return {label:c.label,source:c.source,status:e.status,note:e.note||''};});
+  const found=components.filter(c=>c.status==='FOUND').length;
+  const coveragePartial=components.some(c=>/partial coverage/.test(c.note));
+  const missing=components.filter(c=>c.status!=='FOUND').map(c=>({label:c.label,source:c.source,status:c.status}));
+  const answer=found===6?'YES':found>0?'PARTIAL':'NO';
+  return {applicable:true, available:true, target, components, found, total:6, pct:Math.round(found/6*100), answer, coveragePartial, missing,
+    note:coveragePartial?'Coverage is partial across reviewed decisions.':''};
+}
+
+// Web-app rendering of the Decision Reconstruction Readiness section
+function reconstructionBlockHTML(s){
+  const r=decisionReconstruction(s);
+  const pill=(st)=>{const c=st==='FOUND'?'var(--green)':st==='NOT CAPTURED'?'var(--amber)':st==='NOT FOUND'?'var(--red)':'var(--mid)';
+    const b=st==='FOUND'?'var(--green-bg)':st==='NOT CAPTURED'?'var(--amber-bg)':st==='NOT FOUND'?'var(--red-bg)':'var(--cream)';
+    return `<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${c};background:${b};border:.5px solid ${c};border-radius:99px;padding:1px 7px;white-space:nowrap;">${st}</span>`;};
+  const incomplete=r.applicable&&r.pct<100;
+  const borderC=!r.applicable?'var(--border)':incomplete?'var(--amber-border)':'var(--green-border)';
+  const tgt=r.target?`Decision ${r.target.id||'—'}${r.target.date?(' · '+r.target.date):''}`:'No decision on file';
+  const resolveWith=!r.applicable?'N/A — no decisions to reconstruct':(r.missing.length?r.missing.map(c=>`${c.label} → ${c.source}`).join('; '):'All components available');
+  const scoreLine=!r.applicable?'NOT APPLICABLE — no decisions recorded for this system':`${r.found} of 6 components available (${r.pct}%)${r.coveragePartial?' · coverage is partial across reviewed decisions':''}`;
+  return `<div style="margin:10px 0;border:.5px solid ${borderC};border-radius:var(--r6);overflow:hidden;">
+    <div style="background:var(--ink);color:var(--paper);padding:6px 10px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;display:flex;justify-content:space-between;gap:8px;"><span>DECISION RECONSTRUCTION READINESS</span><span style="color:var(--faint);">${tgt}</span></div>
+    <div style="padding:10px;">
+      ${r.components.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:.5px solid var(--border);">
+        <span style="font-size:11.5px;flex:1;">${c.label}${c.note?`<span style="color:var(--faint);font-size:10px;"> — ${c.note}</span>`:''}</span>${pill(c.status)}
+      </div>`).join('')}
+      <div style="margin-top:8px;font-family:var(--mono);font-size:11px;font-weight:600;color:${!r.applicable?'var(--mid)':incomplete?'var(--amber)':'var(--green)'};">Reconstructability: ${scoreLine}</div>
+      ${incomplete?`<div style="margin-top:8px;font-size:11.5px;color:var(--red);background:var(--red-bg);border:.5px solid var(--red-border);border-radius:var(--r4);padding:8px 10px;line-height:1.5;">This decision cannot be fully reconstructed from reviewed sources. An examiner selecting a specific decision will encounter gaps.</div>`:''}
+      <div style="margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--blue);line-height:1.4;"><span style="font-weight:600;color:var(--mid);">WOULD RESOLVE WITH: </span>${resolveWith}</div>
+    </div>
+  </div>`;
+}
+
+// PDF rendering of the Decision Reconstruction Readiness section
+function reconstructionBlockPDF(s){
+  const r=decisionReconstruction(s);
+  const pill=(st)=>{const c=st==='FOUND'?'#0d6648':st==='NOT CAPTURED'?'#8a5c0a':st==='NOT FOUND'?'#b83228':'#6b6560';
+    const b=st==='FOUND'?'#e4f5ee':st==='NOT CAPTURED'?'#fdf3e0':st==='NOT FOUND'?'#faeae8':'#edeae3';
+    return `<span style="font-family:'DM Mono',monospace;font-size:8pt;font-weight:700;color:${c};background:${b};border:0.5pt solid ${c};border-radius:99pt;padding:1pt 6pt;white-space:nowrap;">${st}</span>`;};
+  const incomplete=r.applicable&&r.pct<100;
+  const borderC=!r.applicable?'#e2ddd5':incomplete?'#e0a83a':'#5bbf9a';
+  const tgt=r.target?`Decision ${r.target.id||'—'}${r.target.date?(' · '+r.target.date):''}`:'No decision on file';
+  const resolveWith=!r.applicable?'N/A — no decisions to reconstruct':(r.missing.length?r.missing.map(c=>`${c.label} → ${c.source}`).join('; '):'All components available');
+  const scoreLine=!r.applicable?'NOT APPLICABLE — no decisions recorded for this system':`${r.found} of 6 components available (${r.pct}%)${r.coveragePartial?' · coverage is partial across reviewed decisions':''}`;
+  return `<div style="margin:8pt 10pt 10pt;border:1pt solid ${borderC};border-radius:4pt;overflow:hidden;page-break-inside:avoid;">
+    <div style="background:#0c0c0c;color:#f7f4ef;padding:5pt 8pt;font-family:'DM Mono',monospace;font-size:7.5pt;letter-spacing:.06em;display:flex;justify-content:space-between;gap:8pt;"><span>DECISION RECONSTRUCTION READINESS</span><span style="color:#9e9890;">${tgt}</span></div>
+    <div style="padding:8pt 10pt;">
+      ${r.components.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8pt;padding:2.5pt 0;border-bottom:0.5pt solid #e2ddd5;"><span style="font-size:9pt;">${c.label}${c.note?`<span style="color:#9e9890;font-size:7.5pt;"> — ${c.note}</span>`:''}</span>${pill(c.status)}</div>`).join('')}
+      <div style="margin-top:7pt;font-family:'DM Mono',monospace;font-size:9pt;font-weight:700;color:${!r.applicable?'#6b6560':incomplete?'#8a5c0a':'#0d6648'};">Reconstructability: ${scoreLine}</div>
+      ${incomplete?`<div style="margin-top:7pt;font-size:9pt;color:#b83228;background:#faeae8;border:0.5pt solid #dba09a;border-radius:3pt;padding:7pt 9pt;line-height:1.5;">This decision cannot be fully reconstructed from reviewed sources. An examiner selecting a specific decision will encounter gaps.</div>`:''}
+      <div style="margin-top:7pt;font-family:'DM Mono',monospace;font-size:8pt;color:#1a4f8a;line-height:1.4;"><span style="font-weight:600;color:#6b6560;">WOULD RESOLVE WITH: </span>${resolveWith}</div>
+    </div>
+  </div>`;
+}
+
+// ── OWNER ACCOUNTABILITY — assignment vs currency ───────────────────
+// Assignment of an owner is necessary but NOT sufficient for accountability.
+// Separates whether an owner is named (assignment) from whether there is
+// evidence that owner actively maintains the governance record (currency).
+// Currency defaults to CANNOT DETERMINE when no owner-activity records exist —
+// even when the owner is also the risk approver (approval ≠ ongoing maintenance).
+function ownerAccountabilityAssessment(s){
+  const raw=(s&&s.owner!==undefined&&s.owner!==null)?String(s.owner).trim():'';
+  const name=(raw&&raw!=='UNASSIGNED'&&raw!=='TBD')?raw:'';
+  const assigned=!!name;
+  const assignedStatus=assigned?'FOUND':'NOT FOUND';
+
+  // Currency: look for evidence of owner governance activity in reviewed sources
+  // (owner participation in oversight / review / acknowledgement records).
+  const ovr=(typeof mappedData!=='undefined'&&mappedData&&mappedData.ovr&&Array.isArray(mappedData.ovr.rows))?mappedData.ovr.rows:[];
+  const ownerActivity=assigned?ovr.filter(r=>r&&r.systemId===(s&&s.id)&&r.reviewer&&String(r.reviewer).trim().toLowerCase()===name.toLowerCase()):[];
+  let currencyStatus,currencyFound=false,currencyEvidence;
+  if(ownerActivity.length>0){
+    currencyStatus='FOUND'; currencyFound=true;
+    currencyEvidence=`Owner participation evidenced in ${ownerActivity.length} oversight/review record${ownerActivity.length>1?'s':''}.`;
+  } else {
+    currencyStatus='CANNOT DETERMINE';
+    currencyEvidence='An assigned owner who has not actively reviewed or acknowledged the governance record may not constitute effective accountability. PolicyProof found no evidence of owner governance activity in reviewed sources.';
+  }
+
+  // Owner is never a simple PASS — assignment alone is not effective accountability.
+  const verdictLabel=assigned
+    ? (currencyFound?'ASSIGNED — currency verified':'ASSIGNED — currency unverified')
+    : 'UNASSIGNED — governance chain broken';
+
+  return {assigned,name,assignedStatus,currencyStatus,currencyFound,currencyEvidence,verdictLabel,
+    resolveWith:'Owner review records, governance acknowledgement logs, oversight committee minutes showing owner participation'};
+}
+
+// Web-app rendering of the Owner Accountability block (CSS variables)
+function ownerBlockHTML(s){
+  const a=ownerAccountabilityAssessment(s);
+  const pill=(st)=>{const c=st==='FOUND'?'var(--green)':st==='NOT FOUND'?'var(--red)':'var(--mid)';
+    const b=st==='FOUND'?'var(--green-bg)':st==='NOT FOUND'?'var(--red-bg)':'var(--cream)';
+    return `<span style="font-family:var(--mono);font-size:9px;font-weight:700;color:${c};background:${b};border:.5px solid ${c};border-radius:99px;padding:2px 8px;letter-spacing:.04em;white-space:nowrap;">${st}</span>`;};
+  return `<div style="margin:10px 0;border:.5px solid ${a.assigned?'var(--border)':'var(--red-border)'};border-radius:var(--r6);overflow:hidden;">
+    <div style="background:var(--ink);color:var(--paper);padding:6px 10px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;">OWNER ACCOUNTABILITY · ASSIGNMENT vs CURRENCY</div>
+    <div style="padding:10px;">
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;">
+        <span style="font-family:var(--mono);font-size:10px;font-weight:600;flex:1;line-height:1.4;">OWNER ASSIGNED: ${a.name||'—'}</span>${pill(a.assignedStatus)}
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;">
+        <span style="font-family:var(--mono);font-size:10px;font-weight:600;flex:1;line-height:1.4;">OWNERSHIP CURRENCY</span>${pill(a.currencyStatus)}
+      </div>
+      <div style="font-size:11px;color:var(--mid);line-height:1.45;">${a.currencyEvidence}</div>
+      <div style="margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--blue);line-height:1.4;"><span style="font-weight:600;color:var(--mid);">WOULD RESOLVE WITH: </span>${a.resolveWith}</div>
+    </div>
+  </div>`;
+}
+
+// PDF rendering of the Owner Accountability block (print units / hex)
+function ownerBlockPDF(s){
+  const a=ownerAccountabilityAssessment(s);
+  const pill=(st)=>{const c=st==='FOUND'?'#0d6648':st==='NOT FOUND'?'#b83228':'#6b6560';
+    const b=st==='FOUND'?'#e4f5ee':st==='NOT FOUND'?'#faeae8':'#edeae3';
+    return `<span style="font-family:'DM Mono',monospace;font-size:8pt;font-weight:700;color:${c};background:${b};border:0.5pt solid ${c};border-radius:99pt;padding:2pt 7pt;white-space:nowrap;">${st}</span>`;};
+  return `<div style="margin:8pt 10pt 10pt;border:1pt solid ${a.assigned?'#e2ddd5':'#dba09a'};border-radius:4pt;overflow:hidden;page-break-inside:avoid;">
+    <div style="background:#0c0c0c;color:#f7f4ef;padding:5pt 8pt;font-family:'DM Mono',monospace;font-size:7.5pt;letter-spacing:.06em;">OWNER ACCOUNTABILITY · ASSIGNMENT vs CURRENCY</div>
+    <div style="padding:8pt 10pt;">
+      <div style="display:flex;justify-content:space-between;gap:8pt;margin-bottom:8pt;"><span style="font-family:'DM Mono',monospace;font-size:8.5pt;font-weight:600;">OWNER ASSIGNED: ${a.name||'—'}</span>${pill(a.assignedStatus)}</div>
+      <div style="display:flex;justify-content:space-between;gap:8pt;margin-bottom:3pt;"><span style="font-family:'DM Mono',monospace;font-size:8.5pt;font-weight:600;">OWNERSHIP CURRENCY</span>${pill(a.currencyStatus)}</div>
+      <div style="font-size:8.5pt;color:#6b6560;line-height:1.45;">${a.currencyEvidence}</div>
+      <div style="margin-top:7pt;font-family:'DM Mono',monospace;font-size:8pt;color:#1a4f8a;line-height:1.4;"><span style="font-weight:600;color:#6b6560;">WOULD RESOLVE WITH: </span>${a.resolveWith}</div>
     </div>
   </div>`;
 }
@@ -1859,16 +2426,16 @@ function renderScore(){
       owner:'No named human accountable for decisions',
       risk: s.riskStatus==='NOT ON FILE'?'No documented authorisation to operate this system':'Authorisation to operate has expired — governance chain degraded',
       policy:'Policy execution drift detected — system running after governing policy changed',
-      oversight:'No mechanism to stop or override AI decisions',
-      intervention:'Cannot intervene if system produces harmful output',
+      oversight:'No oversight mechanism documented — see Control Design vs Operation below',
+      intervention:'No documented intervention capability — see Control Design vs Operation below',
       compliance:'Deployed without compliance authorisation',
     };
     const passes={
-      owner:s.owner,
+      owner:(s.owner||'Assigned')+' — assigned; active maintenance unverified',
       risk:'Active — expires '+s.riskExpiry,
       policy:'Current governing version',
-      oversight:'Documented',
-      intervention:'Documented',
+      oversight:'Required by policy — operating evidence assessed below',
+      intervention:'Required by policy — operating evidence assessed below',
       compliance:'Obtained',
     };
     return ok ? passes[dim] : fails[dim];
@@ -2001,10 +2568,13 @@ function renderScore(){
                       {dim:'compliance',label:'COMPLIANCE SIGN-OFF',ok:d.complianceOk},
                     ].map(c=>`<div class="def-chain-item ${c.ok?'pass':'fail'}">
                       <div class="def-chain-label">${c.label}</div>
-                      <div class="def-chain-val">${c.ok?'✓ PASS':'✕ FAIL'}</div>
+                      <div class="def-chain-val"${(c.dim==='owner'||c.dim==='oversight'||c.dim==='intervention')?' style="font-size:9.5px;line-height:1.25;"':''}>${c.dim==='owner'?ownerAccountabilityAssessment(d.s).verdictLabel:(c.dim==='oversight'||c.dim==='intervention')?oversightChainVerdict(d.s):(c.ok?'✓ PASS':'✕ FAIL')}</div>
                       <div style="font-size:10px;margin-top:2px;color:var(--mid);line-height:1.3;">${chainConsequence(c.dim,c.ok,d.s)}</div>
                     </div>`).join('')}
                   </div>
+                  ${ownerBlockHTML(d.s)}
+                  ${oversightBlockHTML(d.s)}
+                  ${reconstructionBlockHTML(d.s)}
                   ${d.exposure?`<div class="def-exposure">⚠ Duration of exposure: ${d.exposure}</div>`:''}
                   ${d.uniqueDecs>0?`<div style="font-family:var(--mono);font-size:10px;color:var(--red);margin-top:3px;">Decisions made during governance gap: ${d.uniqueDecs}</div>`:''}
                   <div class="def-overall">
@@ -2069,7 +2639,7 @@ function renderEQs(){
   document.getElementById('no-count').textContent=eqs.filter(q=>q.verdict==='NO').length;
   document.getElementById('eq-list').innerHTML=eqs.map(q=>`
     <div class="eq-item">
-      <div class="eq-hd"><span class="eq-sys">${q.system}</span><span class="eq-q">"${q.q}"</span><span class="eq-verdict ${q.verdict.toLowerCase()}">${q.verdict}</span></div>
+      <div class="eq-hd"><span class="eq-sys">${q.system}</span><span class="eq-q">"${q.q}"</span><span class="eq-verdict ${q.verdict.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}">${q.verdict}</span></div>
       <div class="eq-body">${q.why}</div>
     </div>`).join('');
 }
@@ -2241,7 +2811,7 @@ p{margin-bottom:8pt;line-height:1.6;}
 .eq-sys{font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;flex-shrink:0;}
 .eq-q{font-size:9.5pt;font-style:italic;flex:1;}
 .eq-v{font-family:'DM Mono',monospace;font-size:8pt;font-weight:600;padding:2pt 7pt;border-radius:99pt;}
-.eq-v.no{background:#b83228;color:#fff;}.eq-v.partial{background:#8a5c0a;color:#fff;}
+.eq-v.no{background:#b83228;color:#fff;}.eq-v.partial{background:#8a5c0a;color:#fff;}.eq-v.yes{background:#0d6648;color:#fff;}.eq-v.cannot-determine{background:#6b6560;color:#fff;}.eq-v.n-a{background:#9e9890;color:#fff;}
 .eq-body{padding:6pt 10pt;font-size:9pt;color:#6b6560;border-top:.5pt solid #e2ddd5;}
 .drift-item{border:.5pt solid #e0a83a;background:#fdf3e0;border-radius:4pt;padding:8pt;margin-bottom:6pt;}
 .drift-item-title{font-weight:600;color:#8a5c0a;font-size:10pt;margin-bottom:3pt;}
@@ -2288,7 +2858,7 @@ p{margin-bottom:8pt;line-height:1.6;}
 
 <!-- EXAMINER QUESTIONS -->
 <h1>Questions ${getOrgName()} Cannot Answer Today</h1>
-${eqs.map(q=>`<div class="eq-item"><div class="eq-hd"><span class="eq-sys">${q.system}</span><span class="eq-q">"${q.q}"</span><span class="eq-v ${q.verdict.toLowerCase()}">${q.verdict}</span></div><div class="eq-body">${q.why}</div></div>`).join('')}
+${eqs.map(q=>`<div class="eq-item"><div class="eq-hd"><span class="eq-sys">${q.system}</span><span class="eq-q">"${q.q}"</span><span class="eq-v ${q.verdict.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}">${q.verdict}</span></div><div class="eq-body">${q.why}</div></div>`).join('')}
 
 <!-- GOVERNANCE RECONSTRUCTABILITY -->
 <h1>Governance Reconstructability</h1>
@@ -2432,18 +3002,21 @@ ${ACTIVE_DATA.systems.map(s=>{
     <div style="padding:8pt 10pt;font-size:9.5pt;font-weight:500;color:${vColor};background:${vBg};border-bottom:1pt solid #e2ddd5;">${rationale}</div>
     <table style="width:100%;border-collapse:collapse;">
       ${[
-        {label:'Owner',ok:ownerOk,consequence:ownerOk?s.owner:'No named human accountable for decisions'},
+        {label:'Owner',ok:ownerOk,owner:true,consequence:ownerOk?((s.owner||'Assigned')+' — assigned; active maintenance unverified'):'No named human accountable for decisions'},
         {label:'Risk Acceptance',ok:riskOk,consequence:riskOk?'Active — expires '+s.riskExpiry:(riskAbsent?'No documented authorisation to operate this system':'Authorisation to operate has expired — governance chain degraded')},
         {label:'Policy Currency',ok:policyOk,consequence:policyOk?'Current governing version':'Policy execution drift — decisions made after governing policy changed'},
-        {label:'Oversight',ok:oversightOk,consequence:oversightOk?'Documented':'No mechanism to stop or override AI decisions'},
-        {label:'Intervention Capability',ok:interventionOk,consequence:interventionOk?'Documented':'Cannot intervene if system produces harmful output'},
+        {label:'Oversight',ok:oversightOk,oversight:true,consequence:oversightOk?'Required by policy — operating evidence assessed below':'No oversight mechanism documented — see Control Design vs Operation below'},
+        {label:'Intervention Capability',ok:interventionOk,oversight:true,consequence:interventionOk?'Required by policy — operating evidence assessed below':'No documented intervention capability — see Control Design vs Operation below'},
         {label:'Compliance Sign-Off',ok:complianceOk,consequence:complianceOk?'Obtained':'Deployed without compliance authorisation'},
       ].map((c,i)=>`<tr style="background:${i%2===0?'#fff':'#fafaf9'};">
         <td style="padding:5pt 10pt;width:130pt;font-family:'DM Mono',monospace;font-size:8pt;color:#6b6560;">${c.label}</td>
-        <td style="padding:5pt 8pt;width:60pt;font-family:'DM Mono',monospace;font-size:8.5pt;font-weight:700;color:${c.ok?'#0d6648':'#b83228'};">${c.ok?'✓ PASS':'✕ FAIL'}</td>
+        <td style="padding:5pt 8pt;width:60pt;font-family:'DM Mono',monospace;font-weight:700;color:${c.ok?'#0d6648':'#b83228'};${(c.owner||c.oversight)?'font-size:7pt;':'font-size:8.5pt;'}">${c.owner?ownerAccountabilityAssessment(s).verdictLabel:c.oversight?oversightChainVerdict(s):(c.ok?'✓ PASS':'✕ FAIL')}</td>
         <td style="padding:5pt 8pt;font-size:9pt;color:${c.ok?'#0c0c0c':'#b83228'};">${c.consequence}</td>
       </tr>`).join('')}
     </table>
+    ${ownerBlockPDF(s)}
+    ${oversightBlockPDF(s)}
+    ${reconstructionBlockPDF(s)}
   </div>`;
 }).join('')}
 
@@ -2455,7 +3028,7 @@ ${ACTIVE_DATA.systems.map(s=>{
 <!-- GOVERNANCE GAPS -->
 <h1>Governance Gaps (${AR.gaps.length} detected)</h1>
 ${AR.gaps.map(g=>{
-  const ftLabel={missing:'Missing',drift:'Drift',trust:'Trust Failure','ra-drift':'RA Drift'}[g.findingType]||g.findingType;
+  const ftLabel={missing:'Missing',drift:'Drift',trust:'Trust Failure','ra-drift':'RA Drift','missing-rationale':'Missing Rationale'}[g.findingType]||g.findingType;
   const driftHtml=(g.drift&&g.findingType!=='ra-drift')?`<div class="drift-box"><strong style="font-size:8.5pt;font-family:'DM Mono',monospace;color:#8a5c0a;">GOVERNANCE DRIFT DETECTED</strong><div class="drift-grid"><div><div class="drift-label">CURRENT POLICY</div><div class="drift-val">${g.drift.currentPolicy}</div></div><div><div class="drift-label">SYSTEM USING</div><div class="drift-val red">${g.drift.systemUsing}</div></div><div><div class="drift-label">DRIFT STARTED</div><div class="drift-val">${fmt(g.drift.driftStarted)}</div></div><div><div class="drift-label">DURATION</div><div class="drift-val red">${g.drift.driftDays} days</div></div></div><div style="margin-top:5pt;font-family:'DM Mono',monospace;font-size:8pt;color:#8a5c0a;">Affected decisions: ${g.drift.affectedDecisions}</div></div>`:'';
   const chainHtml=g.chain?`<table class="chain-table">${g.chain.map(n=>`<tr><td style="width:140pt;"><span class="${n.ok?'chain-dot-ok':'chain-dot-gap'}">${n.ok?'●':'✕'}</span> <strong>${n.label}</strong></td><td>${n.detail}</td><td style="width:90pt;font-family:'DM Mono',monospace;font-size:8pt;color:#9e9890;">${n.date}</td></tr>`).join('')}</table>`:'';
   const evClass=g.examinerVerdict==='NO'?'no':'partial';
@@ -2464,6 +3037,22 @@ ${AR.gaps.map(g=>{
   const confColor=g.confidence==='HIGH'?'#0d6648':g.confidence==='MEDIUM'?'#8a5c0a':'#6b6560';
   const confBg=g.confidence==='HIGH'?'#e4f5ee':g.confidence==='MEDIUM'?'#fdf3e0':'#f7f4ef';
   const confHtml=g.confidence?`<div style="display:inline-flex;align-items:center;gap:5pt;margin-bottom:6pt;padding:3pt 8pt;background:${confBg};border-radius:99pt;border:0.5pt solid ${confColor}20;"><span style="font-family:'DM Mono',monospace;font-size:7.5pt;font-weight:700;color:${confColor};letter-spacing:.05em;">CONFIDENCE: ${g.confidence}</span><span style="font-size:8pt;color:${confColor};">${g.confidenceReason}</span></div>`:'';
+  const indHtml=(g.indicators&&g.indicators.length)?`<div style="margin:6pt 0;border:0.5pt solid #e2ddd5;border-radius:3pt;overflow:hidden;">${g.indicators.map(t=>{
+    const cap=/NOT CAPTURED/i.test(t)?'#b83228':/CANNOT DETERMINE/i.test(t)?'#6b6560':'#0d6648';
+    return `<div style="display:flex;justify-content:space-between;gap:8pt;padding:3pt 8pt;font-family:'DM Mono',monospace;font-size:8pt;border-bottom:0.5pt solid #e2ddd5;"><span>${t.split(':')[0]}</span><span style="font-weight:700;color:${cap};">${t.split(':').slice(1).join(':').trim()}</span></div>`;
+  }).join('')}</div>`:'';
+  const _e=g.escalation;
+  const escHtml=_e?`<div style="margin:6pt 0;border:0.5pt solid #dba09a;border-radius:3pt;overflow:hidden;page-break-inside:avoid;">
+    <div style="background:#b83228;color:#fff;padding:4pt 8pt;font-family:'DM Mono',monospace;font-size:7.5pt;letter-spacing:.05em;">STALE APPROVAL — CURRENCY &amp; SYSTEM-CHANGE${_e.escalated?' · SEVERITY ESCALATED → CRITICAL':''}</div>
+    <div style="padding:7pt 9pt;">
+      <div style="font-family:'DM Mono',monospace;font-size:8pt;line-height:1.5;"><span style="font-weight:700;">APPROVAL CURRENCY:</span> ${_e.approvalCurrency}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:8pt;line-height:1.5;margin-top:2pt;"><span style="font-weight:700;">SYSTEM CHANGE STATUS:</span> ${_e.systemChangeStatus}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:8pt;line-height:1.5;margin-top:2pt;"><span style="font-weight:700;">EXAMINER QUESTION:</span> Does this approval still describe the current system?</div>
+      ${_e.changeStatus==='CANNOT DETERMINE'?`<div style="margin-top:7pt;font-size:9pt;color:#b83228;background:#faeae8;border:0.5pt solid #dba09a;border-radius:3pt;padding:7pt 9pt;line-height:1.5;">${_e.cannotDetermineStatement}</div>`:''}
+      ${_e.changeStatus==='PARTIAL'?`<div style="margin-top:7pt;font-size:8.5pt;color:#8a5c0a;">Change records are incomplete — missing: ${_e.missingLabels.join(', ')}.</div>`:''}
+      ${_e.noDecisionsPostExpiry?`<div style="margin-top:5pt;font-size:8pt;color:#6b6560;">Note: no decisions recorded after expiry — exposure window cannot be sized from decision logs, but the lapsed approval still stands.</div>`:''}
+    </div>
+  </div>`:'';
   return `<div class="finding ${g.type}">
     <div class="finding-header">
       <div>
@@ -2473,7 +3062,7 @@ ${AR.gaps.map(g=>{
       <span class="finding-pts">${g.pts}</span>
     </div>
     <div class="finding-consequence">${g.consequence}</div>
-    ${confHtml}${driftHtml}${chainHtml}${examHtml}${provHtml}
+    ${confHtml}${escHtml}${indHtml}${driftHtml}${chainHtml}${examHtml}${provHtml}
   </div>`;
 }).join('')}
 
